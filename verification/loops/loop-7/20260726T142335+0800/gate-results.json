@@ -1,0 +1,55 @@
+{
+  "schema_version": 1,
+  "loop_id": "loop-7",
+  "run_id": "20260726T142335+0800",
+  "evaluated_at": "2026-07-26T15:29:43+08:00",
+  "subject_git_commit": "9e1ff869d23e54e9e694a24ecaa2c0949c7dfc6f",
+  "gates": [
+    {
+      "id": "loop-7-human-review-completion",
+      "status": "passed",
+      "evidence": [
+        "verification/loops/loop-7/20260726T142335+0800/review-completion-snapshot.json",
+        "verification/loops/loop-7/20260726T142335+0800/input-manifest.json"
+      ],
+      "result": "The isolated new-application review database contains exactly 50 latest confirmed records for L7-001 through L7-050, no replacement requests, contiguous version histories, 100 rehashed package images, and no structural validation errors. This gate makes no OCR or accuracy claim."
+    },
+    {
+      "id": "loop-7-observed-and-derived-role-contract",
+      "status": "passed",
+      "evidence": [
+        "verification/loops/loop-7/20260726T142335+0800/test-summary.json",
+        "verification/loops/loop-7/20260726T142335+0800/independent-review.json",
+        "verification/loops/loop-7/20260726T142335+0800/safety-observations.json"
+      ],
+      "result": "The real locked set preserves its natural distribution. The four deterministic relationship scenarios reuse human-confirmed real-image roles, execute the production assess_ticket_roles policy, require exact awaiting-review issue codes, and are excluded from real counts, confusion matrices, latency, accuracy, recall, and prevalence claims."
+    },
+    {
+      "id": "loop-7-formal-integrity-and-replay-safety",
+      "status": "passed",
+      "evidence": [
+        "verification/loops/loop-7/20260726T142335+0800/test-summary.json",
+        "verification/loops/loop-7/20260726T142335+0800/independent-review.json"
+      ],
+      "result": "Formal report persistence rejects inconsistent observed pair outcomes, unsupported runner versions, incomplete or changed run contexts, stale request hashes, boolean schema-version impersonation, and the reviewed partial-row false-positive forgery through normal, replayable, and idempotent read paths. This gate does not claim protection against a privileged actor coherently rewriting the entire SQLite database and every self-hash."
+    },
+    {
+      "id": "loop-7-locked-set-release",
+      "status": "pending",
+      "evidence": [
+        "verification/loops/loop-7/20260726T142335+0800/input-manifest.json",
+        "verification/loops/loop-7/20260726T142335+0800/review-completion-snapshot.json",
+        "verification/loops/loop-7/20260726T142335+0800/safety-observations.json"
+      ],
+      "result": "The fail-closed export bridge, configured server-side reviewer identity, formal package bind and validation, perceptual-similarity decisions, qualified CPU/GPU OCR evaluation, and independent review of actual formal results remain incomplete. Loop 7 and real accuracy claims remain pending."
+    }
+  ],
+  "summary": {
+    "passed": 3,
+    "pending": 1,
+    "failed": 0,
+    "loop_status": "in_progress",
+    "release_claim": "human_review_complete_contract_hardened_formal_evaluation_pending",
+    "loop_7_accepted": false
+  }
+}

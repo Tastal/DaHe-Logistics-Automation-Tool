@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "loop_id": "loop-2",
+  "run_id": "20260725T131551+0800",
+  "observations": [
+    "Only deterministic fake platform and fake image-recognition adapters were instantiated.",
+    "No Chengfeng host, account, credential, browser profile, production image, platform request, or platform write was used.",
+    "No legacy path, process, port, database, browser profile, launcher, or runtime was read, attached to, or changed.",
+    "The local server bound only to 127.0.0.1:8877 after an explicit free-port check.",
+    "The final browser validation server used .tmp/loop2-live-final-20260725T1421; its exact command line and PID 13428 were verified before it was stopped, and port 8877 was confirmed free afterward.",
+    "Every request observed by the final browser session used http://127.0.0.1:8877; no external request was present.",
+    "No Windows DNS, proxy, VPN, routing, hosts file, or global browser setting was changed.",
+    "No real PaddleOCR, GPU runtime, CUDA package, or OCR model was installed.",
+    "The OCR port receives only evidence-set identity, image SHA-256, and data-root-relative paths; platform expected weights are assembled in the application layer only after extraction returns.",
+    "Existing temporary databases are inspected read-only and checked against the complete versioned table, column, key, and uniqueness contract before an engine or WAL configuration is created.",
+    "The local API contains no settlement confirmation, payment, receipt cancellation, or other Chengfeng write endpoint."
+  ],
+  "status": "passed"
+}

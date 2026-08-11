@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "loop_id": "loop-5",
+  "run_id": "20260725T175112+0800",
+  "recorded_at": "2026-07-25T17:48:00+08:00",
+  "git_commit": "6c1fd78641f199fdff9a490a1c153f1d52d29b90",
+  "command": ".\\.venv\\Scripts\\python.exe tools\\check.py",
+  "exit_code": 0,
+  "results": {
+    "ruff": "passed",
+    "mypy_source_files": 71,
+    "python_tests_passed": 203,
+    "frontend_test_files_passed": 4,
+    "frontend_tests_passed": 25,
+    "frontend_production_build": "passed"
+  },
+  "safety_observation": "The baseline used the project virtual environment and did not access Chengfeng, the network, OCR runtimes, legacy data, browser profiles, or external business systems."
+}

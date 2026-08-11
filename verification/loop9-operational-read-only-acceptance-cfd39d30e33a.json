@@ -1,0 +1,61 @@
+{
+  "backup_restore": {
+    "canonical_sha256": "2011cdfafb74eead589c3f00af68bd85bf05b90c5183403d104a037e893540ef",
+    "evidence_count": 186
+  },
+  "canonical_sha256": "15928e6ac06fe65a07fff115b3e3b33815965a4c975f51daca30c8f9317b09c6",
+  "daily_capture": {
+    "audit_sha256": "53e9aefba10e5cb2dae6a0eda173620f7b74c7efd67e7f07aca78d32578e44b6",
+    "capture_sha256": "ff24f40524e770e32d3cb8c309045574e199fdfe709aacb4c325cacbaa77bc57",
+    "dynamic_total": 46,
+    "missing_ticket_count": 0,
+    "waybills_per_minute": 1.362294
+  },
+  "daily_report": {
+    "business_date": "2026-08-04",
+    "data_snapshot_sha256": "5099636d8ac90c9f53d5a62fa2b17b16bccbba7eef2fcc39a9f7500360d49fc6",
+    "file_sha256": "726a45df4469a5a29111ed8f63d27d42d48ee34c410a4a3e72c65e252a00d1fe",
+    "loading_net_total": "1499.88",
+    "report_id_sha256": "b05cc1fbb2da0a231245b093dcfb01ae95004a3dadba0b8dae637a12afe7cdf8",
+    "row_count": 46
+  },
+  "fault_injection": {
+    "result_sha256": "0fa9919b3ad0a3562ad811247c3cb361169365f38cb0f19768ff0e24601855f9",
+    "scenario_projection_sha256": "8be458fe8dcb5d41e61349ba5da036b6da3c7e3c0f21eded45dc652861037476"
+  },
+  "first_batch_guard": {
+    "false_normal_count": 0,
+    "record_version": 8,
+    "registered_count": 2,
+    "reviewed_count": 0,
+    "status": "operational_read_only_with_guard",
+    "target_count": 30
+  },
+  "historical_locked_set_regression": {
+    "file_sha256": "265d8c402e100813c2b06740238cd129a208f1750f37e91cc961837d0625a595",
+    "image_count": 100,
+    "pair_count": 50,
+    "wrong_auto_pass_count": 0
+  },
+  "kind": "loop9_operational_read_only_acceptance",
+  "ocr_qualification": {
+    "cpu_profile_id": "cpu-portable-fp32-b1-w1",
+    "file_sha256": "fb07f25bc1158f23850a074f5782b3a1b122dfc868ae58862bd35811cd8e079c",
+    "gpu_profile_id": "gpu-c7fe21693329-fp16-b6-w1"
+  },
+  "release": {
+    "build_git_commit": "cfd39d30e33a8e146b4a11b26cf52ee68bf47f07",
+    "manifest_file_sha256": "201014219496de471452ebcd9ba2280dd88dda341cf377f7d112e061326456e9",
+    "payload_file_count": 314
+  },
+  "schema_version": 1,
+  "settlement_capture": {
+    "audit_sha256": "d790505027f2593303eee12d0fdae045b7052f0080fbcd1079696ad698c5104d",
+    "capture_sha256": "1b4e7f3e1052de398a21cce218eb1f4ff475d8516ef9104588d48a3431bc31e2",
+    "dynamic_total": 2,
+    "missing_ticket_count": 0,
+    "waybills_per_minute": 0.774502
+  },
+  "source_build_sha256": "71d12dcd1b74017a48b4c03dada077abed8d6d2df93eabed86003de72e93dbbd",
+  "status": "operational_read_only_with_guard"
+}

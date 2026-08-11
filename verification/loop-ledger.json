@@ -1,0 +1,44 @@
+{
+  "acceptance": null,
+  "current_loop": "loop-10",
+  "gate_results": [
+    {
+      "evidence": "verification/loops/loop-10/20260810T210226+0800/gate-a-evidence.json",
+      "id": "loop-10-gate-a-current-machine-fix",
+      "status": "passed"
+    },
+    {
+      "evidence": null,
+      "id": "loop-10-gate-b-install-update-schema",
+      "status": "pending"
+    },
+    {
+      "evidence": null,
+      "id": "loop-10-gate-c-local-diagnostics-release",
+      "status": "pending"
+    }
+  ],
+  "input_manifest": {
+    "path": "verification/loops/loop-10/20260810T210226+0800/input-manifest.json",
+    "sha256": "096c183f85e2aa8d5a920eda6a996ad2943909fa75cf2b9c8ffe75cfff783f0f"
+  },
+  "last_accepted_git_commit": "caeee5478ea22bc96538ca5a41886118e2b9fffd",
+  "next_inputs": [
+    "Implement the ordinary-user one-folder installer and stable launcher in Gate B.",
+    "Implement the separate updater with hash, domain, active-job, schema preflight, readiness, and rollback gates.",
+    "Keep the current 0.8.1 installation and production data untouched until Gate B migration preflight passes.",
+    "Keep every Chengfeng business write disabled."
+  ],
+  "operational_acceptance": null,
+  "project_id": "DaHeLogistics",
+  "revision": 44,
+  "run_id": "20260810T210226+0800",
+  "schema_version": 4,
+  "status": "in_progress",
+  "unresolved_risks": [
+    "Gate B installer, updater, and schema rollback are not implemented or accepted.",
+    "Gate C local diagnostics and v1.0.0 publication are not implemented or accepted.",
+    "A code-signing certificate is intentionally absent, so SmartScreen reputation prompts remain possible."
+  ],
+  "waiver": null
+}

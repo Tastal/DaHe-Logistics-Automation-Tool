@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="4" failures="0" skipped="0" tests="4" time="0.442" timestamp="2026-07-25T12:17:47.872087+08:00" hostname="ProArtJH"><testcase classname="" name="tests.unit.domain.audit.test_evidence_and_shadow" time="0.000"><error message="collection failure">ImportError while importing test module 'C:\Users\aya72\OneDrive\Desktop\AI开发\DaHe\tests\unit\domain\audit\test_evidence_and_shadow.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+..\..\..\..\AppData\Local\Programs\Python\Python312\Lib\importlib\__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests\unit\domain\audit\test_evidence_and_shadow.py:6: in &lt;module&gt;
+    from dahe.domain.audit.decisions import BusinessOutcome
+E   ModuleNotFoundError: No module named 'dahe.domain'</error></testcase><testcase classname="" name="tests.unit.domain.audit.test_manual_actions" time="0.000"><error message="collection failure">ImportError while importing test module 'C:\Users\aya72\OneDrive\Desktop\AI开发\DaHe\tests\unit\domain\audit\test_manual_actions.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+..\..\..\..\AppData\Local\Programs\Python\Python312\Lib\importlib\__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests\unit\domain\audit\test_manual_actions.py:8: in &lt;module&gt;
+    from dahe.domain.audit.decisions import AuditDecisionKind, BusinessOutcome, evaluate_audit
+E   ModuleNotFoundError: No module named 'dahe.domain'</error></testcase><testcase classname="" name="tests.unit.domain.audit.test_ticket_roles_and_decisions" time="0.000"><error message="collection failure">ImportError while importing test module 'C:\Users\aya72\OneDrive\Desktop\AI开发\DaHe\tests\unit\domain\audit\test_ticket_roles_and_decisions.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+..\..\..\..\AppData\Local\Programs\Python\Python312\Lib\importlib\__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests\unit\domain\audit\test_ticket_roles_and_decisions.py:8: in &lt;module&gt;
+    from dahe.domain.audit.decisions import (
+E   ModuleNotFoundError: No module named 'dahe.domain'</error></testcase><testcase classname="" name="tests.unit.domain.audit.test_weights" time="0.000"><error message="collection failure">ImportError while importing test module 'C:\Users\aya72\OneDrive\Desktop\AI开发\DaHe\tests\unit\domain\audit\test_weights.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+..\..\..\..\AppData\Local\Programs\Python\Python312\Lib\importlib\__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests\unit\domain\audit\test_weights.py:9: in &lt;module&gt;
+    from dahe.domain.audit.errors import DomainContractError
+E   ModuleNotFoundError: No module named 'dahe.domain'</error></testcase></testsuite></testsuites>

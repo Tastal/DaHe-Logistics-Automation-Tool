@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "loop_id": "loop-2",
+  "run_id": "20260725T131551+0800",
+  "fixture_kind": "deterministic_synthetic",
+  "production_data_used": false,
+  "network_used": false,
+  "platform_adapter": "fake",
+  "ocr_adapter": "fake",
+  "waybills": [
+    {
+      "fixture_id": "audit-normal-001",
+      "waybill_number": "TEST-20260725-001",
+      "vehicle_number": "测试车辆01",
+      "scope": "single-normal-waybill",
+      "platform_loading_net_tonnes": "30.00",
+      "platform_unloading_net_tonnes": "29.80",
+      "loading_ticket_net_tonnes": "30.00",
+      "unloading_ticket_net_tonnes": "29.80",
+      "loading_role": "loading",
+      "unloading_role": "unloading",
+      "expected_machine_decision": "pass",
+      "expected_business_outcome": "normal_ready"
+    }
+  ],
+  "expected_counts": {
+    "jobs_created": 1,
+    "work_items": 1,
+    "normal_ready": 1,
+    "awaiting_review": 0,
+    "technical_failures": 0
+  }

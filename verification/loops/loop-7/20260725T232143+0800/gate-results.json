@@ -1,0 +1,105 @@
+{
+  "schema_version": 1,
+  "loop_id": "loop-7",
+  "run_id": "20260725T232143+0800",
+  "evaluated_at": "2026-07-26T03:21:17+08:00",
+  "subject_git_commit": "f9ea8e109ff2e755aa527bc38b91f9ebf36a39d4",
+  "gates": [
+    {
+      "id": "loop-7-template-contract-and-versioning",
+      "status": "passed",
+      "evidence": [
+        "verification/loops/loop-7/20260725T232143+0800/test-results.xml",
+        "verification/loops/loop-7/20260725T232143+0800/independent-review-final.json"
+      ],
+      "result": "Immutable family versions, canonical content fingerprints, reference and mask identities, record versions, lifecycle events, and current-shadow pointers are durable and transactionally reconciled."
+    },
+    {
+      "id": "loop-7-lifecycle-and-rollback",
+      "status": "passed",
+      "evidence": [
+        "verification/loops/loop-7/20260725T232143+0800/test-results.xml",
+        "verification/loops/loop-7/20260725T232143+0800/safety-observations.json",
+        "verification/loops/loop-7/20260725T232143+0800/independent-review-final.json"
+      ],
+      "result": "Draft, development_tested, shadow, invalidation, and protected rollback are implemented without an active publication path. Lifecycle authority uses only the absolute latest compatible code-owned evaluation and rechecks the current template set."
+    },
+    {
+      "id": "loop-7-role-evidence-independence",
+      "status": "passed",
+      "evidence": [
+        "verification/loops/loop-7/20260725T232143+0800/test-results.xml",
+        "verification/loops/loop-7/20260725T232143+0800/safety-observations.json"
+      ],
+      "result": "Role evidence uses only accepted OCR text, fixed text, confidence, and normalized geometry. Platform weight, expected role, file name, and upload slot cannot enter candidate selection."
+    },
+    {
+      "id": "loop-7-rotation-and-unknown-safety",
+      "status": "passed",
+      "evidence": [
+        "verification/loops/loop-7/20260725T232143+0800/development-evaluation.json",
+        "verification/loops/loop-7/authorizing-development-dataset-v1.json",
+        "verification/loops/loop-7/20260725T232143+0800/test-results.xml"
+      ],
+      "result": "Both roles are exercised at 0, 90, 180, and 270 degrees; weak, unknown-layout, non-ticket, and mixed-conflict observations return unknown rather than a forced binary role."
+    },
+    {
+      "id": "loop-7-waybill-role-conflict-routing",
+      "status": "passed",
+      "evidence": [
+        "verification/loops/loop-7/20260725T232143+0800/development-evaluation.json",
+        "verification/loops/loop-7/20260725T232143+0800/test-results.xml"
+      ],
+      "result": "Normal, swapped, repeated, same-role, unknown, and conflicting pair contracts are explicit. Suspected swaps cannot be exchanged or passed automatically."
+    },
+    {
+      "id": "loop-7-workbench-api-and-accessibility",
+      "status": "passed",
+      "evidence": [
+        "verification/loops/loop-7/20260725T232143+0800/frontend-test-results.xml",
+        "verification/loops/loop-7/20260725T232143+0800/browser-validation.json",
+        "verification/loops/loop-7/20260725T232143+0800/loop7-final-reload-recovery.png",
+        "verification/loops/loop-7/20260725T232143+0800/loop7-template-final-200.png"
+      ],
+      "result": "The protected workbench supports empty-database creation, multiple families, server-normalized reference images, anchor and region editing, three distinct time fields, reload recovery, read-only finance status, shadow confirmation, and rollback. Keyboard, focus, alert, scaling, and no-overflow checks passed."
+    },
+    {
+      "id": "loop-7-development-evaluation-metrics",
+      "status": "passed",
+      "evidence": [
+        "verification/loops/loop-7/20260725T232143+0800/development-evaluation.json",
+        "verification/loops/loop-7/20260725T232143+0800/test-results.xml",
+        "verification/loops/loop-7/20260725T232143+0800/independent-review-final.json"
+      ],
+      "result": "The current generated regression reconciles all 15 results and records confusion, unknown, geometry, anchor, fallback, wrong-template, pair, conflict, and P50/P95 measurements. Field reliability is explicitly not measured."
+    },
+    {
+      "id": "loop-7-offline-regression",
+      "status": "passed",
+      "evidence": [
+        "verification/loops/loop-7/20260725T232143+0800/test-results.xml",
+        "verification/loops/loop-7/20260725T232143+0800/frontend-test-results.xml",
+        "verification/loops/loop-7/20260725T232143+0800/commands.jsonl",
+        "verification/loops/loop-7/20260725T232143+0800/safety-observations.json"
+      ],
+      "result": "The authoritative check passed Ruff, mypy for 129 source files, 661 backend tests with two environment-limited skips, 70 frontend tests, boundary verification, lint, typecheck, and production build. No real or legacy system was used."
+    },
+    {
+      "id": "loop-7-locked-set-release",
+      "status": "pending",
+      "evidence": [
+        "verification/loops/loop-7/20260725T232143+0800/input-manifest.json",
+        "verification/loops/loop-7/20260725T232143+0800/safety-observations.json",
+        "verification/loops/loop-7/20260725T232143+0800/independent-review-final.json"
+      ],
+      "result": "No independent human-confirmed locked set of 50 unseen waybills exists. Its authoritative exclusion snapshot and persistent invalidation lifecycle are not implemented, so real accuracy and Loop 7 acceptance remain unclaimed."
+    }
+  ],
+  "summary": {
+    "passed": 8,
+    "pending": 1,
+    "failed": 0,
+    "loop_status": "in_progress",
+    "release_claim": "shadow_foundation_verified_not_loop_7_accepted"
+  }
+}

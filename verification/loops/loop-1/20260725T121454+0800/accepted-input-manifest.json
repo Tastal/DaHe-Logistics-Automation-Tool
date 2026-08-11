@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "project_id": "DaHeLogistics",
+  "loop_id": "loop-1",
+  "run_id": "20260725T121454+0800",
+  "frozen_at": "2026-07-25T12:49:01+08:00",
+  "previous_input_manifest": {
+    "path": "verification/loops/loop-1/20260725T121454+0800/input-manifest.json",
+    "sha256": "250327502bd5d400d394585f328c265a2bbaa6424cf4cd1c5ce1626367fd43b5"
+  },
+  "git_baseline": {
+    "commit": "49458f21e29e21f5c0245ecf5e895b9125799f75",
+    "loop_0_tag": "loop-0-accepted"
+  },
+  "source_contracts": [
+    {
+      "path": "AGENTS.md",
+      "sha256": "b064ed06e99c2ef8cc3e36e7afa3cab0c4941fbbdf9c2dcb52de10b1e916b113"
+    },
+    {
+      "path": "DEVELOPMENT_GUIDE.md",
+      "sha256": "e466ec2fbc026343668c74b83e73d019163a766dfbd65b3117c470f26373aa09"
+    },
+    {
+      "path": "PRODUCT.md",
+      "sha256": "6bf0972b15db1b348e24340b8f2372a37929e49a657c4b2716e77fee2ae19bda"
+    },
+    {
+      "path": "pyproject.toml",
+      "sha256": "e8cb8309c237ae1523609088bdc9bb0024fc952563d79e3ed45780aa0edfc325"
+    }
+  ],
+  "resolved_business_input": {
+    "path": "verification/loops/loop-1/20260725T121454+0800/business-decision.json",
+    "sha256": "35c52a10d95091384bf01fb8efa894bef0e86398caacc253004f3147510a597b"
+  },
+  "authorized_scope": [
+    "Pure decimal weight and unit contracts",
+    "Ticket role, duplicate image, and conflict contracts",
+    "Audit decision contracts",
+    "Manual correction, problem confirmation, revocation, and invalidation contracts",
+    "Shadow-mode isolation contracts"
+  ],
+  "forbidden_scope": [
+    "Legacy project access or execution",
+    "Real Chengfeng access",
+    "Platform writes",
+    "FastAPI, SQLite, Playwright, PaddleOCR, or React implementation",
+    "Loop 2 or later-stage implementation"
+  ],
+  "external_resources": [],
+  "fixtures": {
+    "kind": "synthetic_only",
+    "production_data_used": false,
+    "network_used": false
+  }
+}

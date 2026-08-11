@@ -1,0 +1,72 @@
+{
+  "schema_version": 1,
+  "created_at": "2026-08-07T08:34:43.3663434+00:00",
+  "branch": "codex/business-workspace-ux-v2",
+  "git_commit": "6d6b4153a7875e5bcc4555bc72d3bb13038c80cd",
+  "loop_9_status_changed": false,
+  "deployment": {
+    "release": "%LOCALAPPDATA%\\Programs\\DaHeLogistics\\releases\\0.8.0-6d6b4153a787",
+    "runtime_manifest_sha256": "4f8ec97d0ffa7a7fe80e05e2e0bc7667ff1445488aa66ecd1ac07d66771cc5f1",
+    "isolated_virtual_environment": true,
+    "desktop_shortcut_updated": true,
+    "http_ready_status": 200
+  },
+  "backup_restore": {
+    "evidence": "%LOCALAPPDATA%\\DaHeLogistics\\production\\verification\\business-workspace-ux-v2-backup-restore-20260807.json",
+    "file_sha256": "bd287fc751a7631cbb86d34bd0bf43b65110324360b3450f763a712ee2ae0636",
+    "canonical_sha256": "b6049f3885da64fa8b63f67d1ce1600a545cdf02513ce493248ed8667d2c55e3",
+    "backup_manifest_sha256": "bfabf4c93e3a7a0a1988b5eecfe30bc7279d3ce07630dea4a6c1d353ec19d2bc",
+    "integrity_check": "ok",
+    "evidence_count": 450
+  },
+  "chengfeng_read_only_acceptance": {
+    "business_scope": "settlement",
+    "job_id": "b78d0e29de314f79b0177bc19726c18a",
+    "capture_created_at": "2026-08-07T08:00:00.766880+00:00",
+    "capture_completed_at": "2026-08-07T08:10:25.153324+00:00",
+    "status": "complete",
+    "platform_total": 117,
+    "fetched_count": 117,
+    "unique_waybill_count": 117,
+    "result_count": 117,
+    "loading_image_count": 117,
+    "unloading_image_count": 117,
+    "recognized_count": 117,
+    "technical_failure_count": 0,
+    "waiting_review_count": 7,
+    "normal_ready_count": 110,
+    "confirmed_problem_count": 0
+  },
+  "request_audit": {
+    "evidence_sha256": "73c8d0db76797c413448a5699c532eef0279b05d4f0b18053b1ee6570d18a56b",
+    "seal_sha256": "ab5fe125c2a2f213cf7a909cc25b7957bb4d09d68bfb22d791ed63c6b63d36ae",
+    "attempted": 354,
+    "allowed": 354,
+    "succeeded": 354,
+    "denied": 0,
+    "redirects": 0,
+    "platform_write_requests": 0,
+    "operations": {
+      "list_waybills": 3,
+      "get_waybill_detail": 117,
+      "download_ticket_image": 234
+    }
+  },
+  "lifecycle_acceptance": {
+    "shutdown_endpoint_accepted": true,
+    "port_closed_after_shutdown": true,
+    "owned_release_processes_remaining_after_shutdown": 0,
+    "desktop_shortcut_restart_http_status": 200,
+    "state_recovered_after_restart": true,
+    "active_resource_leases_after_restart": 0,
+    "queued_resource_requests_after_restart": 0
+  },
+  "visual_evidence": {
+    "path": "output/playwright/ux-v2-production/settlement-complete-1920x1080.png",
+    "sha256": "fe00f7b142933be637cbb02c59319d749436115bd9ab705a6944de991d6ff91c",
+    "viewport": "1920x1080",
+    "reviewed": true
+  },
+  "result": "passed",
+  "remaining_boundary": "Loop 9 remains operational_read_only_with_guard and no Chengfeng write capability was added or used."
+}

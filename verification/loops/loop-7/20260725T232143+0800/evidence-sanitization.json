@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "loop_id": "loop-7",
+  "evidence_run_id": "20260725T232143+0800",
+  "junit": [
+    {
+      "path": "verification/loops/loop-7/20260725T232143+0800/test-results.xml",
+      "raw_sha256": "7e1a872c021aade9b94e8920080fe305dd8c283dd136931acf452814648e1a71",
+      "sanitized_sha256": "8a021d5398e5ac8f72bbcd691f21a924cf9b916b9114646e7177623243201b35"
+    },
+    {
+      "path": "verification/loops/loop-7/20260725T232143+0800/frontend-test-results.xml",
+      "raw_sha256": "5da7fbb06f1900134ecd7b480e57b106be2b3faea9d94f17ad874583044ecb5d",
+      "sanitized_sha256": "7c6312c5e85696f79005645441756f1fa1c6bb1623b7d36c303e0d36ed615190"
+    }
+  ],
+  "transformations": [
+    "The local Windows host name was replaced with local-windows-host.",
+    "The local user-profile prefix was replaced with %USERPROFILE%.",
+    "The local user name and pytest per-user temporary-directory label were replaced with neutral values.",
+    "Synthetic adversarial fixture values were preserved because they are test inputs rather than local credentials.",
+    "No test count, case name, duration, failure, error, or skip outcome was changed.",
+    "The files were written as UTF-8 without BOM."
+  ],
+  "forbidden_value_scan": {
+    "raw_local_host_matches": 0,
+    "raw_user_profile_matches": 0,
+    "raw_user_name_matches": 0
+  },
+  "status": "passed"
+}

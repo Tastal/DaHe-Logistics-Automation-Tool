@@ -1,0 +1,35 @@
+{
+  "accepted_scope": "Close Loop 7 with a recorded risk waiver without replacing the failed natural locked set.",
+  "build_fingerprint": "30512b0f08c8b9f7e99963e6a36311236403a0114982da2b1a259c37cd201125",
+  "controlled_non_ticket": {
+    "gate_result_sha256": "c710966c4b18d9e69c232ed8d14d7594b5d591ae2af11f16c4c47469050de690",
+    "metrics_excluded": true,
+    "passed": true
+  },
+  "formal_failure": {
+    "file_sha256": "265d8c402e100813c2b06740238cd129a208f1750f37e91cc961837d0625a595",
+    "gate_passed": false,
+    "report_sha256": "33d8c65205c40945980a6d41eadbd6799dc0641ced92f81c36f4a399628af268"
+  },
+  "invalidation": {
+    "dataset_state": "invalidated_to_development",
+    "file_sha256": "110ef099db951f1b6fb8383e421eac40d63ccc57e3ac226e4ee1a3c8a761c160",
+    "influence_kind": "rule"
+  },
+  "loop": "loop-7",
+  "operator_decision": {
+    "accepted_by": "尹浩远",
+    "collect_replacement_locked_set": false,
+    "permits_loop_8": true
+  },
+  "platform_access": false,
+  "rollover": {
+    "execution_authority_sha256": "d69cf1a1e8b79bd6ba8d3f93c9512f26eb45974834c887f9bdf3a2a3dd2d3167",
+    "file_sha256": "a446218f46846d3ceb57955e23496f0821e660449a63ed06d38dc279e735806b",
+    "result_sha256": "c2193ffca6cf0802500eed750d0c2910d42c01bb26324815eaf01b28680cc9e0",
+    "rollover_sha256": "c9125e5673608f04cc323c75699ce0295c5fde984b90c98f8143b8ba4977a1bc",
+    "source_authority_sha256": "0e4e1f33fb5fd7c75e73be792b22ab58ce1656aad2806fd3e8abebda309a2997"
+  },
+  "run_id": "20260727T171900+0800",
+  "schema_version": 1
+}

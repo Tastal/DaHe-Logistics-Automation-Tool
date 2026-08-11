@@ -1,0 +1,1246 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-07-25T19:10:03.633321+00:00",
+  "offline": true,
+  "production_data": false,
+  "manifest_path": "verification/loops/loop-7/20260725T232143+0800/fixture-manifest.json",
+  "stable_outcome_sha256": "5ac1658dde6b77a40a40872c8593baa5c63860b247e839e24b811fef1cdb2cb9",
+  "record_evaluation": {
+    "actor_id": "loop7-development-evaluator",
+    "build_fingerprint": "257e9950bdf0deb56360a78a3984f3624fe14568d7e49d30921c6d2638715e19",
+    "candidates": [
+      {
+        "content_sha256": "15ec4e5acc10069c90154c27c67289cb8d54178b4a4587197c9cd479e0e82fb7",
+        "version_id": "dev-50648fdfd719b307ec592420"
+      },
+      {
+        "content_sha256": "b7f209ab44d1eed92181adf81d2c4739c30cae71254cf9b113ea886a0bff6cd0",
+        "version_id": "dev-9a88bfb94df397c82964fbde"
+      }
+    ],
+    "dataset_id": "loop7-synthetic-role-template-v1",
+    "dataset_kind": "development",
+    "dataset_manifest_sha256": "838651815b99ed6a71ccd1d10689067a899bf85b663420765ec885ff50e203b8",
+    "evaluation_id": "dev-b122f97d312088c6b74f83fc9de3",
+    "expected_count": 15,
+    "gate_passed": true,
+    "items": [
+      {
+        "assessment_fingerprint": "d50781384ad0c08a42f70b143cb66bba35560158afe6ab831c40f723941082b4",
+        "confidence": "0.99",
+        "elapsed_ms": "0.7962",
+        "evidence": {
+          "detected_orientation_degrees": 0,
+          "identity_kind": "synthetic_observation_sha256",
+          "quality_tags": [
+            "printed"
+          ],
+          "routing": {
+            "anchors_passed": true,
+            "direct_completion": true,
+            "fallback_required": false,
+            "geometry_matched": false,
+            "role_conflict": false,
+            "unknown_layout": true,
+            "wrong_template": false
+          },
+          "sources": [
+            {
+              "evidence_fingerprint": "14f2dcf89e3aac68337fb85087d37793f6c44d90a6fcb411f5d174b084cf6f18",
+              "loading_score": "1",
+              "matched_ids": [
+                "loading:发货",
+                "loading:装车"
+              ],
+              "source": "fixed_text",
+              "unloading_score": "0"
+            },
+            {
+              "evidence_fingerprint": "e31aafbd49186101626802af65a6c3903882865dd67a9633338d25d57abb3af9",
+              "loading_score": "0.98",
+              "matched_ids": [
+                "dev-50648fdfd719b307ec592420"
+              ],
+              "source": "template",
+              "unloading_score": "0"
+            },
+            {
+              "evidence_fingerprint": "7f21e9a91df06c172ab52d982470c7bd9d7ba7b95eddbd96124c5dbe6927e3d9",
+              "loading_score": "0",
+              "matched_ids": [
+                "dev-50648fdfd719b307ec592420",
+                "dev-9a88bfb94df397c82964fbde"
+              ],
+              "source": "layout",
+              "unloading_score": "0"
+            }
+          ],
+          "truth_source": "generated_synthetic"
+        },
+        "high_confidence": true,
+        "image_sha256": "75c33a602c0493bd83bc388691764f259282cfe15dbd47c9c568c50ec2f6b9af",
+        "identity_kind": "synthetic_observation_sha256",
+        "orientation_degrees": 0,
+        "pair_issue": null,
+        "prediction": "loading",
+        "sample_id": "loading-clear@0",
+        "truth": "loading",
+        "unknown_reason": null,
+        "waybill_id": "loop7-synthetic-role-template-v1:loading-clear"
+      },
+      {
+        "assessment_fingerprint": "653a1ac5d76eb21b10cca177c9468e89074ffa0ec93ce7feacc630f1ee134620",
+        "confidence": "0.99",
+        "elapsed_ms": "0.6516",
+        "evidence": {
+          "detected_orientation_degrees": 90,
+          "identity_kind": "synthetic_observation_sha256",
+          "quality_tags": [
+            "printed"
+          ],
+          "routing": {
+            "anchors_passed": true,
+            "direct_completion": true,
+            "fallback_required": false,
+            "geometry_matched": false,
+            "role_conflict": false,
+            "unknown_layout": true,
+            "wrong_template": false
+          },
+          "sources": [
+            {
+              "evidence_fingerprint": "6faa14a9a42767c05f2afd13f6a7b6be4050bcd92ba34496b57269f1a85b42cc",
+              "loading_score": "1",
+              "matched_ids": [
+                "loading:发货",
+                "loading:装车"
+              ],
+              "source": "fixed_text",
+              "unloading_score": "0"
+            },
+            {
+              "evidence_fingerprint": "7175d87ad7e24f396b39a69b6be4850f6c9bec5c56bfffdf2273a0db2892be42",
+              "loading_score": "0.98",
+              "matched_ids": [
+                "dev-50648fdfd719b307ec592420"
+              ],
+              "source": "template",
+              "unloading_score": "0"
+            },
+            {
+              "evidence_fingerprint": "8c49f4703261ff059068dc6c895b2637350e9c5c7d755aae9537da89acf8d543",
+              "loading_score": "0",
+              "matched_ids": [
+                "dev-50648fdfd719b307ec592420",
+                "dev-9a88bfb94df397c82964fbde"
+              ],
+              "source": "layout",
+              "unloading_score": "0"
+            }
+          ],
+          "truth_source": "generated_synthetic"
+        },
+        "high_confidence": true,
+        "image_sha256": "2df84d0a5dcc20f3ba787052cffe58012f0592a2bcafdead9e6b4cc92ccd0618",
+        "identity_kind": "synthetic_observation_sha256",
+        "orientation_degrees": 90,
+        "pair_issue": null,
+        "prediction": "loading",
+        "sample_id": "loading-clear@90",
+        "truth": "loading",
+        "unknown_reason": null,
+        "waybill_id": "loop7-synthetic-role-template-v1:loading-clear"
+      },
+      {
+        "assessment_fingerprint": "0fdb62eaf937a3dc8cc79321593ed03c7e0fac6df6d8c99b72b1553d649b0ff6",
+        "confidence": "0.99",
+        "elapsed_ms": "0.6306",
+        "evidence": {
+          "detected_orientation_degrees": 180,
+          "identity_kind": "synthetic_observation_sha256",
+          "quality_tags": [
+            "printed"
+          ],
+          "routing": {
+            "anchors_passed": true,
+            "direct_completion": true,
+            "fallback_required": false,
+            "geometry_matched": false,
+            "role_conflict": false,
+            "unknown_layout": true,
+            "wrong_template": false
+          },
+          "sources": [
+            {
+              "evidence_fingerprint": "1209509ebbdc0f851e0c6ff3af058bc287ad137235fdefc60879723253ba7360",
+              "loading_score": "1",
+              "matched_ids": [
+                "loading:发货",
+                "loading:装车"
+              ],
+              "source": "fixed_text",
+              "unloading_score": "0"
+            },
+            {
+              "evidence_fingerprint": "ce8f856e0f858834ae8afef9f8c40c3837a16f07d9fb5cad9d30dcf9b274e349",
+              "loading_score": "0.98",
+              "matched_ids": [
+                "dev-50648fdfd719b307ec592420"
+              ],
+              "source": "template",
+              "unloading_score": "0"
+            },
+            {
+              "evidence_fingerprint": "cff20349dfe0d191a975d08fe5ae81b5f679c2fc70003a9cbc33c5b2409f8319",
+              "loading_score": "0",
+              "matched_ids": [
+                "dev-50648fdfd719b307ec592420",
+                "dev-9a88bfb94df397c82964fbde"
+              ],
+              "source": "layout",
+              "unloading_score": "0"
+            }
+          ],
+          "truth_source": "generated_synthetic"
+        },
+        "high_confidence": true,
+        "image_sha256": "6c0cf1469129eecf3eb5922681b557dc8ab2b220a5e3913bdbc99d8e32d1dbb5",
+        "identity_kind": "synthetic_observation_sha256",
+        "orientation_degrees": 180,
+        "pair_issue": null,
+        "prediction": "loading",
+        "sample_id": "loading-clear@180",
+        "truth": "loading",
+        "unknown_reason": null,
+        "waybill_id": "loop7-synthetic-role-template-v1:loading-clear"
+      },
+      {
+        "assessment_fingerprint": "d480fd736af25b481e9742208b5cf63d11e4540976f20b03dfc9d640d216e95d",
+        "confidence": "0.99",
+        "elapsed_ms": "0.617",
+        "evidence": {
+          "detected_orientation_degrees": 270,
+          "identity_kind": "synthetic_observation_sha256",
+          "quality_tags": [
+            "printed"
+          ],
+          "routing": {
+            "anchors_passed": true,
+            "direct_completion": true,
+            "fallback_required": false,
+            "geometry_matched": false,
+            "role_conflict": false,
+            "unknown_layout": true,
+            "wrong_template": false
+          },
+          "sources": [
+            {
+              "evidence_fingerprint": "cd1fef957c899f00ddddf899d8cba3acdbd3277988c2cbd5052f565d644c8a9d",
+              "loading_score": "1",
+              "matched_ids": [
+                "loading:发货",
+                "loading:装车"
+              ],
+              "source": "fixed_text",
+              "unloading_score": "0"
+            },
+            {
+              "evidence_fingerprint": "234c31e58684114cf453d3bf044d69ca9ab8924961ecb279264e0a4f873d88cc",
+              "loading_score": "0.98",
+              "matched_ids": [
+                "dev-50648fdfd719b307ec592420"
+              ],
+              "source": "template",
+              "unloading_score": "0"
+            },
+            {
+              "evidence_fingerprint": "46efb97f4b63a9c004e98625fb6ce4ddd177a290dd12bc09768f62254041de7b",
+              "loading_score": "0",
+              "matched_ids": [
+                "dev-50648fdfd719b307ec592420",
+                "dev-9a88bfb94df397c82964fbde"
+              ],
+              "source": "layout",
+              "unloading_score": "0"
+            }
+          ],
+          "truth_source": "generated_synthetic"
+        },
+        "high_confidence": true,
+        "image_sha256": "4f1bf9be77797d387efa02f9a38b0ba4b5daa74f3439cfe4ea2b55bee6e5d595",
+        "identity_kind": "synthetic_observation_sha256",
+        "orientation_degrees": 270,
+        "pair_issue": null,
+        "prediction": "loading",
+        "sample_id": "loading-clear@270",
+        "truth": "loading",
+        "unknown_reason": null,
+        "waybill_id": "loop7-synthetic-role-template-v1:loading-clear"
+      },
+      {
+        "assessment_fingerprint": "2ded9cbb8acd544e13c195ecf2659694684725573fbccd0b2102ce4d82a991c8",
+        "confidence": "0.99",
+        "elapsed_ms": "0.7152",
+        "evidence": {
+          "detected_orientation_degrees": 0,
+          "identity_kind": "synthetic_observation_sha256",
+          "quality_tags": [
+            "screen"
+          ],
+          "routing": {
+            "anchors_passed": true,
+            "direct_completion": true,
+            "fallback_required": false,
+            "geometry_matched": false,
+            "role_conflict": false,
+            "unknown_layout": true,
+            "wrong_template": false
+          },
+          "sources": [
+            {
+              "evidence_fingerprint": "cba3f8ceb96235947524e1408a127e9ebb093875fa9904c5b16560f918d0939b",
+              "loading_score": "0",
+              "matched_ids": [
+                "unloading:卸车",
+                "unloading:收货"
+              ],
+              "source": "fixed_text",
+              "unloading_score": "1"
+            },
+            {
+              "evidence_fingerprint": "4bc72f2bfed72890cf77174dc5e520718cb0f84815fa9a45f098e99dc958a5a5",
+              "loading_score": "0",
+              "matched_ids": [
+                "dev-9a88bfb94df397c82964fbde"
+              ],
+              "source": "template",
+              "unloading_score": "0.98"
+            },
+            {
+              "evidence_fingerprint": "7f21e9a91df06c172ab52d982470c7bd9d7ba7b95eddbd96124c5dbe6927e3d9",
+              "loading_score": "0",
+              "matched_ids": [
+                "dev-50648fdfd719b307ec592420",
+                "dev-9a88bfb94df397c82964fbde"
+              ],
+              "source": "layout",
+              "unloading_score": "0"
+            }
+          ],
+          "truth_source": "generated_synthetic"
+        },
+        "high_confidence": true,
+        "image_sha256": "2f987f535d18b61107b2f2e5cb8252e69b83b422e8b74dcaddcbd771b70ca491",
+        "identity_kind": "synthetic_observation_sha256",
+        "orientation_degrees": 0,
+        "pair_issue": null,
+        "prediction": "unloading",
+        "sample_id": "unloading-clear@0",
+        "truth": "unloading",
+        "unknown_reason": null,
+        "waybill_id": "loop7-synthetic-role-template-v1:unloading-clear"
+      },
+      {
+        "assessment_fingerprint": "fb4a946795b00ddd5f33ee49bb6e935ba6a79747e8a1bada0a035f184f6481ff",
+        "confidence": "0.99",
+        "elapsed_ms": "0.6358",
+        "evidence": {
+          "detected_orientation_degrees": 90,
+          "identity_kind": "synthetic_observation_sha256",
+          "quality_tags": [
+            "screen"
+          ],
+          "routing": {
+            "anchors_passed": true,
+            "direct_completion": true,
+            "fallback_required": false,
+            "geometry_matched": false,
+            "role_conflict": false,
+            "unknown_layout": true,
+            "wrong_template": false
+          },
+          "sources": [
+            {
+              "evidence_fingerprint": "375ae8e3c147c8dd1934626ecb288af524ed1a229d9f9e91c05ca4fee2d851ad",
+              "loading_score": "0",
+              "matched_ids": [
+                "unloading:卸车",
+                "unloading:收货"
+              ],
+              "source": "fixed_text",
+              "unloading_score": "1"
+            },
+            {
+              "evidence_fingerprint": "cdcbf927212da7fc66944d183ad21e8bdcefb850e91b860160bb20bf79d52902",
+              "loading_score": "0",
+              "matched_ids": [
+                "dev-9a88bfb94df397c82964fbde"
+              ],
+              "source": "template",
+              "unloading_score": "0.98"
+            },
+            {
+              "evidence_fingerprint": "8c49f4703261ff059068dc6c895b2637350e9c5c7d755aae9537da89acf8d543",
+              "loading_score": "0",
+              "matched_ids": [
+                "dev-50648fdfd719b307ec592420",
+                "dev-9a88bfb94df397c82964fbde"
+              ],
+              "source": "layout",
+              "unloading_score": "0"
+            }
+          ],
+          "truth_source": "generated_synthetic"
+        },
+        "high_confidence": true,
+        "image_sha256": "1e19b25026fbd27bad5ea9f609a2ac1dd2de82fd8237abe9f00e0cb6c675d7f5",
+        "identity_kind": "synthetic_observation_sha256",
+        "orientation_degrees": 90,
+        "pair_issue": null,
+        "prediction": "unloading",
+        "sample_id": "unloading-clear@90",
+        "truth": "unloading",
+        "unknown_reason": null,
+        "waybill_id": "loop7-synthetic-role-template-v1:unloading-clear"
+      },
+      {
+        "assessment_fingerprint": "7fb019323522452e8c53b1609b2de665ad40769ccdcb2bc9b3ebc9df9ff4c77f",
+        "confidence": "0.99",
+        "elapsed_ms": "0.6302",
+        "evidence": {
+          "detected_orientation_degrees": 180,
+          "identity_kind": "synthetic_observation_sha256",
+          "quality_tags": [
+            "screen"
+          ],
+          "routing": {
+            "anchors_passed": true,
+            "direct_completion": true,
+            "fallback_required": false,
+            "geometry_matched": false,
+            "role_conflict": false,
+            "unknown_layout": true,
+            "wrong_template": false
+          },
+          "sources": [
+            {
+              "evidence_fingerprint": "5b172bea1fb7b6f90638fcb0b6ecdebaa4bdf60ba8b44f357f3948adf26c2579",
+              "loading_score": "0",
+              "matched_ids": [
+                "unloading:卸车",
+                "unloading:收货"
+              ],
+              "source": "fixed_text",
+              "unloading_score": "1"
+            },
+            {
+              "evidence_fingerprint": "d7d82280203f08319713852f675cc06108af43d06712eb6aa0b63ae2a52e0cb2",
+              "loading_score": "0",
+              "matched_ids": [
+                "dev-9a88bfb94df397c82964fbde"
+              ],
+              "source": "template",
+              "unloading_score": "0.98"
+            },
+            {
+              "evidence_fingerprint": "cff20349dfe0d191a975d08fe5ae81b5f679c2fc70003a9cbc33c5b2409f8319",
+              "loading_score": "0",
+              "matched_ids": [
+                "dev-50648fdfd719b307ec592420",
+                "dev-9a88bfb94df397c82964fbde"
+              ],
+              "source": "layout",
+              "unloading_score": "0"
+            }
+          ],
+          "truth_source": "generated_synthetic"
+        },
+        "high_confidence": true,
+        "image_sha256": "35edb0e8603adaa17477b4d199fa202d8ea22193b3234f48eba38405c64ad0b0",
+        "identity_kind": "synthetic_observation_sha256",
+        "orientation_degrees": 180,
+        "pair_issue": null,
+        "prediction": "unloading",
+        "sample_id": "unloading-clear@180",
+        "truth": "unloading",
+        "unknown_reason": null,
+        "waybill_id": "loop7-synthetic-role-template-v1:unloading-clear"
+      },
+      {
+        "assessment_fingerprint": "f711343b95ab95976433c90e8a22791521db129620c6f7d6ced89d17ee80bd3f",
+        "confidence": "0.99",
+        "elapsed_ms": "0.6056",
+        "evidence": {
+          "detected_orientation_degrees": 270,
+          "identity_kind": "synthetic_observation_sha256",
+          "quality_tags": [
+            "screen"
+          ],
+          "routing": {
+            "anchors_passed": true,
+            "direct_completion": true,
+            "fallback_required": false,
+            "geometry_matched": false,
+            "role_conflict": false,
+            "unknown_layout": true,
+            "wrong_template": false
+          },
+          "sources": [
+            {
+              "evidence_fingerprint": "924647d013d03d235c35d0c1395c05a5543fbfa2a019d11d16b4b9ba380f16e5",
+              "loading_score": "0",
+              "matched_ids": [
+                "unloading:卸车",
+                "unloading:收货"
+              ],
+              "source": "fixed_text",
+              "unloading_score": "1"
+            },
+            {
+              "evidence_fingerprint": "ff82193e705e89dd6fb4b7bfade1536f9e7c970fe55b7ca32bc148b528b4a979",
+              "loading_score": "0",
+              "matched_ids": [
+                "dev-9a88bfb94df397c82964fbde"
+              ],
+              "source": "template",
+              "unloading_score": "0.98"
+            },
+            {
+              "evidence_fingerprint": "46efb97f4b63a9c004e98625fb6ce4ddd177a290dd12bc09768f62254041de7b",
+              "loading_score": "0",
+              "matched_ids": [
+                "dev-50648fdfd719b307ec592420",
+                "dev-9a88bfb94df397c82964fbde"
+              ],
+              "source": "layout",
+              "unloading_score": "0"
+            }
+          ],
+          "truth_source": "generated_synthetic"
+        },
+        "high_confidence": true,
+        "image_sha256": "527c87e6f0dab4e7bfd59e752e3fb62ed484770dea3fbe2c1d2608cd1241bdb5",
+        "identity_kind": "synthetic_observation_sha256",
+        "orientation_degrees": 270,
+        "pair_issue": null,
+        "prediction": "unloading",
+        "sample_id": "unloading-clear@270",
+        "truth": "unloading",
+        "unknown_reason": null,
+        "waybill_id": "loop7-synthetic-role-template-v1:unloading-clear"
+      },
+      {
+        "assessment_fingerprint": "e91d876d5ceb1efd3d9f3eb877234e7e7e5ef7416728551ec08671ac2de82214",
+        "confidence": "1",
+        "elapsed_ms": "0.6071",
+        "evidence": {
+          "detected_orientation_degrees": 0,
+          "identity_kind": "synthetic_observation_sha256",
+          "quality_tags": [
+            "blur"
+          ],
+          "routing": {
+            "anchors_passed": true,
+            "direct_completion": false,
+            "fallback_required": true,
+            "geometry_matched": false,
+            "role_conflict": false,
+            "unknown_layout": true,
+            "wrong_template": false
+          },
+          "sources": [
+            {
+              "evidence_fingerprint": "14f2dcf89e3aac68337fb85087d37793f6c44d90a6fcb411f5d174b084cf6f18",
+              "loading_score": "1",
+              "matched_ids": [
+                "loading:发货",
+                "loading:装车"
+              ],
+              "source": "fixed_text",
+              "unloading_score": "0"
+            },
+            {
+              "evidence_fingerprint": "840debc8af941e35a41965df47c88e8398d7275a1a4f61b1f86d1d8449fa57f0",
+              "loading_score": "0.441",
+              "matched_ids": [
+                "dev-50648fdfd719b307ec592420"
+              ],
+              "source": "template",
+              "unloading_score": "0"
+            },
+            {
+              "evidence_fingerprint": "7f21e9a91df06c172ab52d982470c7bd9d7ba7b95eddbd96124c5dbe6927e3d9",
+              "loading_score": "0",
+              "matched_ids": [
+                "dev-50648fdfd719b307ec592420",
+                "dev-9a88bfb94df397c82964fbde"
+              ],
+              "source": "layout",
+              "unloading_score": "0"
+            }
+          ],
+          "truth_source": "generated_synthetic"
+        },
+        "high_confidence": false,
+        "image_sha256": "67840008ee25f633cd926013a12ecbac857ec254d3c8d3775ee120fad6c69ca5",
+        "identity_kind": "synthetic_observation_sha256",
+        "orientation_degrees": 0,
+        "pair_issue": null,
+        "prediction": "unknown",
+        "sample_id": "loading-blurred@0",
+        "truth": "unknown",
+        "unknown_reason": "insufficient_role_evidence",
+        "waybill_id": "loop7-synthetic-role-template-v1:loading-blurred"
+      },
+      {
+        "assessment_fingerprint": "3b9d96bf6a89e90bab084490171e56eeaf907830488fe0acc1f62e2180a07977",
+        "confidence": "1",
+        "elapsed_ms": "0.4778",
+        "evidence": {
+          "detected_orientation_degrees": 0,
+          "identity_kind": "synthetic_observation_sha256",
+          "quality_tags": [
+            "glare"
+          ],
+          "routing": {
+            "anchors_passed": false,
+            "direct_completion": false,
+            "fallback_required": true,
+            "geometry_matched": false,
+            "role_conflict": false,
+            "unknown_layout": true,
+            "wrong_template": false
+          },
+          "sources": [
+            {
+              "evidence_fingerprint": "90ddc2c32f6cc187cd985b2d564b0ef30a52ff696b9c0d7a97a6e9f4cd17d2e9",
+              "loading_score": "0",
+              "matched_ids": [
+                "unloading:收货"
+              ],
+              "source": "fixed_text",
+              "unloading_score": "1"
+            },
+            {
+              "evidence_fingerprint": "65d8c3752f55692f9bd6d94974e1e89d316f37563abc1c7050c290cb7237eb65",
+              "loading_score": "0",
+              "matched_ids": [],
+              "source": "template",
+              "unloading_score": "0"
+            },
+            {
+              "evidence_fingerprint": "7f21e9a91df06c172ab52d982470c7bd9d7ba7b95eddbd96124c5dbe6927e3d9",
+              "loading_score": "0",
+              "matched_ids": [
+                "dev-50648fdfd719b307ec592420",
+                "dev-9a88bfb94df397c82964fbde"
+              ],
+              "source": "layout",
+              "unloading_score": "0"
+            }
+          ],
+          "truth_source": "generated_synthetic"
+        },
+        "high_confidence": false,
+        "image_sha256": "0e3764c9c5cfb8d8ee2fb2be9f30e54384774e80eb257e7158da49c3fd3c356e",
+        "identity_kind": "synthetic_observation_sha256",
+        "orientation_degrees": 0,
+        "pair_issue": null,
+        "prediction": "unknown",
+        "sample_id": "unloading-glare@0",
+        "truth": "unknown",
+        "unknown_reason": "insufficient_role_evidence",
+        "waybill_id": "loop7-synthetic-role-template-v1:unloading-glare"
+      },
+      {
+        "assessment_fingerprint": "9ac75ca7678a69482877b6d867af21adac21c98e379db4bc6b94f6b8486626ed",
+        "confidence": "1",
+        "elapsed_ms": "0.4852",
+        "evidence": {
+          "detected_orientation_degrees": 0,
+          "identity_kind": "synthetic_observation_sha256",
+          "quality_tags": [
+            "crop"
+          ],
+          "routing": {
+            "anchors_passed": false,
+            "direct_completion": false,
+            "fallback_required": true,
+            "geometry_matched": false,
+            "role_conflict": false,
+            "unknown_layout": true,
+            "wrong_template": false
+          },
+          "sources": [
+            {
+              "evidence_fingerprint": "29196e8d2c409b73fbff4e8e24ec66ba4cf5543a386bb1bb02b1c3b4ef68b04e",
+              "loading_score": "1",
+              "matched_ids": [
+                "loading:发货"
+              ],
+              "source": "fixed_text",
+              "unloading_score": "0"
+            },
+            {
+              "evidence_fingerprint": "65d8c3752f55692f9bd6d94974e1e89d316f37563abc1c7050c290cb7237eb65",
+              "loading_score": "0",
+              "matched_ids": [],
+              "source": "template",
+              "unloading_score": "0"
+            },
+            {
+              "evidence_fingerprint": "7f21e9a91df06c172ab52d982470c7bd9d7ba7b95eddbd96124c5dbe6927e3d9",
+              "loading_score": "0",
+              "matched_ids": [
+                "dev-50648fdfd719b307ec592420",
+                "dev-9a88bfb94df397c82964fbde"
+              ],
+              "source": "layout",
+              "unloading_score": "0"
+            }
+          ],
+          "truth_source": "generated_synthetic"
+        },
+        "high_confidence": false,
+        "image_sha256": "bc9dcc433c21b89fe5f8ca27c08f29dce4c074f55e8088f667ae6d334cd54124",
+        "identity_kind": "synthetic_observation_sha256",
+        "orientation_degrees": 0,
+        "pair_issue": null,
+        "prediction": "unknown",
+        "sample_id": "loading-cropped@0",
+        "truth": "unknown",
+        "unknown_reason": "insufficient_role_evidence",
+        "waybill_id": "loop7-synthetic-role-template-v1:loading-cropped"
+      },
+      {
+        "assessment_fingerprint": "56bea317af143551f71c6d68b976ec33e502ed8d2d3f52dd76100145fea24e03",
+        "confidence": "0",
+        "elapsed_ms": "0.9984",
+        "evidence": {
+          "detected_orientation_degrees": 0,
+          "identity_kind": "synthetic_observation_sha256",
+          "quality_tags": [
+            "printed"
+          ],
+          "routing": {
+            "anchors_passed": true,
+            "direct_completion": false,
+            "fallback_required": true,
+            "geometry_matched": false,
+            "role_conflict": true,
+            "unknown_layout": true,
+            "wrong_template": false
+          },
+          "sources": [
+            {
+              "evidence_fingerprint": "071030f125c9383b188ae42020a6fde2b6ef24cc9ec7cfbf8b8fd552f44611b5",
+              "loading_score": "1",
+              "matched_ids": [
+                "loading:发货",
+                "loading:装车",
+                "unloading:卸车",
+                "unloading:收货"
+              ],
+              "source": "fixed_text",
+              "unloading_score": "1"
+            },
+            {
+              "evidence_fingerprint": "2b0a07746b5aa7a7ed590e9e0530b50bcae4f1abc14e6cf5e45c0c99240ba66f",
+              "loading_score": "0.98",
+              "matched_ids": [
+                "dev-50648fdfd719b307ec592420",
+                "dev-9a88bfb94df397c82964fbde"
+              ],
+              "source": "template",
+              "unloading_score": "0.98"
+            },
+            {
+              "evidence_fingerprint": "7f21e9a91df06c172ab52d982470c7bd9d7ba7b95eddbd96124c5dbe6927e3d9",
+              "loading_score": "0",
+              "matched_ids": [
+                "dev-50648fdfd719b307ec592420",
+                "dev-9a88bfb94df397c82964fbde"
+              ],
+              "source": "layout",
+              "unloading_score": "0"
+            }
+          ],
+          "truth_source": "generated_synthetic"
+        },
+        "high_confidence": false,
+        "image_sha256": "2888eb952317226173d40e8a669070c95effd332a9c9bc264a7581218716f0c0",
+        "identity_kind": "synthetic_observation_sha256",
+        "orientation_degrees": 0,
+        "pair_issue": null,
+        "prediction": "unknown",
+        "sample_id": "conflicting-titles@0",
+        "truth": "unknown",
+        "unknown_reason": "insufficient_role_evidence",
+        "waybill_id": "loop7-synthetic-role-template-v1:conflicting-titles"
+      },
+      {
+        "assessment_fingerprint": "87d67436b477a0ad835fd62ff81bc4abbf1b0f2ab737109e2c222a1f652428c6",
+        "confidence": "0",
+        "elapsed_ms": "0.4632",
+        "evidence": {
+          "detected_orientation_degrees": 0,
+          "identity_kind": "synthetic_observation_sha256",
+          "quality_tags": [
+            "screen"
+          ],
+          "routing": {
+            "anchors_passed": false,
+            "direct_completion": false,
+            "fallback_required": true,
+            "geometry_matched": false,
+            "role_conflict": false,
+            "unknown_layout": true,
+            "wrong_template": false
+          },
+          "sources": [
+            {
+              "evidence_fingerprint": "68bb006e652e9f77b81f55382375ee4106fa18677efa07cd521a1c19ba1604fc",
+              "loading_score": "0",
+              "matched_ids": [],
+              "source": "fixed_text",
+              "unloading_score": "0"
+            },
+            {
+              "evidence_fingerprint": "65d8c3752f55692f9bd6d94974e1e89d316f37563abc1c7050c290cb7237eb65",
+              "loading_score": "0",
+              "matched_ids": [],
+              "source": "template",
+              "unloading_score": "0"
+            },
+            {
+              "evidence_fingerprint": "e82f4d1b188c284d0dce2e8bfb046a5460b02a2876d49635956da3faa47beccb",
+              "loading_score": "0",
+              "matched_ids": [],
+              "source": "layout",
+              "unloading_score": "0"
+            }
+          ],
+          "truth_source": "generated_synthetic"
+        },
+        "high_confidence": false,
+        "image_sha256": "6d89aaf97fc7cb116b1d098989154090b71361ebdc68ff2f4068fee34eb67d88",
+        "identity_kind": "synthetic_observation_sha256",
+        "orientation_degrees": 0,
+        "pair_issue": null,
+        "prediction": "unknown",
+        "sample_id": "unknown-layout@0",
+        "truth": "unknown",
+        "unknown_reason": "insufficient_role_evidence",
+        "waybill_id": "loop7-synthetic-role-template-v1:unknown-layout"
+      },
+      {
+        "assessment_fingerprint": "0e3c5bddbb1fbcf7f16e3beedd184c7433e5274bd68d87b9567418b872002df6",
+        "confidence": "0",
+        "elapsed_ms": "0.5561",
+        "evidence": {
+          "detected_orientation_degrees": 0,
+          "identity_kind": "synthetic_observation_sha256",
+          "quality_tags": [
+            "screen"
+          ],
+          "routing": {
+            "anchors_passed": false,
+            "direct_completion": false,
+            "fallback_required": true,
+            "geometry_matched": false,
+            "role_conflict": false,
+            "unknown_layout": true,
+            "wrong_template": false
+          },
+          "sources": [
+            {
+              "evidence_fingerprint": "68bb006e652e9f77b81f55382375ee4106fa18677efa07cd521a1c19ba1604fc",
+              "loading_score": "0",
+              "matched_ids": [],
+              "source": "fixed_text",
+              "unloading_score": "0"
+            },
+            {
+              "evidence_fingerprint": "65d8c3752f55692f9bd6d94974e1e89d316f37563abc1c7050c290cb7237eb65",
+              "loading_score": "0",
+              "matched_ids": [],
+              "source": "template",
+              "unloading_score": "0"
+            },
+            {
+              "evidence_fingerprint": "e82f4d1b188c284d0dce2e8bfb046a5460b02a2876d49635956da3faa47beccb",
+              "loading_score": "0",
+              "matched_ids": [],
+              "source": "layout",
+              "unloading_score": "0"
+            }
+          ],
+          "truth_source": "generated_synthetic"
+        },
+        "high_confidence": false,
+        "image_sha256": "2a0f308c6f530fcf527f6973104b474461402ad7a0b06e43b1aeb52428d4c5f9",
+        "identity_kind": "synthetic_observation_sha256",
+        "orientation_degrees": 0,
+        "pair_issue": null,
+        "prediction": "unknown",
+        "sample_id": "unknown-layout@90",
+        "truth": "unknown",
+        "unknown_reason": "insufficient_role_evidence",
+        "waybill_id": "loop7-synthetic-role-template-v1:unknown-layout"
+      },
+      {
+        "assessment_fingerprint": "cc2977f10bec4ea363c4144921ee74011a0136d3af8ee841ed7d8fc47cfc983c",
+        "confidence": "0",
+        "elapsed_ms": "0.3516",
+        "evidence": {
+          "detected_orientation_degrees": 0,
+          "identity_kind": "synthetic_observation_sha256",
+          "quality_tags": [
+            "other_document"
+          ],
+          "routing": {
+            "anchors_passed": false,
+            "direct_completion": false,
+            "fallback_required": true,
+            "geometry_matched": false,
+            "role_conflict": false,
+            "unknown_layout": true,
+            "wrong_template": false
+          },
+          "sources": [
+            {
+              "evidence_fingerprint": "68bb006e652e9f77b81f55382375ee4106fa18677efa07cd521a1c19ba1604fc",
+              "loading_score": "0",
+              "matched_ids": [],
+              "source": "fixed_text",
+              "unloading_score": "0"
+            },
+            {
+              "evidence_fingerprint": "65d8c3752f55692f9bd6d94974e1e89d316f37563abc1c7050c290cb7237eb65",
+              "loading_score": "0",
+              "matched_ids": [],
+              "source": "template",
+              "unloading_score": "0"
+            },
+            {
+              "evidence_fingerprint": "e82f4d1b188c284d0dce2e8bfb046a5460b02a2876d49635956da3faa47beccb",
+              "loading_score": "0",
+              "matched_ids": [],
+              "source": "layout",
+              "unloading_score": "0"
+            }
+          ],
+          "truth_source": "generated_synthetic"
+        },
+        "high_confidence": false,
+        "image_sha256": "aba2ff990de0ae1c680fd1e25008cad381368b55b8c519a5ad11f3d3bff7efd3",
+        "identity_kind": "synthetic_observation_sha256",
+        "orientation_degrees": 0,
+        "pair_issue": null,
+        "prediction": "unknown",
+        "sample_id": "non-ticket@0",
+        "truth": "unknown",
+        "unknown_reason": "insufficient_role_evidence",
+        "waybill_id": "loop7-synthetic-role-template-v1:non-ticket"
+      }
+    ],
+    "matcher_fingerprint": "282ae345f73bf27378eca19e3b177c292f4cef3352f5b1d80ac6f4110963db80",
+    "metrics": {
+      "confusion_matrix": {
+        "loading": {
+          "loading": 4,
+          "unloading": 0,
+          "unknown": 0
+        },
+        "unloading": {
+          "loading": 0,
+          "unloading": 4,
+          "unknown": 0
+        },
+        "unknown": {
+          "loading": 0,
+          "unloading": 0,
+          "unknown": 7
+        }
+      },
+      "development_metrics": {
+        "anchor_pass_rate": {
+          "definition": "Runs with a template whose required anchors passed.",
+          "status": "measured",
+          "value": "0.6666666666666666666666666667"
+        },
+        "confusion_matrix": {
+          "definition": "Rows are expected roles and columns are matcher results.",
+          "status": "measured",
+          "value": {
+            "loading": {
+              "loading": 4,
+              "unloading": 0,
+              "unknown": 0
+            },
+            "unloading": {
+              "loading": 0,
+              "unloading": 4,
+              "unknown": 0
+            },
+            "unknown": {
+              "loading": 0,
+              "unloading": 0,
+              "unknown": 7
+            }
+          }
+        },
+        "development_sample_scope": {
+          "definition": "Scope warning persisted with every development metric payload.",
+          "status": "measured",
+          "value": {
+            "dataset_kind": "generated_synthetic",
+            "formal_acceptance_eligible": false,
+            "production_data": false,
+            "warning": "Small synthetic development sample; do not use as a formal locked-set or production-shadow gate."
+          }
+        },
+        "direct_completion_rate": {
+          "definition": "Runs producing a reliable known role without fallback.",
+          "status": "measured",
+          "value": "0.5333333333333333333333333333"
+        },
+        "expected_result_reconciliation": {
+          "definition": "Exact expected-role versus matcher-result reconciliation.",
+          "status": "measured",
+          "value": {
+            "expected_count": 15,
+            "matched_count": 15,
+            "mismatch_count": 0,
+            "result_count": 15
+          }
+        },
+        "fallback_rate": {
+          "definition": "Runs routed to fallback or unknown handling because direct completion was unsafe; no fallback OCR is executed here.",
+          "status": "measured",
+          "value": "0.4666666666666666666666666667"
+        },
+        "field_reliability": {
+          "definition": "Not measured: this frozen runner evaluates ticket role and template routing only; field extraction is not executed.",
+          "status": "not_measured",
+          "value": null
+        },
+        "geometry_match_rate": {
+          "definition": "Runs with positive selected-orientation layout evidence.",
+          "status": "measured",
+          "value": "0"
+        },
+        "high_confidence_errors": {
+          "definition": "High-confidence known roles that disagree with expected role.",
+          "status": "measured",
+          "value": 0
+        },
+        "normal_pair_false_positive_rate": {
+          "definition": "False-positive issue rate on labeled normal pairs. The sample is small and cannot establish a formal production threshold.",
+          "status": "measured",
+          "value": "0"
+        },
+        "normal_pair_false_positive_rate_wilson_95_ci": {
+          "definition": "Wilson 95% interval for normal-pair false positives; the small development sample is not a formal acceptance bound.",
+          "status": "measured",
+          "value": {
+            "confidence_level": "0.95",
+            "lower": "0",
+            "method": "wilson_score",
+            "sample_count": 1,
+            "success_count": 0,
+            "upper": "0.793451"
+          }
+        },
+        "p50_elapsed_ms": {
+          "definition": "Nearest-rank P50 matcher wall-clock milliseconds.",
+          "status": "measured",
+          "value": "0.617"
+        },
+        "p95_elapsed_ms": {
+          "definition": "Nearest-rank P95 matcher wall-clock milliseconds.",
+          "status": "measured",
+          "value": "0.9984"
+        },
+        "pair_reconciliation": {
+          "definition": "Exact expected-issue versus pair-contract reconciliation.",
+          "status": "measured",
+          "value": {
+            "expected_count": 5,
+            "matched_count": 5,
+            "mismatch_count": 0,
+            "result_count": 5
+          }
+        },
+        "quality_tag_distribution": {
+          "definition": "Quality-tag counts by unique case and expanded observation run; multi-tag cases may contribute to multiple bins.",
+          "status": "measured",
+          "value": {
+            "observation_cases": {
+              "blur": 1,
+              "crop": 1,
+              "glare": 1,
+              "other_document": 1,
+              "printed": 2,
+              "screen": 2
+            },
+            "observation_runs": {
+              "blur": 1,
+              "crop": 1,
+              "glare": 1,
+              "other_document": 1,
+              "printed": 5,
+              "screen": 6
+            }
+          }
+        },
+        "role_conflict_rate": {
+          "definition": "Runs where fixed-text or template evidence supports both roles.",
+          "status": "measured",
+          "value": "0.06666666666666666666666666667"
+        },
+        "sample_count": {
+          "definition": "Development observation cases, explicit rotations, and pair cases; these are not formal acceptance sample counts.",
+          "status": "measured",
+          "value": {
+            "observation_cases": 8,
+            "observation_runs": 15,
+            "pair_cases": 5
+          }
+        },
+        "synthetic_swapped_pair_recall": {
+          "definition": "Recall on explicitly synthetic swapped pair cases. The sample is small and cannot establish a formal swapped-ticket threshold.",
+          "status": "measured",
+          "value": "1"
+        },
+        "synthetic_swapped_pair_recall_wilson_95_ci": {
+          "definition": "Wilson 95% interval for synthetic swapped-pair recall; the small development sample is not a formal acceptance bound.",
+          "status": "measured",
+          "value": {
+            "confidence_level": "0.95",
+            "lower": "0.206549",
+            "method": "wilson_score",
+            "sample_count": 1,
+            "success_count": 1,
+            "upper": "1"
+          }
+        },
+        "unknown_layout_rate": {
+          "definition": "Runs with no positive loading or unloading layout evidence.",
+          "status": "measured",
+          "value": "1"
+        },
+        "unknown_rate": {
+          "definition": "Unknown matcher results divided by all observation runs.",
+          "status": "measured",
+          "value": "0.4666666666666666666666666667"
+        },
+        "unknown_rate_wilson_95_ci": {
+          "definition": "Wilson 95% interval for unknown results in this small development sample; not a formal acceptance bound.",
+          "status": "measured",
+          "value": {
+            "confidence_level": "0.95",
+            "lower": "0.248095",
+            "method": "wilson_score",
+            "sample_count": 15,
+            "success_count": 7,
+            "upper": "0.69883"
+          }
+        },
+        "wrong_template_rate": {
+          "definition": "Known-role results selecting the opposite expected role.",
+          "status": "measured",
+          "value": "0"
+        },
+        "wrong_template_rate_wilson_95_ci": {
+          "definition": "Wilson 95% interval for wrong-template results in this small development sample; not a formal acceptance bound.",
+          "status": "measured",
+          "value": {
+            "confidence_level": "0.95",
+            "lower": "0",
+            "method": "wilson_score",
+            "sample_count": 15,
+            "success_count": 0,
+            "upper": "0.203883"
+          }
+        }
+      },
+      "high_confidence_error_count": 0,
+      "p50_elapsed_ms": "0.617",
+      "p95_elapsed_ms": "0.9984",
+      "sample_count": 15,
+      "unknown_rate": "0.4666666666666666666666666667",
+      "pair_results": [
+        {
+          "case_id": "normal-pair",
+          "expected_issue": null,
+          "expected_matches_result": true,
+          "result_issue": null
+        },
+        {
+          "case_id": "suspected-swapped",
+          "expected_issue": "suspected_swapped",
+          "expected_matches_result": true,
+          "result_issue": "suspected_swapped"
+        },
+        {
+          "case_id": "duplicate-image",
+          "expected_issue": "duplicate_image",
+          "expected_matches_result": true,
+          "result_issue": "duplicate_image"
+        },
+        {
+          "case_id": "both-loading",
+          "expected_issue": "both_loading",
+          "expected_matches_result": true,
+          "result_issue": "both_loading"
+        },
+        {
+          "case_id": "unknown-role",
+          "expected_issue": "role_unknown",
+          "expected_matches_result": true,
+          "result_issue": "role_unknown"
+        }
+      ],
+      "stable_outcome_sha256": "5ac1658dde6b77a40a40872c8593baa5c63860b247e839e24b811fef1cdb2cb9"
+    },
+    "metrics_sha256": "bc8e1bed4e186b3000a639a1faac5db2a6d9bc9066ea6678803eec43f617d7f0",
+    "policy_fingerprint": "bc439aa596c16890424ea851e4a5f16d8e4b96b540fec9935aedcd178fc0cd47",
+    "result_count": 15,
+    "runtime_fingerprint": "e67d88d5fb676bfa3ee0ce7a7731a2234148484424488101ff659f7e87523e97",
+    "template_set_fingerprint": "7c5382a6f49e07a1e440a6b6219f4caacc26be4c70ede81608017f9b972660a7"
+  },
+  "pair_results": [
+    {
+      "case_id": "normal-pair",
+      "expected_issue": null,
+      "expected_matches_result": true,
+      "result_issue": null
+    },
+    {
+      "case_id": "suspected-swapped",
+      "expected_issue": "suspected_swapped",
+      "expected_matches_result": true,
+      "result_issue": "suspected_swapped"
+    },
+    {
+      "case_id": "duplicate-image",
+      "expected_issue": "duplicate_image",
+      "expected_matches_result": true,
+      "result_issue": "duplicate_image"
+    },
+    {
+      "case_id": "both-loading",
+      "expected_issue": "both_loading",
+      "expected_matches_result": true,
+      "result_issue": "both_loading"
+    },
+    {
+      "case_id": "unknown-role",
+      "expected_issue": "role_unknown",
+      "expected_matches_result": true,
+      "result_issue": "role_unknown"
+    }
+  ],
+  "persisted_evaluation": null
+}

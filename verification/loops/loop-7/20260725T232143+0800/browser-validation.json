@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "loop_id": "loop-7",
+  "validated_at": "2026-07-26T03:19:15+08:00",
+  "service": {
+    "binding": "127.0.0.1:8897",
+    "data_root_kind": "new_isolated_test_fixture_root",
+    "fake_ocr": true,
+    "real_platform_access": false,
+    "stopped_after_validation": true
+  },
+  "latest_browser_run": {
+    "browser": "Playwright CLI headed Chromium",
+    "viewport": {
+      "width": 1366,
+      "height": 768
+    },
+    "checks": [
+      {
+        "id": "reference-upload-lock",
+        "status": "passed",
+        "result": "After the staged upload succeeded, the file input and upload button were disabled and no second staged reference could be created from the page."
+      },
+      {
+        "id": "full-reload-recovery",
+        "status": "passed",
+        "result": "A full browser reload returned directly to System / Ticket Templates and restored the template name, loading role, staged reference, step, selected anchor, and fixed text."
+      },
+      {
+        "id": "staged-reference-release",
+        "status": "passed",
+        "result": "Abandoning the unfinished template called the protected release flow and returned to the empty template state."
+      },
+      {
+        "id": "clean-console",
+        "status": "passed",
+        "result": "The clean post-reload page reported zero console errors and zero warnings."
+      }
+    ]
+  },
+  "independent_ui_run": {
+    "status": "passed_after_follow_up_fixes",
+    "checks": [
+      "Empty-database unlock, upload, normalization dimensions, pointer coordinates, and first-template creation",
+      "Multiple-family entry and ordinary-finance read-only template status",
+      "1366x768 and 683x384 (200 percent equivalent) without horizontal overflow",
+      "Vite proxy origin rewrite for protected local writes",
+      "Keyboard, focus, and alert semantics"
+    ]
+  },
+  "screenshots": [
+    "verification/loops/loop-7/20260725T232143+0800/loop7-final-upload-locked.png",
+    "verification/loops/loop-7/20260725T232143+0800/loop7-final-reload-recovery.png",
+    "verification/loops/loop-7/20260725T232143+0800/loop7-template-final-200.png",
+    "verification/loops/loop-7/20260725T232143+0800/loop7-navigation-200.png"
+  ]
+}

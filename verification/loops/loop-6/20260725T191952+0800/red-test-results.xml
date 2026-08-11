@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="5" failures="0" skipped="0" tests="5" time="0.246" timestamp="2026-07-25T19:25:00.230366+08:00" hostname="ProArtJH"><testcase classname="" name="tests.contract.test_loop6_ocr_protocol" time="0.000"><error message="collection failure">ImportError while importing test module 'C:\Users\aya72\OneDrive\Desktop\AI开发\DaHe\tests\contract\test_loop6_ocr_protocol.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+..\..\..\..\AppData\Local\Programs\Python\Python312\Lib\importlib\__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests\contract\test_loop6_ocr_protocol.py:9: in &lt;module&gt;
+    from dahe.adapters.ocr.protocol import (
+E   ModuleNotFoundError: No module named 'dahe.adapters.ocr'</error></testcase><testcase classname="" name="tests.unit.ocr.test_device_discovery" time="0.000"><error message="collection failure">ImportError while importing test module 'C:\Users\aya72\OneDrive\Desktop\AI开发\DaHe\tests\unit\ocr\test_device_discovery.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+..\..\..\..\AppData\Local\Programs\Python\Python312\Lib\importlib\__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests\unit\ocr\test_device_discovery.py:7: in &lt;module&gt;
+    from dahe.adapters.ocr.devices import (
+E   ModuleNotFoundError: No module named 'dahe.adapters.ocr'</error></testcase><testcase classname="" name="tests.unit.ocr.test_profiles_and_fingerprints" time="0.000"><error message="collection failure">ImportError while importing test module 'C:\Users\aya72\OneDrive\Desktop\AI开发\DaHe\tests\unit\ocr\test_profiles_and_fingerprints.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+..\..\..\..\AppData\Local\Programs\Python\Python312\Lib\importlib\__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests\unit\ocr\test_profiles_and_fingerprints.py:7: in &lt;module&gt;
+    from dahe.adapters.ocr.devices import NvidiaDevice
+E   ModuleNotFoundError: No module named 'dahe.adapters.ocr'</error></testcase><testcase classname="" name="tests.unit.ocr.test_waybill_fallback_and_diff" time="0.000"><error message="collection failure">ImportError while importing test module 'C:\Users\aya72\OneDrive\Desktop\AI开发\DaHe\tests\unit\ocr\test_waybill_fallback_and_diff.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+..\..\..\..\AppData\Local\Programs\Python\Python312\Lib\importlib\__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests\unit\ocr\test_waybill_fallback_and_diff.py:8: in &lt;module&gt;
+    from dahe.adapters.ocr.coordinator import (
+E   ModuleNotFoundError: No module named 'dahe.adapters.ocr'</error></testcase><testcase classname="" name="tests.integration.test_loop6_ndjson_worker" time="0.000"><error message="collection failure">ImportError while importing test module 'C:\Users\aya72\OneDrive\Desktop\AI开发\DaHe\tests\integration\test_loop6_ndjson_worker.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+..\..\..\..\AppData\Local\Programs\Python\Python312\Lib\importlib\__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests\integration\test_loop6_ndjson_worker.py:8: in &lt;module&gt;
+    from dahe.adapters.ocr.protocol import OCR_PROTOCOL_VERSION, OcrCommand, OcrOperation
+E   ModuleNotFoundError: No module named 'dahe.adapters.ocr'</error></testcase></testsuite></testsuites>

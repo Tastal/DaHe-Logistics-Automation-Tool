@@ -1,0 +1,86 @@
+{
+  "browser_runtime": {
+    "dependency_lock_sha256": "54e0b3b4066f8cc28f2a716780f7f845af2de5e986bf2a7f5ae77d46e633e3d4",
+    "installation_manifest_sha256": "1f0ad2bafdcd8011b488d74926cbe5ea33e325c885a34b9d738be443a267c76e",
+    "isolated_from_main_and_ocr_environments": true,
+    "playwright_version": "1.61.0",
+    "smoke_result": {
+      "ok": true,
+      "selected_browser": "msedge"
+    }
+  },
+  "build": {
+    "loop9_build_sha256": "2eaca08bbfac2594df96beb0bc08bfaa6fcab042a3c12e99dbf35636b8456f87",
+    "starting_git_commit": "194e0ebd46f769b4a4076f9ac5d4e4047c2ec074"
+  },
+  "checks": [
+    {
+      "command": ".\\.venv\\Scripts\\python.exe tools\\check.py",
+      "result": "passed: ruff; mypy 195 source files; pytest 1413 passed and 4 Windows-symlink skips; frontend boundary, lint, typecheck, 104 tests, and production build"
+    },
+    {
+      "command": "git diff --check",
+      "result": "passed"
+    },
+    {
+      "command": "playwright-cli local multi-viewport inspection",
+      "result": "passed: 1366x768, 1920x1080 and 125/150/200-percent CSS viewport equivalents; zero browser console errors; all observed requests stayed on 127.0.0.1:8899"
+    }
+  ],
+  "completed_at": "2026-07-29T00:04:00+08:00",
+  "contract_discovery_preparation": {
+    "legacy_code_access": "read_only_static_source_only",
+    "legacy_database_accessed": false,
+    "legacy_process_accessed": false,
+    "observed_read_shapes_are_not_yet_an_approved_live_contract": true,
+    "real_chengfeng_accessed": false
+  },
+  "gate_id": "loop-9-offline-read-only-foundation",
+  "implemented_contracts": [
+    "purpose-bound access windows with 60-minute default and 120-minute maximum",
+    "fresh legacy-idle, no-settlement-or-payment, and same-account-risk confirmations",
+    "identity-free durable authorization records",
+    "versioned and idempotent human-login control transitions",
+    "separately pinned Playwright worker with bounded NDJSON",
+    "no arbitrary URL command in the browser worker protocol",
+    "deny-by-default exact read-request manifest validation",
+    "short-lived exact-URL-hash image capabilities bound to authorized detail requests and validated response hashes",
+    "owned browser worker process with Windows kill-on-close supervision",
+    "backend-authoritative System status controls for access confirmation, human login handoff, and close",
+    "default application and test fixtures retain real platform access disabled"
+  ],
+  "local_ui_evidence": {
+    "console_error_count": 0,
+    "network_origin": "http://127.0.0.1:8899",
+    "real_platform_accessed": false,
+    "screenshots": [
+      {
+        "path": "verification/loops/loop-9/20260728T230448+0800/ui/system-status-1366x768.png",
+        "sha256": "fbe3f23fb69a34571e9a68011aaf3657dea74faa85cd890419360a4a9d40f553"
+      },
+      {
+        "path": "verification/loops/loop-9/20260728T230448+0800/ui/system-status-1920x1080.png",
+        "sha256": "e3e4c36d337cdeb18710761064fbbee15f9b42ea45db14bb773a88fe51dcfa2f"
+      },
+      {
+        "path": "verification/loops/loop-9/20260728T230448+0800/ui/system-status-scale-125.png",
+        "sha256": "2dc185bb6e3fa8ba6f576df38fec39868c946863a2ad8ffba508f7d8c7351c15"
+      },
+      {
+        "path": "verification/loops/loop-9/20260728T230448+0800/ui/system-status-scale-150.png",
+        "sha256": "4d5caec9a50da7fe3307ee2dda190897dc31e4a8fd3258b78fb24fb4b71b9e31"
+      },
+      {
+        "path": "verification/loops/loop-9/20260728T230448+0800/ui/system-status-scale-200.png",
+        "sha256": "d6a045e550b2c6c8a761c14094500f80a46f1d9f7846ad6e46b280abb4c6f9ae"
+      }
+    ]
+  },
+  "platform_requests": {
+    "forbidden": 0,
+    "total": 0,
+    "writes": 0
+  },
+  "schema_version": 1,
+  "status": "passed"
+}

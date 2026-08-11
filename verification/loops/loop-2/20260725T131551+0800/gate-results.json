@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "loop_id": "loop-2",
+  "run_id": "20260725T131551+0800",
+  "evaluated_at": "2026-07-25T14:30:00+08:00",
+  "subject_git_commit": "0841cc2aa18cceeaf0a6935effdcf12acac393c9",
+  "gates": [
+    {
+      "id": "loop-2-backend-contracts",
+      "status": "passed",
+      "evidence": [
+        "verification/loops/loop-2/20260725T131551+0800/test-results.xml",
+        "verification/loops/loop-2/20260725T131551+0800/coverage.xml",
+        "verification/loops/loop-2/20260725T131551+0800/fault-injection.json",
+        "verification/loops/loop-2/20260725T131551+0800/independent-review-final.json"
+      ],
+      "result": "109 Python tests passed; OCR inputs exclude platform expected weights; local API, idempotency, diagnostics, schema safety, and persistence contracts passed."
+    },
+    {
+      "id": "loop-2-frontend-contracts",
+      "status": "passed",
+      "evidence": [
+        "verification/loops/loop-2/20260725T131551+0800/frontend-test-results.xml",
+        "verification/loops/loop-2/20260725T131551+0800/browser-validation.json",
+        "verification/loops/loop-2/20260725T131551+0800/independent-review-final.json"
+      ],
+      "result": "14 frontend tests, lint, typecheck, production build, SSE mapping, stale-snapshot protection, and server-authoritative actions passed."
+    },
+    {
+      "id": "loop-2-vertical-slice",
+      "status": "passed",
+      "evidence": [
+        "verification/loops/loop-2/20260725T131551+0800/browser-validation.json",
+        "verification/loops/loop-2/20260725T131551+0800/test-results.xml",
+        "verification/loops/loop-2/20260725T131551+0800/safety-observations.json"
+      ],
+      "result": "One deterministic fake waybill completed from start through recognition, comparison, persisted result display, event updates, and refresh recovery with loopback-only requests."
+    },
+    {
+      "id": "loop-2-ux-acceptance",
+      "status": "passed",
+      "evidence": [
+        "verification/loops/loop-2/20260725T131551+0800/browser-validation.json",
+        "verification/loops/loop-2/20260725T131551+0800/screenshots/loop2-1366x768.png",
+        "verification/loops/loop-2/20260725T131551+0800/screenshots/loop2-1093x614.png",
+        "verification/loops/loop-2/20260725T131551+0800/screenshots/loop2-911x512.png",
+        "verification/loops/loop-2/20260725T131551+0800/screenshots/loop2-683x384.png"
+      ],
+      "result": "The restrained black, white, gray, and blue console kept the primary action and responsive task flow available at four equivalent CSS viewports; keyboard skip navigation passed."
+    }
+  ],
+  "unresolved_blockers": [],
+  "non_blocking_limits": [
+    "Native Windows DPI settings were not changed; the four scaling checks used equivalent CSS viewports.",
+    "Formal finance-user, screen-reader, and real-platform acceptance remain later human gates."
+  ],
+  "status": "passed"
+}

@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "loop_id": "loop-7",
+  "run_id": "20260726T142335+0800",
+  "subject_git_commit": "9e1ff869d23e54e9e694a24ecaa2c0949c7dfc6f",
+  "observations": {
+    "legacy_program_executed": false,
+    "legacy_process_attached_or_stopped": false,
+    "legacy_database_opened": false,
+    "chengfeng_accessed": false,
+    "platform_write_request_issued": false,
+    "network_accessed_for_this_gate": false,
+    "ocr_worker_started": false,
+    "windows_dns_proxy_vpn_changed": false,
+    "isolated_review_database_opened_read_only": true,
+    "review_package_images_rehashed": true
+  },
+  "data_claims": {
+    "human_review_completion_only": true,
+    "real_ocr_accuracy_claim": false,
+    "real_role_recall_claim": false,
+    "derived_prevalence_claim": false,
+    "loop_7_acceptance_claim": false
+  },
+  "test_environment": {
+    "python_runtime": "project_.venv",
+    "full_backend_passed": 877,
+    "full_backend_skipped": 2,
+    "frontend_test_files_passed": 10,
+    "frontend_tests_passed": 89,
+    "skip_reason": "The current Windows account cannot create symbolic links; non-privileged fail-closed path tests passed."
+  }
+}

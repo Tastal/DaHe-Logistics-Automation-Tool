@@ -1,0 +1,40 @@
+{
+  "anchors": [
+    {
+      "anchor_id": "loading-customer-name",
+      "box": {
+        "height": "0.046666666",
+        "width": "0.1105",
+        "x": "0.199",
+        "y": "0.572666667"
+      },
+      "expected_text": "\u5ba2\u6237\u540d\u79f0",
+      "loading_evidence": "1",
+      "match_kind": "literal",
+      "max_edit_distance": "0.1",
+      "required": true,
+      "unloading_evidence": "-0.4",
+      "weight": "1"
+    }
+  ],
+  "family_id": "loop7-real-loading-minimal",
+  "name": "\u88c5\u8d27\u78c5\u5355\uff08\u6700\u5c0f\u6a21\u677f\uff09",
+  "regions": [
+    {
+      "box": {
+        "height": "0.12",
+        "width": "0.15",
+        "x": "0.675",
+        "y": "0.55"
+      },
+      "field": "ordinary_net",
+      "format_pattern": "^[0-9]+(?:\\.[0-9]{1,3})?$",
+      "layout_scope": "ticket",
+      "region_id": "loading-ordinary-net",
+      "relative_to_anchor_id": null,
+      "required": true,
+      "unit": "t"
+    }
+  ],
+  "role": "loading"
+}

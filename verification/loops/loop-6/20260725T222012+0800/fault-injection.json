@@ -1,0 +1,67 @@
+{
+  "schema_version": 1,
+  "loop_id": "loop-6",
+  "qualification_run_id": "20260725T222012+0800",
+  "cases": [
+    {
+      "case": "no GPU or failed GPU smoke",
+      "expected": "AUTO selects the qualified CPU; CPU itself must remain qualified.",
+      "observed": "Runtime selection used CPU and exposed no fallback when GPU was unavailable or failed smoke.",
+      "status": "passed"
+    },
+    {
+      "case": "driver drift or incompatible qualification",
+      "expected": "Reject the stale GPU profile rather than remapping it by gpu:0.",
+      "observed": "The registry rejected driver drift and bound current ephemeral index mapping to the stable device identity.",
+      "status": "passed"
+    },
+    {
+      "case": "unsafe memory profile",
+      "expected": "Reject a profile whose measured peak crosses the conservative memory safety line.",
+      "observed": "The registry rejected the injected unsafe peak-memory report.",
+      "status": "passed"
+    },
+    {
+      "case": "GPU worker failure on the second ticket image",
+      "expected": "Keep globally reusable committed GPU work for other jobs, discard the affected waybill GPU generation, and rerun both waybill images on CPU.",
+      "observed": "The affected waybill obtained two CPU artifacts, the committed first GPU artifact remained reusable, and no mixed-runtime waybill result was accepted.",
+      "status": "passed"
+    },
+    {
+      "case": "worker inference exception",
+      "expected": "Emit one technical error and terminate the worker so unknown device state is never reused.",
+      "observed": "The worker returned exit code 43 after the first failed command and did not process the second command.",
+      "status": "passed"
+    },
+    {
+      "case": "pause, cancel, and stale lease during OCR",
+      "expected": "Finish the current image quantum, persist the safe checkpoint, release the lease, and fence stale results.",
+      "observed": "Pause resumed without redownload, cancel waited for the image boundary, and a stale lease could not commit.",
+      "status": "passed"
+    },
+    {
+      "case": "CPU technical failure",
+      "expected": "Fail as a system error and never create a finance-review business item.",
+      "observed": "The job failed technically and no human-review outcome was created.",
+      "status": "passed"
+    },
+    {
+      "case": "main process crash",
+      "expected": "Windows-owned OCR child exits without attaching to or terminating unrelated processes.",
+      "observed": "The owned NDJSON worker stopped after the synthetic parent crash.",
+      "status": "passed"
+    },
+    {
+      "case": "candidate bootstrap or later worker handshake failure",
+      "expected": "Keep the previous active composition and close every worker already started for the failed attempt.",
+      "observed": "The active pointer remained unchanged after candidate smoke failure, and a later CPU handshake failure closed the previously started GPU worker.",
+      "status": "passed"
+    }
+  ],
+  "repeatability": {
+    "iterations": 5,
+    "tests_per_iteration": 20,
+    "passing_test_executions": 100
+  },
+  "status": "passed"
+}

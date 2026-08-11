@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "loop_id": "loop-6",
+  "qualification_run_id": "20260725T222012+0800",
+  "observations": [
+    "No Chengfeng host, account, login, cookie, signed URL, request, response, browser profile, or platform write was used.",
+    "No cloud OCR request or paid OCR service was used.",
+    "No production or legacy ticket image was used; both smoke images were generated from the frozen synthetic fixture.",
+    "No legacy project script, runtime, model, database, process, port, browser profile, cache, or application-data directory was executed, attached to, stopped, reused, or modified.",
+    "No Windows DNS, proxy, VPN, routing, hosts file, global browser setting, or GPU driver was changed.",
+    "Every repository Python command used the project .venv. CPU OCR and GPU OCR were installed only into their separate generation directories.",
+    "The main application environment contains no Paddle, PaddleOCR, PaddleX, or OpenCV distribution.",
+    "Normal OCR workers deny Python socket creation and DNS resolution, require exact pre-provisioned model files, and disable silent device fallback and model-source checks.",
+    "The worker protocol carries image SHA-256 and a data-root-relative path. It does not carry image bytes, credentials, expected platform weight, or platform candidates.",
+    "Static scans found no developer path, gpu:0 identity, Edge executable path, CUDA_VISIBLE_DEVICES assignment, or expected platform weight in the Loop 6 runtime surface.",
+    "A technical OCR or infrastructure failure remains a system failure or an explicit CPU fallback and is never converted into a finance-review business item.",
+    "The real bootstrap reused the existing verified local model cache and did not request model provisioning."
+  ],
+  "package_install_network_observation": "The dependency installer was not network-instrumented. Its output showed cached artifacts, but this evidence does not claim that package indexes were never consulted. No business data or OCR content was sent by the installer.",
+  "environment_limit": "Two full-suite tests and one focused Loop 6 test were skipped because this Windows account lacks symbolic-link creation privilege. Fail-closed link and reparse handling is also covered by non-privileged tests.",
+  "status": "passed"
+}

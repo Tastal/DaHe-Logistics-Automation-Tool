@@ -1,0 +1,96 @@
+{
+  "schema_version": 1,
+  "loop_id": "loop-4",
+  "run_id": "20260725T160233+0800",
+  "evaluated_at": "2026-07-25T17:29:08+08:00",
+  "subject_git_commit": "d01c667c2936f9a16a77b917462c1e9782f81af5",
+  "gates": [
+    {
+      "id": "loop-4-migration-and-db-contract",
+      "status": "passed",
+      "evidence": [
+        "verification/loops/loop-4/20260725T160233+0800/test-results.xml",
+        "verification/loops/loop-4/20260725T160233+0800/coverage.xml",
+        "verification/loops/loop-4/20260725T160233+0800/commands.jsonl",
+        "verification/loops/loop-4/20260725T160233+0800/safety-observations.json"
+      ],
+      "result": "The formal database is Alembic managed with WAL, foreign keys, busy timeout, one short-transaction commit gate, pre-migration backup, immutable 0001 history, and a validated 0002 upgrade. Unknown and unmanaged databases are rejected before mutation."
+    },
+    {
+      "id": "loop-4-evidence-atomicity-and-deduplication",
+      "status": "passed",
+      "evidence": [
+        "verification/loops/loop-4/20260725T160233+0800/audit-atomicity-red-results.xml",
+        "verification/loops/loop-4/20260725T160233+0800/data-red-results.xml",
+        "verification/loops/loop-4/20260725T160233+0800/test-results.xml",
+        "verification/loops/loop-4/20260725T160233+0800/fault-injection.json"
+      ],
+      "result": "Immutable platform snapshots, audit decisions, evidence references, holds, and content-addressed blobs commit atomically. Repeated import is idempotent, shared bytes are stored once, and injected exceptions or process crashes expose no partial business revision."
+    },
+    {
+      "id": "loop-4-backup-and-staging-recovery",
+      "status": "passed",
+      "evidence": [
+        "verification/loops/loop-4/20260725T160233+0800/test-results.xml",
+        "verification/loops/loop-4/20260725T160233+0800/fault-injection.json",
+        "verification/loops/loop-4/20260725T160233+0800/offline-replay-results.json",
+        "verification/loops/loop-4/20260725T160233+0800/independent-review-final.json"
+      ],
+      "result": "Online backup and empty-root restore verify SQLite integrity, foreign keys, schema revision, exact database-required manifest membership, canonical paths, sizes, and hashes. Failed or incomplete restores leave no target or staging contamination and are safely retryable."
+    },
+    {
+      "id": "loop-4-instance-heartbeat-and-lease-recovery",
+      "status": "passed",
+      "evidence": [
+        "verification/loops/loop-4/20260725T160233+0800/recovery-red-results.xml",
+        "verification/loops/loop-4/20260725T160233+0800/test-results.xml",
+        "verification/loops/loop-4/20260725T160233+0800/fault-injection.json",
+        "verification/loops/loop-4/20260725T160233+0800/independent-review-final.json"
+      ],
+      "result": "Persistent instance registration, heartbeat, clean stop, operating-system single-instance proof, owned-child supervision, and lease recovery reject active, unexpired, wrong-root, current-owner, and stale-token cases. Shutdown preserves committed results and requeues only eligible uncommitted work."
+    },
+    {
+      "id": "loop-4-browser-fencing-and-protected-recovery",
+      "status": "passed",
+      "evidence": [
+        "verification/loops/loop-4/20260725T160233+0800/test-results.xml",
+        "verification/loops/loop-4/20260725T160233+0800/fault-injection.json",
+        "verification/loops/loop-4/20260725T160233+0800/safety-observations.json"
+      ],
+      "result": "Browser control modes, epochs, token hashes, lease expiry checks, and recovery proofs fence stale automatic navigation. Human login and handoff never expire into automated control and require an explicit matching return."
+    },
+    {
+      "id": "loop-4-shared-failure-retry-and-cleanup-race",
+      "status": "passed",
+      "evidence": [
+        "verification/loops/loop-4/20260725T160233+0800/shared-red-results.xml",
+        "verification/loops/loop-4/20260725T160233+0800/test-results.xml",
+        "verification/loops/loop-4/20260725T160233+0800/fault-injection.json",
+        "verification/loops/loop-4/20260725T160233+0800/offline-replay-results.json"
+      ],
+      "result": "Concurrent safe retries create one shared producer, enforce one global retry budget, and propagate one technical cause once per consumer only after exhaustion. Cleanup claims recheck references and holds so newly protected evidence is not deleted."
+    },
+    {
+      "id": "loop-4-offline-replay-and-regression",
+      "status": "passed",
+      "evidence": [
+        "verification/loops/loop-4/20260725T160233+0800/test-results.xml",
+        "verification/loops/loop-4/20260725T160233+0800/frontend-test-results.xml",
+        "verification/loops/loop-4/20260725T160233+0800/coverage.xml",
+        "verification/loops/loop-4/20260725T160233+0800/commands.jsonl",
+        "verification/loops/loop-4/20260725T160233+0800/offline-replay-results.json",
+        "verification/loops/loop-4/20260725T160233+0800/independent-review-final.json"
+      ],
+      "result": "The frozen synthetic dataset replays idempotently through import, restart, recovery, backup, and restore. The authoritative check passed 203 Python tests, 25 frontend tests, lint, types, and production build; the recovery and concurrency subset also passed 310 repeated executions."
+    }
+  ],
+  "unresolved_blockers": [],
+  "non_blocking_limits": [
+    "All Loop 4 validation used synthetic offline records; no real Chengfeng, production OCR, production image, credential, or legacy runtime was exercised.",
+    "Real OCR and browser workers must carry the lease generation and raw process-local fencing token through their versioned NDJSON protocol before committing results in later Loops.",
+    "Long-running real OCR and browser tasks will require lease renewal and automatic self-recovery; current synthetic atomic stages complete within the 30-second lease.",
+    "Process-supervisor close-failure resilience should be fault-injected before real OCR workers are enabled.",
+    "Automatic seven-day image cleanup remains outside the current MVP; protected cleanup claims and holds exist, but no production schedule is enabled."
+  ],
+  "status": "passed"
+}

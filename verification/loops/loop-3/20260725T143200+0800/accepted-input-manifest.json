@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "project_id": "DaHeLogistics",
+  "loop_id": "loop-3",
+  "run_id": "20260725T143200+0800",
+  "accepted_at": "2026-07-25T15:37:00+08:00",
+  "frozen_input_manifest": {
+    "path": "verification/loops/loop-3/20260725T143200+0800/input-manifest.json",
+    "sha256": "0b1d5cbd160850befd201b52dfa05d683ce96320ffa840933d35a37bf6b1b91f"
+  },
+  "fixture_correction": {
+    "path": "verification/loops/loop-3/20260725T143200+0800/fixture-contract-correction.json",
+    "sha256": "ee5cf0cd88ebc143ac526280f310a6273129623c4f2f118be838295c9d08551d"
+  },
+  "accepted_fixture": {
+    "path": "verification/loops/loop-3/20260725T143200+0800/corrected-fixture-manifest.json",
+    "sha256": "8842b64a664e15fdc2f4928c81abd4b044a778f73a72154dd2b02c8739ca078b",
+    "supersedes_path": "verification/loops/loop-3/20260725T143200+0800/fixture-manifest.json",
+    "supersedes_sha256": "1b0eeff9e30f08de1e429f7a064be40d188f510cadb23bb39a01a8f73942ae9a"
+  },
+  "git_baseline": {
+    "accepted_tag": "loop-2-accepted",
+    "attestation_commit": "9f02c14b23cb629b2e6cd18d721a090860756fd2",
+    "subject_commit": "0841cc2aa18cceeaf0a6935effdcf12acac393c9"
+  },
+  "authorized_scope": [
+    "Persistent temporary scheduler models and server-authoritative projections",
+    "One cooperative scheduler for normal fake audit and protected Loop 3 exercises",
+    "Fair one-unit rotation for contested fake browser and fake OCR resources",
+    "Independent per-Job pause, resume, and cancel at safe atomic boundaries",
+    "Conflict-key protection and shared fake evidence work",
+    "Three or more independently visible task cards with resource, wait, and checkpoint state",
+    "Deterministic test and browser validation using isolated temporary data"
+  ],
+  "forbidden_scope": [
+    "Real Chengfeng access, login, requests, credentials, browser profiles, or writes",
+    "Legacy project, data, process, port, browser profile, or runtime access",
+    "Real CPU or GPU OCR, CUDA, models, or production images",
+    "Enabled loading-detail, settlement, dispatch, history, or maintenance business modules",
+    "Production database migration, durable evidence storage, process supervision, or crash takeover",
+    "Platform settlement confirmation, payment, receipt cancellation, or automatic ticket swapping",
+    "Windows DNS, proxy, VPN, routing, hosts-file, or global browser changes"
+  ],
+  "fixture_boundary": {
+    "all_protected_jobs": "test_fixture",
+    "business_outcome": null,
+    "production_data_used": false,
+    "real_external_resources_allowed": []
+  },
+  "acceptance_focus": [
+    "No global task lock or competing scheduler owner",
+    "Independent resources can progress concurrently",
+    "Contested jobs rotate without deadlock or starvation",
+    "Pause, resume, cancel, and restart preserve committed state",
+    "Human-review items do not block normal items or hold heavy resources",
+    "Shared image and pipeline work executes once and fails technically when its producer fails",
+    "Frontend action availability and record versions remain backend-authoritative"
+  ]
+}

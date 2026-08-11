@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "loop_id": "loop-6",
+  "qualification_run_id": "20260725T222012+0800",
+  "command": "$ocrRuntimeRoot = Join-Path $env:LOCALAPPDATA 'Programs\\DaHeLogistics\\ocr-runtime'; .\\.venv\\Scripts\\python.exe tools\\ocr_runtime_check.py all --runtime-root $ocrRuntimeRoot --precision fp16 --batch-size 6 --output \"verification\\loops\\loop-6\\20260725T222012+0800\\runtime-check\"",
+  "exit_code": 0,
+  "raw_qualification_sha256": "748414e6d241f818ae3df9ee8c2ba9b71e192e771d68ec7cda513ef2b45ef566",
+  "sanitized_qualification_sha256": "3a16fc5ab5a84bd03a23a93d18f16cce1f34edcf326c3c8ed6f9263498695d8d",
+  "sanitization": [
+    "The raw stable GPU identifier was replaced by its lowercase SHA-256 value prefixed with sha256:.",
+    "JSON formatting was normalized to UTF-8 without BOM.",
+    "No timing, package, lock, model, source, image, role, critical-field, runtime-fingerprint, profile, driver, or memory value was changed."
+  ],
+  "generated_image_retention": {
+    "repository_copies_retained": false,
+    "reason": "The generated images are reproducible from the frozen fixture, and their SHA-256 values remain sealed in qualification.json and runtime-qualification-summary.json."
+  },
+  "status": "passed"
+}

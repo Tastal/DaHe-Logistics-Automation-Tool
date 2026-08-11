@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="3" skipped="0" tests="11" time="0.448" timestamp="2026-07-25T12:54:04.876013+08:00" hostname="ProArtJH"><properties><property name="hypothesis-statistics-tests/unit/domain/audit/test_weights.py::test_kilograms_convert_to_exact_tonnes" value="dGVzdHMvdW5pdC9kb21haW4vYXVkaXQvdGVzdF93ZWlnaHRzLnB5Ojp0ZXN0X2tpbG9ncmFtc19jb252ZXJ0X3RvX2V4YWN0X3Rvbm5lczoKCiAgLSBkdXJpbmcgZ2VuZXJhdGUgcGhhc2UgKDAuMDcgc2Vjb25kcyk6CiAgICAtIFR5cGljYWwgcnVudGltZXM6IH4gMC00NiBtcywgb2Ygd2hpY2ggfiAwLTIgbXMgaW4gZGF0YSBnZW5lcmF0aW9uCiAgICAtIDggcGFzc2luZywgMiBmYWlsaW5nLCBhbmQgMCBpbnZhbGlkIHRlc3QgY2FzZXMKICAgIC0gRm91bmQgMSBkaXN0aW5jdCBlcnJvciBpbiB0aGlzIHBoYXNlCgogIC0gZHVyaW5nIHNocmluayBwaGFzZSAoMC4wMSBzZWNvbmRzKToKICAgIC0gVHlwaWNhbCBydW50aW1lczogfiAzbXMsIG9mIHdoaWNoIDwgMW1zIGluIGRhdGEgZ2VuZXJhdGlvbgogICAgLSAwIHBhc3NpbmcsIDEgZmFpbGluZywgYW5kIDAgaW52YWxpZCB0ZXN0IGNhc2VzCiAgICAtIFRyaWVkIDEgc2hyaW5rcyBvZiB3aGljaCAwIHdlcmUgc3VjY2Vzc2Z1bAoKICAtIFN0b3BwZWQgYmVjYXVzZSBub3RoaW5nIGxlZnQgdG8gZG8=" /></properties><testcase classname="tests.unit.domain.audit.test_weights" name="test_weight_reading_rejects_float_input" time="0.001" /><testcase classname="tests.unit.domain.audit.test_weights" name="test_weight_reading_rejects_invalid_amounts[amount0]" time="0.000" /><testcase classname="tests.unit.domain.audit.test_weights" name="test_weight_reading_rejects_invalid_amounts[amount1]" time="0.001" /><testcase classname="tests.unit.domain.audit.test_weights" name="test_weight_reading_rejects_invalid_amounts[amount2]" time="0.000" /><testcase classname="tests.unit.domain.audit.test_weights" name="test_weight_reading_requires_original_text" time="0.000" /><testcase classname="tests.unit.domain.audit.test_weights" name="test_kilograms_convert_to_exact_tonnes" time="0.087"><failure message="AssertionError: assert Decimal('0.00') is None&#10; +  where Decimal('0.00') = NormalizedWeight(source=WeightReading(amount=Decimal('0'), unit=&lt;WeightUnit.KILOGRAM: 'kg'&gt;, raw_text='0 kg'), exact_tonnes=Decimal('0'), comparison_tonnes=Decimal('0.00'), policy_version='exact-two-decimal-tonnes-v1').comparison_tonnes&#10;Failing test case: test_kilograms_convert_to_exact_tonnes(&#10;    kilograms=0,&#10;)">@given(kilograms=st.integers(min_value=0, max_value=200_000))
+&gt;   def test_kilograms_convert_to_exact_tonnes(kilograms: int) -&gt; None:
+                   ^^^
+
+tests\unit\domain\audit\test_weights.py:47:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+kilograms = 0
+
+    @given(kilograms=st.integers(min_value=0, max_value=200_000))
+    def test_kilograms_convert_to_exact_tonnes(kilograms: int) -&gt; None:
+        source = WeightReading(
+            amount=Decimal(kilograms),
+            unit=WeightUnit.KILOGRAM,
+            raw_text=f"{kilograms} kg",
+        )
+
+        normalized = normalize_weight(source, policy())
+
+        assert normalized.exact_tonnes == Decimal(kilograms) / Decimal(1000)
+&gt;       assert normalized.comparison_tonnes is None
+E       AssertionError: assert Decimal('0.00') is None
+E        +  where Decimal('0.00') = NormalizedWeight(source=WeightReading(amount=Decimal('0'), unit=&lt;WeightUnit.KILOGRAM: 'kg'&gt;, raw_text='0 kg'), exact_tonnes=Decimal('0'), comparison_tonnes=Decimal('0.00'), policy_version='exact-two-decimal-tonnes-v1').comparison_tonnes
+E       Failing test case: test_kilograms_convert_to_exact_tonnes(
+E           kilograms=0,
+E       )
+
+tests\unit\domain\audit\test_weights.py:57: AssertionError</failure></testcase><testcase classname="tests.unit.domain.audit.test_weights" name="test_tonnes_are_not_scaled_during_normalization" time="0.001" /><testcase classname="tests.unit.domain.audit.test_weights" name="test_values_requiring_rounding_have_no_automatic_comparison_value" time="0.001"><failure message="decimal.InvalidOperation: [&lt;class 'decimal.InvalidOperation'&gt;]">def test_values_requiring_rounding_have_no_automatic_comparison_value() -&gt; None:
+        tonnes = normalize_weight(reading("12.345"), policy())
+        kilograms = normalize_weight(
+            reading("12345", WeightUnit.KILOGRAM),
+            policy(),
+        )
+
+        assert tonnes.exact_tonnes == Decimal("12.345")
+        assert tonnes.comparison_tonnes is None
+        assert kilograms.exact_tonnes == Decimal("12.345")
+        assert kilograms.comparison_tonnes is None
+
+&gt;       huge_kilograms = normalize_weight(
+            reading(
+                "123456789012345678901234567891",
+                WeightUnit.KILOGRAM,
+            ),
+            policy(),
+        )
+
+tests\unit\domain\audit\test_weights.py:80:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+reading = WeightReading(amount=Decimal('123456789012345678901234567891'), unit=&lt;WeightUnit.KILOGRAM: 'kg'&gt;, raw_text='123456789012345678901234567891 kg')
+policy = WeightComparisonPolicy(decimal_places=2, rule_version='exact-two-decimal-tonnes-v1')
+
+    def normalize_weight(
+        reading: WeightReading,
+        policy: WeightComparisonPolicy,
+    ) -&gt; NormalizedWeight:
+        exact_tonnes = (
+            reading.amount / Decimal(1000)
+            if reading.unit is WeightUnit.KILOGRAM
+            else reading.amount
+        )
+&gt;       candidate = exact_tonnes.quantize(policy.quantum)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       decimal.InvalidOperation: [&lt;class 'decimal.InvalidOperation'&gt;]
+
+src\dahe\domain\audit\weights.py:72: InvalidOperation</failure></testcase><testcase classname="tests.unit.domain.audit.test_weights" name="test_weight_policy_is_fixed_to_two_decimal_places" time="0.001" /><testcase classname="tests.unit.domain.audit.test_weights" name="test_comparison_uses_normalized_two_decimal_values" time="0.001" /><testcase classname="tests.unit.domain.audit.test_weights" name="test_comparison_has_no_business_tolerance" time="0.000"><failure message="decimal.InvalidOperation: [&lt;class 'decimal.InvalidOperation'&gt;]">def test_comparison_has_no_business_tolerance() -&gt; None:
+        result = compare_weights(
+            platform=reading("12.34"),
+            ticket=reading("12.35"),
+            policy=policy(),
+        )
+
+        assert result.matches is False
+        assert result.difference_tonnes == Decimal("0.01")
+
+&gt;       large_result = compare_weights(
+            platform=reading("123456789012345678901234567890.12"),
+            ticket=reading("123456789012345678901234567890.13"),
+            policy=policy(),
+        )
+
+tests\unit\domain\audit\test_weights.py:132:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+src\dahe\domain\audit\weights.py:95: in compare_weights
+    platform_weight = normalize_weight(platform, policy)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+reading = WeightReading(amount=Decimal('123456789012345678901234567890.12'), unit=&lt;WeightUnit.TONNE: 't'&gt;, raw_text='123456789012345678901234567890.12 t')
+policy = WeightComparisonPolicy(decimal_places=2, rule_version='exact-two-decimal-tonnes-v1')
+
+    def normalize_weight(
+        reading: WeightReading,
+        policy: WeightComparisonPolicy,
+    ) -&gt; NormalizedWeight:
+        exact_tonnes = (
+            reading.amount / Decimal(1000)
+            if reading.unit is WeightUnit.KILOGRAM
+            else reading.amount
+        )
+&gt;       candidate = exact_tonnes.quantize(policy.quantum)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       decimal.InvalidOperation: [&lt;class 'decimal.InvalidOperation'&gt;]
+
+src\dahe\domain\audit\weights.py:72: InvalidOperation</failure></testcase></testsuite></testsuites>

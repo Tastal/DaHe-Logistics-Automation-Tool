@@ -1,0 +1,73 @@
+{
+  "schema_version": 1,
+  "loop_id": "loop-5",
+  "run_id": "20260725T175112+0800",
+  "cases": [
+    {
+      "case": "unknown, redirected, or write-like request",
+      "expected": "Deny before the frozen transport executes",
+      "observed": "Origin, path, method, parameter location, keys, values, and value types must exactly match one manifest declaration; redirects and undeclared operations were rejected.",
+      "status": "passed"
+    },
+    {
+      "case": "login, page contract, image timeout, transient network, or browser-close failure",
+      "expected": "Keep distinct technical classifications and never create a finance review outcome",
+      "observed": "Each synthetic failure crossed the strict result protocol as its stable classification; impossible operation and diagnostic combinations were rejected as protocol errors.",
+      "status": "passed"
+    },
+    {
+      "case": "DNS diagnostic returns false or raises",
+      "expected": "Record a non-blocking diagnostic without suppressing an otherwise valid business read",
+      "observed": "Both DNS failure modes left the frozen list read successful and emitted only safe diagnostic metadata.",
+      "status": "passed"
+    },
+    {
+      "case": "browser closes during an uncommitted image read",
+      "expected": "Fence the old command, rebuild control, and retry only the current image with new authority",
+      "observed": "The image alone was retried. The replacement command used a new command ID, higher control epoch, new raw process-local token, and the image_download target stage.",
+      "status": "passed"
+    },
+    {
+      "case": "stale browser authority reaches the connector runtime",
+      "expected": "Reject before the frozen adapter performs a read",
+      "observed": "The runtime rejected the stale command authority and the frozen transport request count remained zero.",
+      "status": "passed"
+    },
+    {
+      "case": "mismatched result correlation or staged payload tampering",
+      "expected": "Reject before checkpoint, evidence blob, or reference commit",
+      "observed": "Wrong command identity and post-result byte tampering both raised protocol errors; only the initial browser checkpoint remained and evidence tables stayed empty.",
+      "status": "passed"
+    },
+    {
+      "case": "browser grant released after a read but before SQLite commit",
+      "expected": "Discard the result without committing the list checkpoint",
+      "observed": "The transport completed one read, the transaction-level authority fence rejected the stale grant, and the list checkpoint was not committed.",
+      "status": "passed"
+    },
+    {
+      "case": "process crash before the second detail result",
+      "expected": "Reopen SQLite and request only the remaining detail and images",
+      "observed": "The first detail stayed committed; restart performed zero list reads, one detail read, and four image reads, then a completed replay performed zero reads.",
+      "status": "passed"
+    },
+    {
+      "case": "exception after an image reference is inserted inside the transaction",
+      "expected": "Roll back reference and checkpoint, preserve a safe unreferenced CAS blob, and retry",
+      "observed": "No reference or image checkpoint survived the exception; retry reused the content identity and committed all four references.",
+      "status": "passed"
+    },
+    {
+      "case": "orphan or unsafe connector staging",
+      "expected": "Clean safe orphan command directories and refuse unknown, nested, symlink, or reparse entries",
+      "observed": "Safe orphans were recovered, active in-process command directories were retained, command-scoped staging was removed after consumption, and unsafe shapes were rejected.",
+      "status": "passed"
+    }
+  ],
+  "repeatability": {
+    "iterations": 10,
+    "tests_per_iteration": 24,
+    "passing_test_executions": 240
+  },
+  "status": "passed"
+}

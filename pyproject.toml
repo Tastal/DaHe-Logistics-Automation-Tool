@@ -1,0 +1,71 @@
+[build-system]
+requires = ["setuptools>=75", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dahe-logistics"
+version = "1.0.0"
+description = "Local logistics workflow system for DaHe"
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+  "alembic>=1.18.5,<1.19",
+  "fastapi>=0.140,<0.141",
+  "Pillow>=11.3,<13",
+  "pydantic>=2.10,<3",
+  "sqlalchemy>=2.0.51,<2.1",
+  "uvicorn>=0.51,<0.52",
+  "XlsxWriter==3.2.9",
+]
+
+[project.optional-dependencies]
+dev = [
+  "hypothesis>=6.120,<7",
+  "httpx2>=2.9.1,<3",
+  "jsonschema>=4.23,<5",
+  "mypy>=1.14,<2",
+  "pip-tools>=7.4,<8",
+  "pyinstaller==6.21.0",
+  "pytest>=8.3,<9",
+  "pytest-cov>=6,<8",
+  "pytest-timeout>=2.3,<3",
+  "ruff>=0.9,<1",
+]
+
+[project.scripts]
+dahe = "dahe.cli:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+addopts = "-ra --strict-config --strict-markers"
+testpaths = ["tests"]
+timeout = 30
+markers = [
+  "integration: process or operating-system integration tests",
+  "domain: pure domain contract tests",
+]
+
+[tool.coverage.run]
+branch = true
+source = ["dahe"]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+packages = ["dahe"]

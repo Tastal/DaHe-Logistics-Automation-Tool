@@ -1,0 +1,87 @@
+{
+  "acceptance": null,
+  "current_loop": "loop-9",
+  "gate_results": [
+    {
+      "evidence": "verification/loops/loop-9/20260728T230448+0800/offline-foundation-evidence.json",
+      "id": "loop-9-offline-read-only-foundation",
+      "status": "passed"
+    },
+    {
+      "evidence": "verification/loops/loop-9/20260728T230448+0800/discovery-contract-freeze-evidence.json",
+      "id": "loop-9-contract-discovery-tooling",
+      "status": "passed"
+    },
+    {
+      "evidence": "verification/loops/loop-9/20260728T230448+0800/isolated-live-read-transport-evidence.json",
+      "id": "loop-9-isolated-live-read-transport",
+      "status": "passed"
+    },
+    {
+      "evidence": "verification/loops/loop-9/20260728T230448+0800/validation-window-id-hotfix-evidence.json",
+      "id": "loop-9-validation-window-id-compatibility",
+      "status": "passed"
+    },
+    {
+      "evidence": "verification/loops/loop-9/20260728T230448+0800/validation-scope-contract-fix-evidence.json",
+      "id": "loop-9-validation-scope-compatibility",
+      "status": "passed"
+    },
+    {
+      "evidence": "verification/loops/loop-9/20260728T230448+0800/live-read-stage-diagnostics-evidence.json",
+      "id": "loop-9-safe-live-read-diagnostics",
+      "status": "passed"
+    },
+    {
+      "evidence": "verification/loops/loop-9/20260728T230448+0800/real-request-contract-0c6761f7-pending-evidence.json",
+      "id": "loop-9-real-request-contract",
+      "status": "pending"
+    },
+    {
+      "evidence": null,
+      "id": "loop-9-current-build-locked-set",
+      "status": "pending"
+    },
+    {
+      "evidence": null,
+      "id": "loop-9-real-shadow-batch",
+      "status": "pending"
+    },
+    {
+      "evidence": "verification/loops/loop-9/20260728T230448+0800/ui-decision-receiver-hotfix-0c6761f7-evidence.json",
+      "id": "loop-9-recovery-scheduling-and-ui",
+      "status": "pending"
+    },
+    {
+      "evidence": "verification/loop9-operational-read-only-acceptance-cfd39d30e33a.json",
+      "id": "loop-9-operational-read-only-cutover",
+      "status": "passed"
+    }
+  ],
+  "input_manifest": {
+    "path": "verification/loops/loop-9/20260728T230448+0800/input-manifest.json",
+    "sha256": "d15fdb0b259ce663885593b125153b936d8b39b7b1547ee93d96722a22e50f23"
+  },
+  "last_accepted_git_commit": "caeee5478ea22bc96538ca5a41886118e2b9fffd",
+  "next_inputs": [
+    "Use the read-only production workflow and inspect every routed business anomaly."
+  ],
+  "operational_acceptance": {
+    "accepted_at": "2026-08-07T03:33:50.602646+00:00",
+    "build_git_commit": "caeee5478ea22bc96538ca5a41886118e2b9fffd",
+    "evidence": "verification/loop9-operational-read-only-policy-change-caeee5478ea2.json",
+    "kind": "loop9_operational_read_only_policy_change",
+    "previous_status": "operational_read_only_with_guard",
+    "sha256": "8b7dbb5f85f7e3c8f27f7f0cb305b27f44e6ae8300e258a1883b4adc4c17e058",
+    "status": "operational_read_only_active"
+  },
+  "project_id": "DaHeLogistics",
+  "revision": 43,
+  "run_id": "20260728T230448+0800",
+  "schema_version": 4,
+  "status": "operational_read_only_active",
+  "unresolved_risks": [
+    "The independent unseen 50-waybill strict locked-set gate remains pending."
+  ],
+  "waiver": null
+}

@@ -1,0 +1,51 @@
+{
+  "build": {
+    "loop9_build_sha256": "0093e0072fcc34706035c3b97f5389f905b3fc20cab09dd73a496944987bbb40",
+    "starting_git_commit": "ceedbb364ac6ec0c0d2df62a0c8e65b62bc343c0"
+  },
+  "completed_at": "2026-07-31T00:19:43.2312103+08:00",
+  "contract_authority": {
+    "daily_contract_canonical_sha256": "d11712df1e8767d486350d5889a2a8476329a0fa8d4a6f5ed7c9832d33c7c0dc",
+    "daily_contract_file_sha256": "7118470eb77a9a0e70fa5ae52b7bb377ddc4df43f7c10c6f7a65a4ec4d4e715a",
+    "daily_contract_freeze_evidence_sha256": "dccbd116992485bd9f178b2aaa217a86cbbe6055c11d6df7ca28c9abfa1537ea",
+    "daily_contract_selection_sha256": "9fdad7ff3102da38e79af716f0e4a33374a3176045e8cfdd2e63cf0fb0abfc2a",
+    "settlement_contract_canonical_sha256": "7a6530acd7c0d8c6a8dc8a6926cb42ca0deb02bf9732817be1a4bd0642f4a901",
+    "settlement_contract_file_sha256": "6606699c4a8024bdea645e23e45aa8115a81263d8f1c66a0ed605e7146caa7ab",
+    "settlement_contract_freeze_evidence_sha256": "de5de3f00b068986206dcf226407db02de11828591845e012de6fbcf9f58e0fa",
+    "settlement_contract_selection_sha256": "b3dcce7cfef749d0e3f789f46d63e642d34751734a95c387351235d742310604"
+  },
+  "external_evidence": {
+    "canonical_sha256": "08e90811c800cdb7043cff1de7c45ec842d14289e7a77ef07671fab1ad68efc4",
+    "file_sha256": "90c84cb22ce2c33557388147d1e1a97d2de4f552eec1419dd16901151b3f6bd8",
+    "storage": "DaHe application data root"
+  },
+  "gate_id": "loop-9-real-request-contract",
+  "gate_status": "passed",
+  "meaning": {
+    "current_locked_set_passed": false,
+    "daily_data_used_as_locked_set": false,
+    "platform_read_contract_passed": true,
+    "real_shadow_batch_passed": false
+  },
+  "real_validation": {
+    "classification": "development_only",
+    "daily_list_item_count": 5,
+    "detail_requests_sent": 1,
+    "forbidden_request_count": 0,
+    "image_requests_sent": 2,
+    "list_daily_requests_sent": 1,
+    "list_pending_requests_sent": 2,
+    "pending_list_item_count": 0,
+    "platform_write_request_count": 0,
+    "raw_request_values_retained": false,
+    "raw_response_values_retained": false,
+    "redirect_count": 0,
+    "validation_mode": "settlement_empty_daily_nonempty"
+  },
+  "remaining_gates": {
+    "current_build_locked_set": "pending until new pending-settlement inventory is available",
+    "real_shadow_batch": "pending and must not overlap the future locked set",
+    "shadow_accepted": false
+  },
+  "schema_version": 1
+}

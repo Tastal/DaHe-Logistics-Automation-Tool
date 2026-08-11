@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "loop_id": "loop-7",
+  "run_id": "20260726T142335+0800",
+  "frozen_at": "2026-07-26T15:29:43+08:00",
+  "subject_git_commit": "9e1ff869d23e54e9e694a24ecaa2c0949c7dfc6f",
+  "scope": "locked_set_review_completion_and_derived_role_anomaly_contract",
+  "review_authority": {
+    "database_classification": "isolated_new_application_review_database",
+    "package_id": "loop7-locked-set-review-20260726-b",
+    "package_canonical_sha256": "161deab72f190334509b2a7a40c32df9c831654b960204498f2b9590843e6671",
+    "review_record_set_sha256": "1c312de29f450846d52ac24d3eefd5512062b0b19f4f69ef55376285979e4db4",
+    "review_completion_snapshot_sha256": "03beedbc2ec7630c961c07e4b76bd24382229fa9d850107980da44ff17f0b48a",
+    "waybill_count": 50,
+    "image_count": 100,
+    "latest_confirmed_record_count": 50,
+    "replacement_record_count": 0
+  },
+  "observed_real_distribution": {
+    "normal_pair_count": 42,
+    "pair_unknown_count": 8,
+    "suspected_swapped_count": 0,
+    "same_role_pair_count": 0,
+    "duplicate_upload_count": 0
+  },
+  "derived_contract": {
+    "generator_version": "dahe.loop7.derived-role-adversarial.v1",
+    "scenario_ids": [
+      "swapped_slots",
+      "both_loading",
+      "both_unloading",
+      "exact_duplicate_image"
+    ],
+    "real_sample_denominator_inclusion": false,
+    "accuracy_or_prevalence_claim": false
+  },
+  "allowed_external_resources": {
+    "real_chengfeng_access": false,
+    "legacy_database_or_process_access": false,
+    "ocr_execution": false,
+    "network_access": false,
+    "isolated_new_application_review_database_read_only": true
+  },
+  "release_boundary": {
+    "loop_7_accepted": false,
+    "formal_ocr_evaluation_completed": false,
+    "formal_accuracy_claim": false
+  }
+}

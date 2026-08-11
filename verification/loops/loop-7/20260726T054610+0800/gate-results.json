@@ -1,0 +1,75 @@
+{
+  "schema_version": 1,
+  "loop_id": "loop-7",
+  "run_id": "20260726T054610+0800",
+  "evaluated_at": "2026-07-26T05:46:10+08:00",
+  "subject_git_commit": "610ba83b9e536262fc2e70c91966162b7f1065e0",
+  "gates": [
+    {
+      "id": "loop-7-formal-locked-set-tooling",
+      "status": "passed",
+      "evidence": [
+        "verification/loops/loop-7/20260726T054610+0800/test-summary.json",
+        "verification/loops/loop-7/20260726T054610+0800/safety-observations.json",
+        "verification/loops/loop-7/20260726T054610+0800/independent-review.json"
+      ],
+      "result": "The prepare, bind-review, validate, evaluate, and invalidate commands implement a fail-closed offline workflow. Preparation seals exactly 50 waybills and 100 unique images, and only evaluate may construct a qualified local OCR runtime."
+    },
+    {
+      "id": "loop-7-human-review-authority",
+      "status": "passed",
+      "evidence": [
+        "verification/loops/loop-7/20260726T054610+0800/test-summary.json",
+        "verification/loops/loop-7/20260726T054610+0800/safety-observations.json",
+        "verification/loops/loop-7/20260726T054610+0800/independent-review.json"
+      ],
+      "result": "Quality scenes bind exact image or waybill-pair subjects to the sealed human truth, review attestations are canonically recomputed, and complete immutable quality and decision records persist through backup and restore."
+    },
+    {
+      "id": "loop-7-invalidation-replay-safety",
+      "status": "passed",
+      "evidence": [
+        "verification/loops/loop-7/20260726T054610+0800/test-summary.json",
+        "verification/loops/loop-7/20260726T054610+0800/safety-observations.json",
+        "verification/loops/loop-7/20260726T054610+0800/independent-review.json"
+      ],
+      "result": "If a formal result influences an executable artifact or label, permanent invalidation changes the dataset authority. Application and repository replay both reject that stale formal result, including concurrent invalidation boundaries."
+    },
+    {
+      "id": "loop-7-ocr-composition-provenance",
+      "status": "passed",
+      "evidence": [
+        "verification/loops/loop-7/20260726T054610+0800/test-summary.json",
+        "verification/loops/loop-7/20260726T054610+0800/input-manifest.json",
+        "verification/loops/loop-7/20260726T054610+0800/independent-review.json"
+      ],
+      "result": "Formal evaluation is factory-owned and binds the complete OCR composition evidence hash together with the runtime set, build, template, matcher, and policy identities. Manual backends cannot authorize a formal release."
+    },
+    {
+      "id": "loop-7-offline-regression",
+      "status": "passed",
+      "evidence": [
+        "verification/loops/loop-7/20260726T054610+0800/test-summary.json",
+        "verification/loops/loop-7/20260726T054610+0800/safety-observations.json"
+      ],
+      "result": "The authoritative check passed Ruff, mypy for 140 source files, 797 backend tests with two environment-limited skips, 70 frontend tests, boundary verification, lint, typecheck, and production build. No real or legacy system was used."
+    },
+    {
+      "id": "loop-7-locked-set-release",
+      "status": "pending",
+      "evidence": [
+        "verification/loops/loop-7/20260726T054610+0800/input-manifest.json",
+        "verification/loops/loop-7/20260726T054610+0800/safety-observations.json"
+      ],
+      "result": "The release mechanism is implemented, but no independent human-confirmed locked set of exactly 50 unseen waybills and 100 unique ticket images has been supplied or evaluated. Real accuracy and Loop 7 acceptance remain unclaimed."
+    }
+  ],
+  "summary": {
+    "passed": 5,
+    "pending": 1,
+    "failed": 0,
+    "loop_status": "in_progress",
+    "release_claim": "locked_set_tooling_verified_waiting_for_real_locked_set",
+    "loop_7_accepted": false
+  }
+}

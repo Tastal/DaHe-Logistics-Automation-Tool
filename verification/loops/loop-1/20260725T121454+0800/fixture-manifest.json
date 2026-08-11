@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "loop_id": "loop-1",
+  "run_id": "20260725T121454+0800",
+  "fixtures": [
+    {
+      "id": "synthetic-domain-contracts",
+      "location": "tests/unit/domain/audit",
+      "contains_production_data": false,
+      "contains_images": false,
+      "contains_credentials": false,
+      "network_required": false
+    }
+  ]
+}

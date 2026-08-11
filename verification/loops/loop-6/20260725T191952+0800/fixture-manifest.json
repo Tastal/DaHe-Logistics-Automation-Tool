@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "fixture_id": "loop6-synthetic-ocr-v1",
+  "kind": "synthetic_sanitized",
+  "production_data": false,
+  "contains_credentials": false,
+  "contains_personal_data": false,
+  "contains_platform_weight": false,
+  "images": [
+    {
+      "fixture_key": "synthetic-loading",
+      "role": "loading",
+      "generator": {
+        "canvas": [800, 480],
+        "background": "white",
+        "lines": [
+          "LOADING TICKET",
+          "GROSS 43.21 t",
+          "TARE 30.87 t",
+          "NET WEIGHT 12.34 t"
+        ]
+      }
+    },
+    {
+      "fixture_key": "synthetic-unloading",
+      "role": "unloading",
+      "generator": {
+        "canvas": [800, 480],
+        "background": "white",
+        "lines": [
+          "UNLOADING TICKET",
+          "GROSS 43.18 t",
+          "TARE 30.86 t",
+          "NET WEIGHT 12.32 t"
+        ]
+      }
+    }
+  ],
+  "expected_contract": {
+    "worker_receives_only": [
+      "protocol_version",
+      "command_id",
+      "operation",
+      "image_sha256",
+      "relative_path",
+      "pipeline_fingerprint",
+      "runtime_fingerprint",
+      "profile_id"
+    ],
+    "minimum_smoke_result": [
+      "verified_image_sha256",
+      "runtime_fingerprint",
+      "worker_identity",
+      "structured_text_lines",
+      "elapsed_ms"
+    ],
+    "accuracy_claim": "none"
+  }
+}

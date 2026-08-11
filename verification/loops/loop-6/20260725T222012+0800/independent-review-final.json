@@ -1,0 +1,65 @@
+{
+  "schema_version": 1,
+  "loop_id": "loop-6",
+  "qualification_run_id": "20260725T222012+0800",
+  "reviewed_subject_git_commit": "4c792a79e60a70b8a0850bf9c587b2564310bfcd",
+  "reviewer": "codex:/root/loop6_final_review",
+  "blocking": [],
+  "verified": [
+    "Qualification generation and runtime registration share one canonical profile-identity builder.",
+    "The registry recomputes the runtime fingerprint from actual Python, packages, locks, models, installed worker source, profile parameters, stable device identity, and driver evidence.",
+    "CPU qualification is fixed to fp32, batch size 1, and one worker.",
+    "Tampered precision, batch size, profile identity, and runtime fingerprint are rejected.",
+    "The standard factory and ordinary checks require the atomic active-composition pointer; only bootstrap may read the old layout for migration.",
+    "A worker terminates after an inference exception and cannot accept another command in unknown runtime state.",
+    "Bootstrap qualifies and publishes the exact requested fp16, batch size 6 GPU profile inside one immutable generation."
+  ],
+  "review_verification": {
+    "focused_tests_passed": 44,
+    "focused_tests_skipped": 1,
+    "skip_reason": "The current Windows account cannot create the test symbolic link.",
+    "git_diff_check": "passed",
+    "network_or_real_ocr_run_by_reviewer": false,
+    "source_files_modified_by_reviewer": false
+  },
+  "remaining_priorities": {
+    "p0": 0,
+    "p1": 0,
+    "p2": 0
+  },
+  "evidence_snapshot_review": {
+    "ledger_revision_reviewed": 14,
+    "ledger_status_reviewed": "in_progress",
+    "sealed_evidence_files": 15,
+    "junit": {
+      "backend": {
+        "tests": 526,
+        "passed": 524,
+        "skipped": 2
+      },
+      "loop6_focused": {
+        "tests": 150,
+        "passed": 149,
+        "skipped": 1
+      },
+      "frontend": {
+        "tests": 25,
+        "passed": 25,
+        "skipped": 0
+      }
+    },
+    "checks": [
+      "evidence-check.py passed",
+      "git diff --check passed",
+      "JSON, XML, tree hashes, runtime hashes, qualification values, and ledger references were independently parsed",
+      "No raw GPU UUID, host name, user name, email address, or user-profile path remained",
+      "The evidence makes no real-ticket accuracy, released-role, fixed-speed, or cross-machine performance claim"
+    ],
+    "p0": 0,
+    "p1": 0,
+    "p2": 0,
+    "recommendation": "GO"
+  },
+  "recommendation": "accepted",
+  "status": "passed"
+}

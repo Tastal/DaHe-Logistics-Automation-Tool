@@ -1,0 +1,438 @@
+{
+  "schema_version": 1,
+  "kind": "authorizing_observation_dataset",
+  "dataset_id": "loop7-authorizing-development-v3",
+  "production_data": false,
+  "contains_credentials": false,
+  "contains_personal_data": false,
+  "description": "Code-authored synthetic OCR observations aligned with all four formal candidate seed anchor contracts; development lifecycle evidence only, never formal accuracy evidence.",
+  "observations": [
+    {
+      "case_id": "loading-clear",
+      "truth_role": "loading",
+      "truth_source": "code_authored_synthetic",
+      "quality_tags": [
+        "screen"
+      ],
+      "rotations": [
+        {
+          "sample_id": "loading-clear@0",
+          "orientation_degrees": 0,
+          "observation_sha256": "e174a793732ebd632315f0f45f2eb2ba5960c4dc0f1effff084545e57046c2f4",
+          "ocr_lines": [
+            {
+              "text": "\u5ba2\u6237\u540d\u79f0",
+              "confidence": "0.98",
+              "box": {
+                "x": "0.199",
+                "y": "0.572666667",
+                "width": "0.1105",
+                "height": "0.046666666"
+              }
+            }
+          ]
+        },
+        {
+          "sample_id": "loading-clear@90",
+          "orientation_degrees": 90,
+          "observation_sha256": "a5731bc23794ca917691b32b7593e615612f5c7c69787e17729794be3ae61c2a",
+          "ocr_lines": [
+            {
+              "text": "\u5ba2\u6237\u540d\u79f0",
+              "confidence": "0.98",
+              "box": {
+                "x": "0.380666667",
+                "y": "0.199",
+                "width": "0.046666666",
+                "height": "0.1105"
+              }
+            }
+          ]
+        },
+        {
+          "sample_id": "loading-clear@180",
+          "orientation_degrees": 180,
+          "observation_sha256": "1fb5c7f86f311bb8c3d1c5675b20e0da19314e648dfc7cfb2829055b604b0875",
+          "ocr_lines": [
+            {
+              "text": "\u5ba2\u6237\u540d\u79f0",
+              "confidence": "0.98",
+              "box": {
+                "x": "0.6905",
+                "y": "0.380666667",
+                "width": "0.1105",
+                "height": "0.046666666"
+              }
+            }
+          ]
+        },
+        {
+          "sample_id": "loading-clear@270",
+          "orientation_degrees": 270,
+          "observation_sha256": "3dc93109d694990897aa46a40398786d6384c1df630df64ed31c06c5fc02b380",
+          "ocr_lines": [
+            {
+              "text": "\u5ba2\u6237\u540d\u79f0",
+              "confidence": "0.98",
+              "box": {
+                "x": "0.572666667",
+                "y": "0.6905",
+                "width": "0.046666666",
+                "height": "0.1105"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "loading-save-success",
+      "truth_role": "loading",
+      "truth_source": "code_authored_synthetic",
+      "quality_tags": [
+        "screen"
+      ],
+      "rotations": [
+        {
+          "sample_id": "loading-save-success@0",
+          "orientation_degrees": 0,
+          "observation_sha256": "ad1b483c58255311005f0106c1d7c57d78d875accfe069ab865687e59f13fe1e",
+          "ocr_lines": [
+            {
+              "text": "\u4fdd\u5b58\u6210\u529f",
+              "confidence": "0.98",
+              "box": {
+                "x": "0.106481481",
+                "y": "0.646875",
+                "width": "0.195370371",
+                "height": "0.036458333"
+              }
+            }
+          ]
+        },
+        {
+          "sample_id": "loading-save-success@90",
+          "orientation_degrees": 90,
+          "observation_sha256": "155cda776920e6a87176237b3415fe20c9fb6bb37ef33a65e1acb4f9c7af9ca4",
+          "ocr_lines": [
+            {
+              "text": "\u4fdd\u5b58\u6210\u529f",
+              "confidence": "0.98",
+              "box": {
+                "x": "0.316666667",
+                "y": "0.106481481",
+                "width": "0.036458333",
+                "height": "0.195370371"
+              }
+            }
+          ]
+        },
+        {
+          "sample_id": "loading-save-success@180",
+          "orientation_degrees": 180,
+          "observation_sha256": "955eb5e98f9a377654a3b20a3f1edd6fbd5b00805c3d3149ced38940a88519f2",
+          "ocr_lines": [
+            {
+              "text": "\u4fdd\u5b58\u6210\u529f",
+              "confidence": "0.98",
+              "box": {
+                "x": "0.698148148",
+                "y": "0.316666667",
+                "width": "0.195370371",
+                "height": "0.036458333"
+              }
+            }
+          ]
+        },
+        {
+          "sample_id": "loading-save-success@270",
+          "orientation_degrees": 270,
+          "observation_sha256": "4eade3af7fa03605def3b7c8dfbe850a1d59f083c0a54b4a8cf8aa020377cc29",
+          "ocr_lines": [
+            {
+              "text": "\u4fdd\u5b58\u6210\u529f",
+              "confidence": "0.98",
+              "box": {
+                "x": "0.646875",
+                "y": "0.698148148",
+                "width": "0.036458333",
+                "height": "0.195370371"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "loading-prompt-information",
+      "truth_role": "loading",
+      "truth_source": "code_authored_synthetic",
+      "quality_tags": [
+        "screen"
+      ],
+      "rotations": [
+        {
+          "sample_id": "loading-prompt-information@0",
+          "orientation_degrees": 0,
+          "observation_sha256": "17ae8995cda94a04f5c47608671a2d844c6e54272b8746006bca371b8549f7a6",
+          "ocr_lines": [
+            {
+              "text": "\u63d0\u793a\u4fe1\u606f",
+              "confidence": "0.98",
+              "box": {
+                "x": "0",
+                "y": "0.564",
+                "width": "0.141906874",
+                "height": "0.026"
+              }
+            }
+          ]
+        },
+        {
+          "sample_id": "loading-prompt-information@90",
+          "orientation_degrees": 90,
+          "observation_sha256": "4049a06ab41136e49e7bbe6b914a6c5a1d46f84e7f121d3273b3805cfc93a0b4",
+          "ocr_lines": [
+            {
+              "text": "\u63d0\u793a\u4fe1\u606f",
+              "confidence": "0.98",
+              "box": {
+                "x": "0.41",
+                "y": "0",
+                "width": "0.026",
+                "height": "0.141906874"
+              }
+            }
+          ]
+        },
+        {
+          "sample_id": "loading-prompt-information@180",
+          "orientation_degrees": 180,
+          "observation_sha256": "c0b41386cff072755e40776464728e5b44d28535d5a505776e9660c8c553d1b4",
+          "ocr_lines": [
+            {
+              "text": "\u63d0\u793a\u4fe1\u606f",
+              "confidence": "0.98",
+              "box": {
+                "x": "0.858093126",
+                "y": "0.41",
+                "width": "0.141906874",
+                "height": "0.026"
+              }
+            }
+          ]
+        },
+        {
+          "sample_id": "loading-prompt-information@270",
+          "orientation_degrees": 270,
+          "observation_sha256": "73dc6861efff3d55a63a8365293b3c1f5550a4907f5ed6a26f3955fa1d6a957d",
+          "ocr_lines": [
+            {
+              "text": "\u63d0\u793a\u4fe1\u606f",
+              "confidence": "0.98",
+              "box": {
+                "x": "0.564",
+                "y": "0.858093126",
+                "width": "0.026",
+                "height": "0.141906874"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "unloading-clear",
+      "truth_role": "unloading",
+      "truth_source": "code_authored_synthetic",
+      "quality_tags": [
+        "printed"
+      ],
+      "rotations": [
+        {
+          "sample_id": "unloading-clear@0",
+          "orientation_degrees": 0,
+          "observation_sha256": "b922fd5c7fc1de3430bca169c9b595d838ea8226558a6a381787fab8e8df3831",
+          "ocr_lines": [
+            {
+              "text": "\u5de5\u5382\u51c0\u91cd",
+              "confidence": "0.98",
+              "box": {
+                "x": "0.486",
+                "y": "0.548666667",
+                "width": "0.063",
+                "height": "0.024"
+              }
+            }
+          ]
+        },
+        {
+          "sample_id": "unloading-clear@90",
+          "orientation_degrees": 90,
+          "observation_sha256": "33e08dbf80c3660bc9fd00fcca1b8b110321188a743c15a12fbf01dc9abdc20d",
+          "ocr_lines": [
+            {
+              "text": "\u5de5\u5382\u51c0\u91cd",
+              "confidence": "0.98",
+              "box": {
+                "x": "0.427333333",
+                "y": "0.486",
+                "width": "0.024",
+                "height": "0.063"
+              }
+            }
+          ]
+        },
+        {
+          "sample_id": "unloading-clear@180",
+          "orientation_degrees": 180,
+          "observation_sha256": "ce5a629e99f5e54cb562d947164e3ae5a8e511b194f1764df4f622f704bcd537",
+          "ocr_lines": [
+            {
+              "text": "\u5de5\u5382\u51c0\u91cd",
+              "confidence": "0.98",
+              "box": {
+                "x": "0.451",
+                "y": "0.427333333",
+                "width": "0.063",
+                "height": "0.024"
+              }
+            }
+          ]
+        },
+        {
+          "sample_id": "unloading-clear@270",
+          "orientation_degrees": 270,
+          "observation_sha256": "4eb8f0c086c5b2465b571da54b9a49c8d93f37602976c7282305d85808185e50",
+          "ocr_lines": [
+            {
+              "text": "\u5de5\u5382\u51c0\u91cd",
+              "confidence": "0.98",
+              "box": {
+                "x": "0.548666667",
+                "y": "0.451",
+                "width": "0.024",
+                "height": "0.063"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "unknown-layout",
+      "truth_role": "unknown",
+      "truth_source": "code_authored_synthetic",
+      "quality_tags": [
+        "screen"
+      ],
+      "rotations": [
+        {
+          "sample_id": "unknown-layout@0",
+          "orientation_degrees": 0,
+          "observation_sha256": "ebdc827ecbb0c7076e84e0dbceeb38c0e1a4cee76bebf548b27feea71e03b251",
+          "ocr_lines": [
+            {
+              "text": "\u78c5\u5355",
+              "confidence": "0.95",
+              "box": {
+                "x": "0.62",
+                "y": "0.34",
+                "width": "0.16",
+                "height": "0.05"
+              }
+            },
+            {
+              "text": "\u51c0\u91cd",
+              "confidence": "0.95",
+              "box": {
+                "x": "0.66",
+                "y": "0.48",
+                "width": "0.12",
+                "height": "0.05"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "non-ticket",
+      "truth_role": "unknown",
+      "truth_source": "code_authored_synthetic",
+      "quality_tags": [
+        "other_document"
+      ],
+      "rotations": [
+        {
+          "sample_id": "non-ticket@0",
+          "orientation_degrees": 0,
+          "observation_sha256": "d28962b457176ecbd567f77eab4bbbe964f609e238732ce69a62efccaab4088f",
+          "ocr_lines": [
+            {
+              "text": "\u666e\u901a\u53d1\u7968",
+              "confidence": "0.99",
+              "box": {
+                "x": "0.62",
+                "y": "0.36",
+                "width": "0.22",
+                "height": "0.06"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "mixed-conflict",
+      "truth_role": "unknown",
+      "truth_source": "code_authored_synthetic",
+      "quality_tags": [
+        "printed"
+      ],
+      "rotations": [
+        {
+          "sample_id": "mixed-conflict@0",
+          "orientation_degrees": 0,
+          "observation_sha256": "1d223d1895ebf6b043b475b1611a15fb1666c42805dd766e2afed34afc2b3b13",
+          "ocr_lines": [
+            {
+              "text": "\u5ba2\u6237\u540d\u79f0",
+              "confidence": "0.98",
+              "box": {
+                "x": "0.199",
+                "y": "0.572666667",
+                "width": "0.1105",
+                "height": "0.046666666"
+              }
+            },
+            {
+              "text": "\u5de5\u5382\u51c0\u91cd",
+              "confidence": "0.98",
+              "box": {
+                "x": "0.486",
+                "y": "0.548666667",
+                "width": "0.063",
+                "height": "0.024"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "pair_cases": [
+    {
+      "case_id": "normal-pair",
+      "loading_sample_id": "loading-clear@0",
+      "unloading_sample_id": "unloading-clear@0",
+      "expected_issue": null
+    },
+    {
+      "case_id": "swapped-pair",
+      "loading_sample_id": "unloading-clear@0",
+      "unloading_sample_id": "loading-clear@0",
+      "expected_issue": "suspected_swapped"
+    }
+  ]
+}

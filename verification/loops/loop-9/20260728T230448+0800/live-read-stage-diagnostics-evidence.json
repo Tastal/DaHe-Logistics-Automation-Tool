@@ -1,0 +1,57 @@
+{
+  "build": {
+    "loop9_build_sha256": "a0faf3c1775ece805728a11464525ab74afb89e8dc76b8ce68a6d75435151041",
+    "starting_git_commit": "68977bc0dccac75f4dce6e7eb230d77ecca071dd"
+  },
+  "checks": [
+    {
+      "command": ".\\.venv\\Scripts\\python.exe -m pytest tests/unit/platform/test_loop9_live_connector_runtime.py::test_live_runtime_logs_safe_payload_reason_and_classifies_contract_change -q",
+      "result": "red: the live runtime did not accept a diagnostic store and classified a decoded response mismatch as a generic protocol error"
+    },
+    {
+      "command": ".\\.venv\\Scripts\\python.exe -m pytest tests/unit/platform/test_loop9_live_connector_runtime.py::test_live_runtime_logs_safe_payload_reason_and_classifies_contract_change tests/unit/platform/test_loop9_live_payload.py -q",
+      "result": "passed: 8 payload decoding and safe diagnostic tests"
+    },
+    {
+      "command": ".\\.venv\\Scripts\\python.exe tools\\check.py",
+      "result": "passed: ruff; mypy 204 source files; pytest 1471 passed and 4 Windows symlink privilege skips; frontend boundary, lint, typecheck, 107 tests, and production build"
+    },
+    {
+      "command": "git diff --check",
+      "result": "passed"
+    }
+  ],
+  "completed_at": "2026-07-29T17:14:00.2316382+08:00",
+  "gate_id": "loop-9-safe-live-read-diagnostics",
+  "implemented_contracts": [
+    "decoded response mismatches are classified as page-contract changes instead of generic connector protocol failures",
+    "each decoded response mismatch has a fixed code that contains no platform value or response text",
+    "the runtime log records only operation stage, fixed reason code, and fixed diagnostic code",
+    "raw JSON, OCR text, credentials, signed URLs, paths, and platform business values are never added to diagnostic events",
+    "local builder, staging, and protocol failures remain separate from platform response-shape failures",
+    "diagnostic log write failure remains best effort and cannot change a business result"
+  ],
+  "preceding_live_attempt": {
+    "access_window_consumed": true,
+    "browser_closed_after_failure": true,
+    "evidence_created": false,
+    "formal_request_result": "failed_closed_before_contract_evidence",
+    "legacy_browser_profile_accessed": false,
+    "legacy_database_accessed": false,
+    "legacy_process_accessed": false,
+    "platform_write_requests_sent": 0,
+    "raw_platform_values_retained": false
+  },
+  "remaining_gate": {
+    "real_request_contract_status": "pending",
+    "required_result": "one separately authorized validation must produce content-addressed evidence for one list, bounded details, and two ticket images"
+  },
+  "schema_version": 1,
+  "source_sha256": {
+    "src/dahe/adapters/chengfeng/live_connector_runtime.py": "2bd4ba4d6b7d317ecd155b666c36a2037e7db56a2ed0339d2f2763cb5f7d6245",
+    "src/dahe/adapters/chengfeng/live_payload.py": "e8d8ae058b742915c0455d177f649d5c6fed220866b324e3b5f151ce9d399771",
+    "src/dahe/api/app.py": "d6f3db6b19e508e16577c063b258d7327c2ecabaf9e1ddc16de8b917db658883",
+    "tests/unit/platform/test_loop9_live_connector_runtime.py": "dac40c122c4f64617c7514d204e6edbedd47dc21e3d34136db745728776a2aa7"
+  },
+  "status": "passed"
+}

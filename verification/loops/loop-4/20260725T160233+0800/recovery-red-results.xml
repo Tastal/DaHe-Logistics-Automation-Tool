@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="2" failures="0" skipped="0" tests="2" time="0.104" timestamp="2026-07-25T16:10:22.643754+08:00" hostname="ProArtJH"><testcase classname="" name="tests.integration.test_loop4_recovery_contract" time="0.000"><error message="collection failure">ImportError while importing test module 'C:\Users\aya72\OneDrive\Desktop\AI开发\DaHe\tests\integration\test_loop4_recovery_contract.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+..\..\..\..\AppData\Local\Programs\Python\Python312\Lib\importlib\__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests\integration\test_loop4_recovery_contract.py:8: in &lt;module&gt;
+    from dahe.adapters.sqlite.browser_control import (
+E   ModuleNotFoundError: No module named 'dahe.adapters.sqlite.browser_control'</error></testcase><testcase classname="" name="tests.unit.system.test_process_supervision" time="0.000"><error message="collection failure">ImportError while importing test module 'C:\Users\aya72\OneDrive\Desktop\AI开发\DaHe\tests\unit\system\test_process_supervision.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+..\..\..\..\AppData\Local\Programs\Python\Python312\Lib\importlib\__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests\unit\system\test_process_supervision.py:9: in &lt;module&gt;
+    from dahe.system.supervision import OwnedProcessSupervisor, ProcessOwnershipError
+E   ModuleNotFoundError: No module named 'dahe.system.supervision'</error></testcase></testsuite></testsuites>

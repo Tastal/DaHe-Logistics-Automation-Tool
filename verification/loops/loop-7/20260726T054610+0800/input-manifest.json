@@ -1,0 +1,109 @@
+{
+  "schema_version": 1,
+  "project_id": "DaHeLogistics",
+  "loop_id": "loop-7",
+  "run_id": "20260726T054610+0800",
+  "frozen_at": "2026-07-26T05:46:10+08:00",
+  "git_baseline": {
+    "accepted_tag": "loop-6-accepted",
+    "accepted_subject_commit": "4c792a79e60a70b8a0850bf9c587b2564310bfcd",
+    "accepted_attestation_commit": "0119db06f43d739bec6f8efc02b3962d0a1549e3",
+    "subject_commit": "610ba83b9e536262fc2e70c91966162b7f1065e0"
+  },
+  "sources": [
+    {
+      "path": "DEVELOPMENT_GUIDE.md",
+      "sha256": "a246bd21091b5fca468f640b534005b44514d6cc44bd6170a5da63c2c5faf9fa"
+    },
+    {
+      "path": "PRODUCT.md",
+      "sha256": "6bf0972b15db1b348e24340b8f2372a37929e49a657c4b2716e77fee2ae19bda"
+    },
+    {
+      "path": "AGENTS.md",
+      "sha256": "b064ed06e99c2ef8cc3e36e7afa3cab0c4941fbbdf9c2dcb52de10b1e916b113"
+    },
+    {
+      "path": "README.md",
+      "sha256": "d4cb16d28d05e3d5308a15639352ffef622ae1018a2b2d095bbf514aa484ba40"
+    },
+    {
+      "path": "pyproject.toml",
+      "sha256": "09cb1c299f5c5c48b5a3fff00662d8eeee582ca4128009158425405dfba62058"
+    },
+    {
+      "path": "requirements.lock",
+      "sha256": "ada227e132ae2e7c02300f1bb851eea343812d62fa3c48b465ea44eff6508104"
+    },
+    {
+      "path": "docs/adr/ADR-016-evidence-gated-ticket-templates.md",
+      "sha256": "ec32583d9daef4af2013aea6f2f87cc254288b611620bd2cda0d512258f34cde"
+    },
+    {
+      "path": "src/dahe/application/template_studio/formal_locked_set_release.py",
+      "sha256": "7b2c6410fa6adc60e79a633102ea80d9fc2decf9776edf1c4be40712ebaa491b"
+    },
+    {
+      "path": "src/dahe/adapters/sqlite/locked_set.py",
+      "sha256": "9d23283447d27d535735ed4b16a9aabbede413353e080f9d8d5e6e0b897ee4a0"
+    },
+    {
+      "path": "src/dahe/verification/locked_set_acceptance.py",
+      "sha256": "f684b526249b4edf828b6d1926f50469e16ee6d04cadb8638ae5611002b5cc14"
+    },
+    {
+      "path": "src/dahe/verification/locked_set_runner.py",
+      "sha256": "a94fe047fc28f87cfccf11b21af6b388297f80b6aeae0e125262b0f1d2262a78"
+    },
+    {
+      "path": "src/dahe/verification/image_similarity.py",
+      "sha256": "2b7fdb88ad364b9ce33e5028a1e6422874b49234aa2c9c6545deecda47949b2b"
+    },
+    {
+      "path": "tools/loop7_locked_set_release.py",
+      "sha256": "b1673db6e6219a039d952a039ea3711b70ad74970087d1cbe30d007744378b06"
+    }
+  ],
+  "data_classification": {
+    "tests": "code_authored_synthetic_contracts",
+    "formal_locked_set": "not_supplied",
+    "production_data": false
+  },
+  "authorized_scope": [
+    "Fail-closed preparation, human-review binding, validation, evaluation, and permanent invalidation tooling for a future independent locked set",
+    "Exactly 50 unseen waybills and 100 unique loading or unloading ticket images when an operator later supplies the formal dataset",
+    "Durable SQLite authority for exclusion inventory, immutable evidence, similarity scans, complete human review records, formal reports, and invalidation",
+    "CPU and GPU OCR runtime selection only through the existing qualified runtime factory during the explicit evaluate command",
+    "Code-owned acceptance rules for role safety, quality coverage, result reconciliation, provenance, idempotency, and optimistic concurrency",
+    "Offline synthetic unit, integration, migration, CLI, fault-injection, and regression tests"
+  ],
+  "forbidden_scope": [
+    "Real Chengfeng access, login, browser automation, credentials, production images, platform writes, or cloud OCR",
+    "Legacy project scripts, databases, runtimes, processes, ports, browser profiles, caches, or application-data mutation",
+    "Using platform weight, upload slot, file name, or expected role to select or rank OCR candidates",
+    "Tuning code, templates, thresholds, mappings, configuration, or labels after observing a formal locked set",
+    "Declaring Loop 7 accepted without the independent 50-waybill locked set and its recorded gate evidence",
+    "Starting Loop 8, switching templates to production, or changing the real audit workflow"
+  ],
+  "external_resources": {
+    "network_used": false,
+    "real_platform_used": false,
+    "legacy_system_used": false,
+    "cloud_ocr_used": false,
+    "real_cpu_or_gpu_ocr_used": false
+  },
+  "assumptions": [
+    "The code-owned synthetic tests validate the release mechanism and safety contracts, not real ticket accuracy.",
+    "Human review truth and scene attestations will be supplied independently and honestly; software can verify structure, identity, consistency, and provenance but cannot prove reviewer honesty.",
+    "The current perceptual similarity detector is a conservative candidate generator and all near-duplicate decisions remain human-confirmed.",
+    "The formal locked set remains unavailable, so this run can only verify tooling and leave the release gate pending."
+  ],
+  "gates": [
+    "loop-7-formal-locked-set-tooling",
+    "loop-7-human-review-authority",
+    "loop-7-invalidation-replay-safety",
+    "loop-7-ocr-composition-provenance",
+    "loop-7-offline-regression",
+    "loop-7-locked-set-release"
+  ]
+}

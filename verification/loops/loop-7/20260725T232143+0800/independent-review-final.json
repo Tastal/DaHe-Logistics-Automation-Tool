@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "loop_id": "loop-7",
+  "reviewed_at": "2026-07-26T03:12:00+08:00",
+  "subject_git_commit": "f9ea8e109ff2e755aa527bc38b91f9ebf36a39d4",
+  "security_review": {
+    "p0": [],
+    "p1": [],
+    "p2": [],
+    "confirmed": [
+      "The code-owned registry rejects arbitrary, copied, changed, and generated-regression manifests for persistent lifecycle evidence.",
+      "Truth is explicitly code_authored_synthetic and does not claim human labels, real-image accuracy, or locked-set authority.",
+      "Candidate identity, content, lifecycle, coverage, current shadow combination, absolute latest evaluation, invalidation, build, runtime, matcher, policy, pairs, counts, and stable outcome fail closed.",
+      "The regenerated development evaluation matches the current build, matcher, stable outcome, 15 result count, and passing gate."
+    ],
+    "checks": {
+      "persistence_and_api": "36 passed",
+      "matcher_domain_evaluation_reference_and_ocr_input": "59 passed",
+      "registry_tamper_and_coverage": "23 passed",
+      "git_diff_check": "passed"
+    }
+  },
+  "ui_api_review": {
+    "initial_findings": [
+      "P2: a successful staged upload could be repeated from the page and orphan the prior temporary hold.",
+      "P2: a full browser reload restored the draft data but returned navigation to Today instead of the template page."
+    ],
+    "resolution": [
+      "The upload handler and button now reject a second upload while a staged reference exists.",
+      "A valid creation-recovery record now initializes navigation directly to System / Ticket Templates."
+    ],
+    "reverification": [
+      "The final frontend check passed 70 tests, lint, typecheck, boundary verification, and build.",
+      "The final headed Playwright run verified upload locking and direct full-reload recovery with zero post-reload console errors."
+    ]
+  },
+  "remaining_acceptance_gate": "The 50-waybill independent human-confirmed locked set and authoritative persisted exclusion and invalidation lifecycle remain pending. This prevents Loop 7 acceptance but is not represented as a shadow-foundation code pass."
+}

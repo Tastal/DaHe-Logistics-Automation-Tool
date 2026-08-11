@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="0.715" timestamp="2026-07-25T15:10:07.003497+08:00" hostname="ProArtJH"><testcase classname="tests.integration.test_loop3_operator_contract" name="test_restart_keeps_one_scheduler_owner_for_queued_loop3_job" time="0.152"><failure message="AssertionError: assert 'failed' == 'succeeded'&#10;  &#10;  - succeeded&#10;  + failed">tmp_path = WindowsPath('C:/Users/aya72/AppData/Local/Temp/pytest-of-aya72/pytest-320/test_restart_keeps_one_schedul0')
+
+    def test_restart_keeps_one_scheduler_owner_for_queued_loop3_job(
+        tmp_path: Path,
+    ) -&gt; None:
+        first_app = create_app(
+            data_root=tmp_path,
+            auto_run_jobs=False,
+            stage_delay_seconds=0,
+            enable_test_fixtures=True,
+        )
+        with TestClient(first_app) as first_client:
+            session = first_client.get(
+                "/api/v1/session",
+                headers=_read_headers(),
+            )
+            job = _create_fixture(
+                first_client,
+                str(session.json()["csrf_token"]),
+                "audit-batch-short-002",
+                key="restart-owner-create",
+                expected_record_version=0,
+            )
+    
+        second_app = create_app(
+            data_root=tmp_path,
+            auto_run_jobs=True,
+            stage_delay_seconds=0,
+            enable_test_fixtures=True,
+        )
+        with TestClient(second_app) as second_client:
+            session = second_client.get(
+                "/api/v1/session",
+                headers=_read_headers(),
+            )
+            assert session.status_code == 200
+            deadline = time.monotonic() + 3
+            while time.monotonic() &lt; deadline:
+                restored = second_client.get(
+                    f"/api/v1/jobs/{job['job_id']}",
+                    headers=_read_headers(),
+                ).json()
+                if restored["job_status"] in {"succeeded", "failed"}:
+                    break
+                time.sleep(0.01)
+            else:
+                raise AssertionError("restored job did not become quiescent")
+    
+&gt;       assert restored["job_status"] == "succeeded"
+E       AssertionError: assert 'failed' == 'succeeded'
+E         
+E         - succeeded
+E         + failed
+
+tests\integration\test_loop3_operator_contract.py:409: AssertionError</failure></testcase></testsuite></testsuites>

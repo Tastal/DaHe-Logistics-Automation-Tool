@@ -1,0 +1,87 @@
+{
+  "schema_version": 1,
+  "loop_id": "loop-7",
+  "run_id": "20260726T142335+0800",
+  "observed_at": "2026-07-26T14:23:35+08:00",
+  "source_access": {
+    "database_classification": "isolated_new_application_review_database",
+    "database_open_mode": "sqlite_uri_mode_ro_query_only",
+    "legacy_database_opened": false,
+    "legacy_program_executed": false,
+    "ocr_executed": false,
+    "chengfeng_accessed": false,
+    "network_accessed": false
+  },
+  "package": {
+    "package_id": "loop7-locked-set-review-20260726-b",
+    "canonical_sha256": "161deab72f190334509b2a7a40c32df9c831654b960204498f2b9590843e6671",
+    "waybill_count": 50,
+    "image_count": 100,
+    "loader_validation": "passed"
+  },
+  "database": {
+    "quick_check": "ok",
+    "integrity_check": "ok",
+    "historical_record_count": 56,
+    "latest_record_count": 50,
+    "idempotency_record_count": 56
+  },
+  "review_completion": {
+    "confirmed_count": 50,
+    "replace_candidate_count": 0,
+    "reviewer_identity_count": 1,
+    "record_version_distribution": {
+      "1": 45,
+      "2": 4,
+      "3": 1
+    },
+    "record_set_sha256": "1c312de29f450846d52ac24d3eefd5512062b0b19f4f69ef55376285979e4db4",
+    "validation_error_count": 0
+  },
+  "observed_truth": {
+    "role_counts": {
+      "loading": 43,
+      "unloading": 49,
+      "unknown": 8
+    },
+    "orientation_counts": {
+      "rotation_0": 86,
+      "rotation_90": 11,
+      "rotation_180": 2,
+      "rotation_270": 1
+    },
+    "quality_condition_counts": {
+      "blur": 11,
+      "crop": 3,
+      "glare": 16,
+      "non_ticket": 2,
+      "printed": 51,
+      "rotation_0": 86,
+      "rotation_90": 11,
+      "rotation_180": 2,
+      "rotation_270": 1,
+      "screen": 43,
+      "unknown_layout": 7
+    },
+    "pair_condition_counts": {
+      "normal_pair": 42,
+      "pair_unknown": 8,
+      "swapped_pair": 0,
+      "same_role_pair": 0,
+      "duplicate_upload": 0
+    }
+  },
+  "validation": {
+    "sample_ids": "exactly_L7-001_through_L7-050",
+    "version_histories": "contiguous",
+    "latest_payload_shape": "passed",
+    "two_submitted_slots_per_item": "passed",
+    "one_orientation_per_image": "passed",
+    "known_role_two_decimal_tonne_value": "passed",
+    "unknown_role_blank_ordinary_net": "passed",
+    "unknown_quality_role_consistency": "passed",
+    "pair_role_consistency": "passed",
+    "validation_errors": []
+  },
+  "claim_limit": "This snapshot establishes human-review completion and internal consistency only. It makes no OCR accuracy, latency, derived anomaly capability, formal release, or Loop 7 acceptance claim."
+}

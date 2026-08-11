@@ -1,0 +1,61 @@
+{
+  "build": {
+    "fixed_loop9_build_sha256": "f52d5c9372961094fdd6973a661068bc52a1342c38431a88ca0240a4316c621a",
+    "starting_git_commit": "c6e6cdbe9b3ab25fcffbf34f8f433212f1c4e5d4",
+    "validation_attempt_build_sha256": "5fceb4ce2531939f8216be61e954597086c291ad2bee52fedd336d140dfb8eb2"
+  },
+  "checks": [
+    {
+      "command": ".\\.venv\\Scripts\\python.exe -m pytest tests/unit/platform/test_loop9_live_contract_validation.py -q",
+      "result": "red: 1 failed and 2 passed before the implementation change; the validation runner supplied pending_settlement instead of the frozen current scope"
+    },
+    {
+      "command": ".\\.venv\\Scripts\\python.exe -m pytest tests/unit/platform/test_loop9_live_contract_validation.py tests/unit/platform/test_loop9_live_request_builder.py tests/unit/platform/test_loop9_live_connector_runtime.py tests/unit/platform/test_loop9_live_request_contract.py -q",
+      "result": "passed: 19 focused validation, builder, connector, and logical request contract tests"
+    },
+    {
+      "command": ".\\.venv\\Scripts\\python.exe tools\\check.py",
+      "result": "passed: ruff; mypy 204 source files; pytest 1470 passed and 4 Windows symlink privilege skips; frontend boundary, lint, typecheck, 107 tests, and production build"
+    },
+    {
+      "command": "git diff --check",
+      "result": "passed"
+    }
+  ],
+  "completed_at": "2026-07-29T16:51:49.1404221+08:00",
+  "failure_classification": {
+    "access_window_consumed": true,
+    "browser_closed_after_failure": true,
+    "failure_code": "read_contract_validation_failed",
+    "failure_stage": "local_list_request_construction",
+    "formal_detail_requests_sent": 0,
+    "formal_image_requests_sent": 0,
+    "formal_list_requests_sent": 0,
+    "platform_write_requests_sent": 0,
+    "root_cause": "the validation runner used pending_settlement while the frozen logical request contract and deny-by-default builder require current"
+  },
+  "gate_id": "loop-9-validation-scope-compatibility",
+  "implemented_contracts": [
+    "the current pending-settlement logical scope has one shared source constant",
+    "the validation runner and the deny-by-default live request builder use the same scope identity",
+    "settled and arbitrary scopes remain rejected before any platform request",
+    "the failed authorization window remains consumed and cannot be replayed",
+    "the real-request-contract gate remains pending until a separate authorized live validation succeeds"
+  ],
+  "real_platform_access": {
+    "credential_material_retained": false,
+    "fixed_login_entry_opened": true,
+    "legacy_browser_profile_accessed": false,
+    "legacy_database_accessed": false,
+    "legacy_process_accessed": false,
+    "raw_platform_values_retained": false
+  },
+  "schema_version": 1,
+  "source_sha256": {
+    "src/dahe/adapters/chengfeng/live_contract_validation.py": "eb71c631f3eb00d03bbb30896c85a035ac72437bb64aca0cf44d4b6e71592cf6",
+    "src/dahe/adapters/chengfeng/live_request_builder.py": "cd318071a88d2c774fd345cb565c3d52e6cf3afef1b7d91b2e16530a44c0700c",
+    "src/dahe/ports/chengfeng.py": "163381efe844ec5a584fb171a4e729bacc65af9c3d0329a649e3f05dc03ccae4",
+    "tests/unit/platform/test_loop9_live_contract_validation.py": "35bc9418fa3bd13663e56fa23af239f3a5323d7ecddfc72813d515f9d1b2b692"
+  },
+  "status": "passed"
+}

@@ -1,0 +1,73 @@
+{
+  "accepted_at": "2026-08-07T03:33:50.602646+00:00",
+  "backup_restore": {
+    "canonical_sha256": "21affe0ec5f69e0960306f445a6482bb52d7c9ec8f6b51ba4fa52c042e79d9dc",
+    "database_counts": {
+      "daily_reports": 1,
+      "evidence_references": 842,
+      "jobs": 78,
+      "production_read_only_guard_items": 8,
+      "work_items": 464
+    },
+    "evidence_count": 326,
+    "integrity_check": "ok"
+  },
+  "build_git_commit": "caeee5478ea22bc96538ca5a41886118e2b9fffd",
+  "canonical_sha256": "8b7dbb5f85f7e3c8f27f7f0cb305b27f44e6ae8300e258a1883b4adc4c17e058",
+  "checks": {
+    "backend_pytest": {
+      "passed": 2750,
+      "skipped_for_unavailable_windows_symlink_privilege": 8
+    },
+    "frontend_e2e_passed": 9,
+    "frontend_test_files_passed": 22,
+    "frontend_tests_passed": 125,
+    "frontend_typecheck_lint_boundary_build_passed": true,
+    "git_diff_check_passed": true,
+    "migration_and_ledger_tests_passed": 27,
+    "mypy_passed": true,
+    "ruff_passed": true
+  },
+  "historical_guard": {
+    "after": {
+      "false_normal_count": 0,
+      "guard_active": false,
+      "record_version": 11,
+      "registered_count": 2,
+      "reviewed_count": 0,
+      "status": "operational_read_only_active"
+    },
+    "before": {
+      "false_normal_count": 0,
+      "registered_count": 2,
+      "reviewed_count": 0,
+      "status": "operational_read_only_with_guard"
+    },
+    "historical_rows_preserved": 8,
+    "historical_rows_released": 8,
+    "restored_machine_normal_rows": 8
+  },
+  "kind": "loop9_operational_read_only_policy_change",
+  "platform_access": {
+    "chengfeng_accessed": false,
+    "program_write_requests": 0
+  },
+  "previous_operational_acceptance": {
+    "evidence": "verification/loop9-operational-read-only-acceptance-cfd39d30e33a.json",
+    "sha256": "15928e6ac06fe65a07fff115b3e3b33815965a4c975f51daca30c8f9317b09c6",
+    "status": "operational_read_only_with_guard"
+  },
+  "prohibited_claims": [
+    "independent_locked_set_passed",
+    "strict_30_waybill_shadow_passed",
+    "shadow_accepted",
+    "platform_write_enabled"
+  ],
+  "release": {
+    "manifest_file_sha256": "e1e13f5fa8bd4662898aecec276ebf4fdac767745b142018a26a64410715c905",
+    "release_root_name": "0.8.0-caeee5478ea2",
+    "source_build_sha256": "e46a03fcc1279cddaa97b5ebd77b21321edd40011178ec0d2901fa3a9cf811fe"
+  },
+  "schema_version": 1,
+  "status": "operational_read_only_active"
+}

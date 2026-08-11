@@ -1,0 +1,105 @@
+{
+  "schema_version": 1,
+  "correction_kind": "missing_top_level_closing_brace",
+  "corrected_at": "2026-07-25T13:52:00+08:00",
+  "original_artifact": {
+    "path": "verification/loops/loop-2/20260725T131551+0800/input-manifest.json",
+    "sha256": "88454b4da60b29e1619da00660c9cf91743466db7c71278f82b5fad4e343f2e8",
+    "committed_by": "9b8c46a",
+    "mutated": false
+  },
+  "reason": "The frozen bytes were preserved. This separate artifact supplies the missing JSON delimiter without rewriting the committed input evidence.",
+  "corrected_document": {
+    "schema_version": 1,
+    "project_id": "DaHeLogistics",
+    "loop_id": "loop-2",
+    "run_id": "20260725T131551+0800",
+    "frozen_at": "2026-07-25T13:15:51+08:00",
+    "git_baseline": {
+      "commit": "63e01fa598bd2e56313b2586c34c75edb7d95447",
+      "tag": "loop-1-accepted"
+    },
+    "source_contracts": [
+      {
+        "path": "AGENTS.md",
+        "sha256": "b064ed06e99c2ef8cc3e36e7afa3cab0c4941fbbdf9c2dcb52de10b1e916b113"
+      },
+      {
+        "path": "PRODUCT.md",
+        "sha256": "6bf0972b15db1b348e24340b8f2372a37929e49a657c4b2716e77fee2ae19bda"
+      },
+      {
+        "path": "DEVELOPMENT_GUIDE.md",
+        "sha256": "e466ec2fbc026343668c74b83e73d019163a766dfbd65b3117c470f26373aa09"
+      },
+      {
+        "path": "pyproject.toml",
+        "sha256": "e8cb8309c237ae1523609088bdc9bb0024fc952563d79e3ed45780aa0edfc325"
+      },
+      {
+        "path": "frontend/package-lock.json",
+        "sha256": "e12b457ad3bd3bd9e91795bd112677349047a9ed1c1e44e8b346e9bf1e9ef16e"
+      },
+      {
+        "path": "version-manifest.json",
+        "sha256": "dddd38055b98092fd6ccf59ead9731d054a2aaf4ea725b50d59aa0facbb5a98f"
+      }
+    ],
+    "authorized_scope": [
+      "FastAPI local API and server-authoritative action matrix",
+      "Temporary SQLite job state through an explicit repository boundary",
+      "React and TypeScript operator-console shell",
+      "Deterministic fake platform and fake OCR adapters",
+      "One normal shadow-audit work item from start through completion",
+      "Server-sent job events with snapshot recovery after page refresh",
+      "Local request idempotency, expected record versions, and build-version checks",
+      "Loop 2 unit, contract, integration, frontend, browser, and accessibility checks"
+    ],
+    "forbidden_scope": [
+      "Real Chengfeng access, login, requests, credentials, or browser profiles",
+      "Legacy project, database, process, port, browser profile, or runtime access",
+      "Real PaddleOCR, CPU OCR, GPU OCR, CUDA, or model installation",
+      "Operational mode or any platform write capability",
+      "Production database migrations, historical import, cleanup, settlement, dispatch, or daily business implementation",
+      "Loop 3 scheduling behavior before Loop 2 is accepted"
+    ],
+    "runtime_dependencies": {
+      "python": {
+        "fastapi": "0.140.0",
+        "sqlalchemy": "2.0.51",
+        "uvicorn": "0.51.0"
+      },
+      "python_development": {
+        "httpx": "0.28.1"
+      },
+      "frontend": {
+        "react": "19.2.8",
+        "react-dom": "19.2.8",
+        "vite": "8.1.5",
+        "@vitejs/plugin-react": "6.0.4",
+        "typescript": "7.0.2",
+        "vitest": "4.1.10",
+        "@playwright/test": "1.62.0"
+      }
+    },
+    "external_resources": [
+      "Python Package Index for approved dependency installation",
+      "npm registry for approved frontend dependency installation",
+      "Official FastAPI, Vite, React, and SQLAlchemy documentation"
+    ],
+    "visual_contract": {
+      "scene": "Finance staff reviewing waybills on a Windows office monitor during the day",
+      "register": "product",
+      "color_strategy": "restrained",
+      "palette": "black, white, gray, and blue",
+      "font_stack": "Segoe UI, Microsoft YaHei UI, system-ui, sans-serif",
+      "required_viewport": "1366x768",
+      "required_scaling": [
+        "100%",
+        "125%",
+        "150%",
+        "200%"
+      ]
+    }
+  }
+}

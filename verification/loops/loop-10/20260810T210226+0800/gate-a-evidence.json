@@ -1,0 +1,91 @@
+{
+  "accepted_at": "2026-08-10T13:08:55.5667638+00:00",
+  "automated_checks": {
+    "command": ".venv\\Scripts\\python.exe tools\\check.py",
+    "frontend_build": "passed",
+    "frontend_tests": {
+      "passed": 138,
+      "skipped": 0
+    },
+    "mypy_source_files": 344,
+    "python_tests": {
+      "passed": 2858,
+      "skipped": 8,
+      "skip_reason": "Windows account cannot create symbolic links"
+    },
+    "ruff": "passed"
+  },
+  "browser_freshness": [
+    {
+      "cache_refresh_count": 1,
+      "ignore_cache_reload": true,
+      "page_count": 1,
+      "route": "/billablewaybill",
+      "scope": "settlement"
+    },
+    {
+      "cache_refresh_count": 1,
+      "ignore_cache_reload": true,
+      "page_count": 1,
+      "route": "/wayBill",
+      "scope": "daily"
+    }
+  ],
+  "build": {
+    "application_version": "0.8.1",
+    "git_commit": "6308019317c4fbbfc05f50c763e94b48bea1eab4",
+    "installed_release": "0.8.1-6308019317c4",
+    "manifest_file_count": 329,
+    "manifest_mismatch_count": 0,
+    "runtime_manifest_sha256": "236432ec211ba0191d237573842c8de1dba1d44a649197dd4658a3a032721070",
+    "source_build_sha256": "40e4307d6119340f6b643d2ca83ec3841afc8dfdb62ce84752b681ffee910adf"
+  },
+  "desktop": {
+    "http_readiness_status": 200,
+    "shortcut_count": 1,
+    "shortcut_name": "大禾物流自动化平台.lnk",
+    "shortcut_release": "0.8.1-6308019317c4"
+  },
+  "gate": "gate-a",
+  "kind": "loop10_gate_evidence",
+  "production_review_contract": {
+    "invalid_highlight_role_count": 0,
+    "waiting_review_count": 64,
+    "zero_highlight_role_count": 0
+  },
+  "real_platform_reads": [
+    {
+      "evidence_sha256": "39403e6b8cf93eafe86d0e97db0a5628b366bcb28c15c897ad97a774729f0e50",
+      "job_id": "63688255f37d4e298d55cdd06ad40d46",
+      "operation_counts": {
+        "download_ticket_image": 98,
+        "get_waybill_detail": 49,
+        "list_waybills": 1
+      },
+      "platform_write_request_count": 0,
+      "purpose": "operational_settlement",
+      "redirect_count": 0,
+      "request_count": 148,
+      "status": "succeeded"
+    },
+    {
+      "evidence_sha256": "98fff199211e6de7e090c1ab98207937e8e4e3d12d65555e03d0024ba27a7981",
+      "job_id": "ccdd2c6c563b4810862d783def3f514e",
+      "operation_counts": {
+        "list_daily_waybills": 1
+      },
+      "platform_write_request_count": 0,
+      "purpose": "operational_daily",
+      "redirect_count": 0,
+      "request_count": 1,
+      "status": "succeeded"
+    }
+  ],
+  "remaining_risks": [
+    "Gate B installer, updater, and schema rollback are not implemented or accepted.",
+    "Gate C local diagnostics and v1.0.0 publication are not implemented or accepted.",
+    "A code-signing certificate is intentionally absent, so SmartScreen reputation prompts remain possible."
+  ],
+  "schema_version": 1,
+  "status": "passed"
+}

@@ -1,0 +1,89 @@
+{
+  "schema_version": 1,
+  "loop_id": "loop-3",
+  "run_id": "20260725T143200+0800",
+  "evaluated_at": "2026-07-25T15:44:00+08:00",
+  "subject_git_commit": "f42e667f8ac61d14261f92a4d97d8007ce3c7890",
+  "gates": [
+    {
+      "id": "loop-3-scheduler-contracts",
+      "status": "passed",
+      "evidence": [
+        "verification/loops/loop-3/20260725T143200+0800/test-results.xml",
+        "verification/loops/loop-3/20260725T143200+0800/coverage.xml",
+        "verification/loops/loop-3/20260725T143200+0800/fault-injection.json",
+        "verification/loops/loop-3/20260725T143200+0800/single-scheduler-red-results.xml",
+        "verification/loops/loop-3/20260725T143200+0800/independent-review-final.json"
+      ],
+      "result": "One cooperative scheduler owns normal fake audit and protected fixture work. Independent browser and OCR resources can overlap, contested Jobs rotate deterministically, and three sustained Jobs do not starve."
+    },
+    {
+      "id": "loop-3-control-semantics",
+      "status": "passed",
+      "evidence": [
+        "verification/loops/loop-3/20260725T143200+0800/test-results.xml",
+        "verification/loops/loop-3/20260725T143200+0800/fault-injection.json",
+        "verification/loops/loop-3/20260725T143200+0800/browser-validation.json",
+        "verification/loops/loop-3/20260725T143200+0800/independent-review-final.json"
+      ],
+      "result": "Versioned pause, resume, cancel, conflict creation, final events, shared-work failure, and restart recovery passed without losing or duplicating committed results."
+    },
+    {
+      "id": "loop-3-shared-work-and-conflicts",
+      "status": "passed",
+      "evidence": [
+        "verification/loops/loop-3/20260725T143200+0800/test-results.xml",
+        "verification/loops/loop-3/20260725T143200+0800/cross-layer-red-results-2.xml",
+        "verification/loops/loop-3/20260725T143200+0800/fault-injection.json"
+      ],
+      "result": "Concurrent duplicate scope creation admitted one owner, stale control writes were rejected, identical image and pipeline work ran once, and a failed shared producer failed later consumers technically without deadlock."
+    },
+    {
+      "id": "loop-3-problem-isolation",
+      "status": "passed",
+      "evidence": [
+        "verification/loops/loop-3/20260725T143200+0800/test-results.xml",
+        "verification/loops/loop-3/20260725T143200+0800/fault-injection.json",
+        "verification/loops/loop-3/20260725T143200+0800/browser-validation.json"
+      ],
+      "result": "Suspected swapped and numeric-mismatch simulations waited for a person without blocking normal items or holding heavy resources, while technical failures never became finance-review outcomes."
+    },
+    {
+      "id": "loop-3-ux-concurrency",
+      "status": "passed",
+      "evidence": [
+        "verification/loops/loop-3/20260725T143200+0800/frontend-test-results.xml",
+        "verification/loops/loop-3/20260725T143200+0800/browser-validation.json",
+        "verification/loops/loop-3/20260725T143200+0800/screenshots/loop3-1366x768.png",
+        "verification/loops/loop-3/20260725T143200+0800/screenshots/loop3-1093x614.png",
+        "verification/loops/loop-3/20260725T143200+0800/screenshots/loop3-911x512.png",
+        "verification/loops/loop-3/20260725T143200+0800/screenshots/loop3-683x384.png"
+      ],
+      "result": "25 frontend tests passed. Four task cards retained independent selection and controls, exposed stages, resources, waits, and checkpoints, and remained usable at four equivalent CSS viewports with keyboard and reduced-motion checks."
+    },
+    {
+      "id": "loop-3-fairness-safety",
+      "status": "passed",
+      "evidence": [
+        "verification/loops/loop-3/20260725T143200+0800/commands.jsonl",
+        "verification/loops/loop-3/20260725T143200+0800/test-results.xml",
+        "verification/loops/loop-3/20260725T143200+0800/fault-injection.json",
+        "verification/loops/loop-3/20260725T143200+0800/safety-observations.json",
+        "verification/loops/loop-3/20260725T143200+0800/accepted-input-manifest.json",
+        "verification/loops/loop-3/20260725T143200+0800/independent-review-final.json"
+      ],
+      "result": "Business-first bounded aging, deterministic rotation, and three-Job no-starvation tests passed. The final authoritative check passed 132 Python and 25 frontend tests, and validation used only protected fixtures and loopback traffic."
+    }
+  ],
+  "unresolved_blockers": [],
+  "non_blocking_limits": [
+    "All Loop 3 business-like work used deterministic protected fixtures; no real Chengfeng, production OCR, or production data was exercised.",
+    "The four scaling checks used equivalent CSS viewports and are not native Windows DPI evidence.",
+    "No finance-user acceptance or formal screen-reader session was performed.",
+    "Before a real 30-waybill shadow run, coalesce event-triggered jobs/resources refreshes and avoid rewriting unchanged waiting_resource projections.",
+    "Resource-holder identity and held duration remain a later diagnostic-view enhancement.",
+    "The loading-probe success copy still uses a generic audit-completion phrase.",
+    "Process supervision, heartbeat, and crash takeover of active leases remain intentionally deferred to Loop 4."
+  ],
+  "status": "passed"
+}

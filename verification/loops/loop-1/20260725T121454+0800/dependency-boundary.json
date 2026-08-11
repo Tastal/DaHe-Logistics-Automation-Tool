@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "loop_id": "loop-1",
+  "checked_at": "2026-07-25T12:49:01+08:00",
+  "domain_runtime_dependencies": [
+    "python-standard-library",
+    "dahe.domain.audit"
+  ],
+  "forbidden_runtime_imports": [
+    "fastapi",
+    "sqlite3",
+    "sqlalchemy",
+    "playwright",
+    "paddle",
+    "paddleocr",
+    "requests"
+  ],
+  "forbidden_runtime_imports_found": [],
+  "future_packages_installed_in_project_venv": {
+    "fastapi": false,
+    "sqlalchemy": false,
+    "playwright": false,
+    "paddle": false,
+    "paddleocr": false
+  },
+  "automatic_rounding_symbols_found": [],
+  "boundary_test": {
+    "command": ".venv\\Scripts\\python.exe -m pytest tests/contract/test_repository_boundaries.py tests/unit/domain/audit -q",
+    "passed": 53,
+    "failed": 0
+  },
+  "status": "passed"
+}

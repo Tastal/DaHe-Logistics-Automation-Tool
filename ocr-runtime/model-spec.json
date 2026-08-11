@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "model_set_id": "dahe-ocr-v6-medium-v1",
+  "models": [
+    {
+      "name": "PP-OCRv6_medium_det",
+      "purpose": "text_detection"
+    },
+    {
+      "name": "PP-OCRv6_medium_rec",
+      "purpose": "text_recognition"
+    }
+  ],
+  "normal_worker_downloads_allowed": false
+}
+

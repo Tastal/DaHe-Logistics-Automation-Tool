@@ -1,0 +1,76 @@
+{
+  "schema_version": 1,
+  "loop_id": "loop-2",
+  "run_id": "20260725T131551+0800",
+  "validated_at": "2026-07-25T14:22:30+08:00",
+  "tool": "Playwright CLI with an isolated Chrome session",
+  "target": "http://127.0.0.1:8877/",
+  "production_data_used": false,
+  "checks": [
+    {
+      "id": "empty-to-complete",
+      "status": "passed",
+      "result": "After the final OCR-port and schema-order fixes, the operator started one deterministic fake audit, received server-event updates, reached 1/1 completed, and opened the persisted audit result."
+    },
+    {
+      "id": "result-details",
+      "status": "passed",
+      "result": "The result view showed the waybill, vehicle, platform loading and unloading values, independent fake-ticket values, and the normal shadow outcome."
+    },
+    {
+      "id": "refresh-recovery",
+      "status": "passed",
+      "result": "A final full page reload restored the completed Job from file-backed temporary SQLite."
+    },
+    {
+      "id": "rapid-double-start",
+      "status": "passed",
+      "result": "A real browser double-click created exactly one additional Job; the task list contained two completed Jobs rather than three."
+    },
+    {
+      "id": "keyboard-skip-link",
+      "status": "passed",
+      "result": "The first Tab focused the skip link and Enter moved focus to MAIN#main-content."
+    },
+    {
+      "id": "console-and-network",
+      "status": "passed",
+      "result": "The final browser session had zero console errors or warnings. Every observed request used http://127.0.0.1:8877; no external request was present."
+    }
+  ],
+  "effective_viewports": [
+    {
+      "width": 1366,
+      "height": 768,
+      "windows_scaling_equivalent": "100%",
+      "screenshot": "screenshots/loop2-1366x768.png",
+      "sha256": "addce34f02d78c463d27d02d78696a1b0285059441b0b0dfde7a3d6a50175cff"
+    },
+    {
+      "width": 1093,
+      "height": 614,
+      "windows_scaling_equivalent": "125%",
+      "screenshot": "screenshots/loop2-1093x614.png",
+      "sha256": "11c67e00f1215cfbbbad0963a6ae7a55368a0aec9a8523a2938204b9eae0f982"
+    },
+    {
+      "width": 911,
+      "height": 512,
+      "windows_scaling_equivalent": "150%",
+      "screenshot": "screenshots/loop2-911x512.png",
+      "sha256": "33b27a1ae61cca11342c3ba876d282703bf156dedd291eb81893a93115cd91f3"
+    },
+    {
+      "width": 683,
+      "height": 384,
+      "windows_scaling_equivalent": "200%",
+      "screenshot": "screenshots/loop2-683x384.png",
+      "sha256": "d6c4e1f58af920144047a4b513bb4dfa891f4f9f0c1a96914e930e045b6581a5"
+    }
+  ],
+  "limitations": [
+    "The four layouts were validated by equivalent CSS viewports. Changing the Windows desktop scaling setting itself was intentionally not automated; this is not evidence of a native Windows DPI test.",
+    "Formal screen-reader testing and real finance-user acceptance remain later human checks; semantic landmarks, labels, focus order, and reduced motion were covered by code and browser inspection."
+  ],
+  "status": "passed"
+}

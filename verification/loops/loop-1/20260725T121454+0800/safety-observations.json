@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "loop_id": "loop-1",
+  "checked_at": "2026-07-25T12:49:01+08:00",
+  "observations": {
+    "legacy_project_read_or_executed": false,
+    "legacy_process_attached_stopped_or_reused": false,
+    "legacy_database_or_browser_profile_accessed": false,
+    "chengfeng_requests": 0,
+    "platform_write_requests": 0,
+    "dns_proxy_vpn_or_hosts_modified": false,
+    "production_images_or_credentials_used": false,
+    "fixtures": "synthetic_only",
+    "project_python": ".venv\\Scripts\\python.exe",
+    "working_scope": [
+      "current repository",
+      "project virtual environment",
+      "verification evidence directory"
+    ]
+  },
+  "status": "passed"
+}

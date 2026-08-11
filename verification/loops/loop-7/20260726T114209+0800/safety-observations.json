@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "loop_id": "loop-7",
+  "run_id": "20260726T114209+0800",
+  "observed_at": "2026-07-26T11:42:09+08:00",
+  "status": "passed_with_human_gate_pending",
+  "observations": [
+    "No legacy script, test, launcher, database, process, port, browser profile, cache, credential file, or maintenance command was executed, attached to, stopped, reused, read, or modified.",
+    "Candidate discovery read only explicit immutable acquisition or result JSON files and local images. The legacy SQLite database and its WAL and SHM files were not opened.",
+    "No Chengfeng host, login, cookie, signed URL, request, response, browser profile, platform read, or platform write was used.",
+    "No cloud OCR, local CPU OCR, local GPU OCR, template matching, or platform expected weight was used to select or label a candidate.",
+    "The candidate tool refuses discovery JSON, selection JSON, contact-sheet, and staged-package outputs inside the legacy root or a resolved symlink or junction into that root before source reads or filesystem writes.",
+    "The candidate package is stored in a separate local application-data root and contains content-addressed copies, de-identified waybill identities, source hashes, and no preselected human truth.",
+    "Review mode cannot be combined with template tuning, test fixtures, OCR composition, or ordinary application jobs. It exposes no ordinary job write route and starts no scheduler.",
+    "Review writes require the local session, CSRF token, same origin, idempotency key, and expected record version. Versions are append-only and an idempotency replay returns the exact historical result.",
+    "Candidate clues are a fixed allowlist, collapsed by default, and described as non-authoritative. Upload slot, OCR result, platform value, and legacy result cannot become human truth.",
+    "The final browser run sent no POST request. The final review database contained zero review and idempotency records.",
+    "The temporary browser and local review server were closed. Port 8877 had no listener after validation.",
+    "All project Python commands used the project .venv. Windows DNS, proxy, VPN, routing, hosts files, browser defaults, GPU drivers, and system Python were not modified."
+  ],
+  "release_limit": "The package is awaiting direct human review. Candidate clues cannot prove swapped, same-role, duplicate-upload, unknown-layout, non-ticket, or image-quality truth."
+}

@@ -1,0 +1,96 @@
+{
+  "schema_version": 1,
+  "branch": "codex/business-workspace-ux-v2",
+  "base_commit": "12c5bbe5b8696037a6d356e7ee9ec37c4c03d624",
+  "loop_9_status_changed": false,
+  "approved_reference": {
+    "path": "docs/design/references/freight-settlement-b-approved.png",
+    "sha256": "B62D46F821F07636958EDA6920F95BCDEC92AA88853E9CEB83790DAEBB403393"
+  },
+  "offline_gates": {
+    "latest_settlement_projection": "passed",
+    "zero_and_partial_capture_projection": "passed",
+    "direct_business_decisions": "passed",
+    "single_login_window_and_resume": "passed",
+    "owned_service_shutdown": "passed",
+    "saved_daily_70_projection": "passed",
+    "daily_append_only_revisions": "passed",
+    "daily_explicit_blank_and_report_invalidation": "passed",
+    "responsive_performance_profile": "passed",
+    "gpu_idle_release": "passed",
+    "internal_business_labels_hidden": "passed",
+    "duplicate_titles_and_progress_removed": "passed",
+    "visual_review": "passed"
+  },
+  "commands": [
+    {
+      "command": ".\\.venv\\Scripts\\python.exe tools\\check.py",
+      "result": "passed; 2757 pytest passed, 8 Windows symlink tests skipped, Ruff passed, mypy passed for 334 source files, frontend 125 tests and build passed"
+    },
+    {
+      "command": ".\\.venv\\Scripts\\python.exe -m pytest tests\\integration\\test_loop9_platform_api.py -q",
+      "result": "78 passed"
+    },
+    {
+      "command": ".\\.venv\\Scripts\\python.exe -m pytest tests\\integration\\test_system_shutdown_api.py -q",
+      "result": "3 passed"
+    },
+    {
+      "command": ".\\.venv\\Scripts\\python.exe -m pytest tests\\integration\\test_daily_items_api.py tests\\integration\\test_daily_report_api.py tests\\integration\\test_performance_settings.py tests\\integration\\test_loop6_persistent_ocr_scheduler.py -q",
+      "result": "25 passed"
+    },
+    {
+      "command": ".\\.venv\\Scripts\\python.exe -m ruff check src tests tools",
+      "result": "passed"
+    },
+    {
+      "command": ".\\.venv\\Scripts\\python.exe -m mypy src",
+      "result": "passed, 278 application source files; authoritative tools/check.py passed 334 source and tool files"
+    },
+    {
+      "command": "npm.cmd --prefix frontend run check",
+      "result": "passed, 22 files and 125 tests"
+    },
+    {
+      "command": "npm.cmd --prefix frontend run test:e2e",
+      "result": "13 passed"
+    },
+    {
+      "command": "git diff --check",
+      "result": "passed"
+    }
+  ],
+  "visual_evidence": [
+    {
+      "path": "output/playwright/ux-v2/settlement-1366x768.png",
+      "sha256": "AA5320BE1006EB8E8130DD3A3F4A79F6998515501D60E99DB5B49CCA426D5490"
+    },
+    {
+      "path": "output/playwright/ux-v2/settlement-1920x1080.png",
+      "sha256": "2CFADF8C82B0981076254BE0576CF0D30B4282C6F91B63457EBEFF7B01C7993C"
+    },
+    {
+      "path": "output/playwright/ux-v2/settlement-200.png",
+      "sha256": "9414E8840F44ABF46951A9262BB212B9341857560B8BB6B0AC0E82D0A1F047B6"
+    },
+    {
+      "path": "output/playwright/ux-v2/daily-1366x768.png",
+      "sha256": "2546DBFA9E64EEBA03801FE3ADD1CB0869248DBCF0400836F665DCA4BF1216D4"
+    },
+    {
+      "path": "output/playwright/ux-v2/daily-200.png",
+      "sha256": "FBF0AA80FBF37C49EB3758B95D4831603603411E0A68C4DFB916D979EC65B8E5"
+    },
+    {
+      "path": "output/playwright/ux-v2/diagnostics-1366x768.png",
+      "sha256": "CF3F72A1D106CC4BF6FA9BBF5E058D0AE2F4C2C83CA03A93A885A80855CC612B"
+    }
+  ],
+  "not_run": [
+    "production database backup and temporary restore",
+    "real Chengfeng read-only automatic-login validation",
+    "8877 production deployment",
+    "desktop shortcut restart validation"
+  ],
+  "next_gate": "explicit safe window for production backup, deployment, and real read-only validation"
+}

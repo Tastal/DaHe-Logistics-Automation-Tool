@@ -1,0 +1,87 @@
+{
+  "schema_version": 1,
+  "project_id": "DaHeLogistics",
+  "loop_id": "loop-3",
+  "run_id": "20260725T143200+0800",
+  "frozen_at": "2026-07-25T14:32:00+08:00",
+  "git_baseline": {
+    "accepted_tag": "loop-2-accepted",
+    "attestation_commit": "9f02c14b23cb629b2e6cd18d721a090860756fd2",
+    "subject_commit": "0841cc2aa18cceeaf0a6935effdcf12acac393c9"
+  },
+  "source_contracts": [
+    {
+      "path": "AGENTS.md",
+      "sha256": "b064ed06e99c2ef8cc3e36e7afa3cab0c4941fbbdf9c2dcb52de10b1e916b113"
+    },
+    {
+      "path": "PRODUCT.md",
+      "sha256": "6bf0972b15db1b348e24340b8f2372a37929e49a657c4b2716e77fee2ae19bda"
+    },
+    {
+      "path": "DEVELOPMENT_GUIDE.md",
+      "sha256": "b66afecd686101ff6a94c7461eab32bc028462f427ff294d751694f12612a207"
+    },
+    {
+      "path": "docs/adr/ADR-011-resource-leases.md",
+      "sha256": "5f7dab4f83bd28451ba2931611c3d71c500b7cb115f5adb33f17fb1edf090f0c"
+    },
+    {
+      "path": "verification/loops/loop-2/20260725T131551+0800/gate-results.json",
+      "sha256": "61ca2f8266d4807fdd1c136b36cc49d9d5c2e393665c8c9343020e8278d19b31"
+    },
+    {
+      "path": "verification/loops/loop-2/20260725T131551+0800/accepted-input-manifest.json",
+      "sha256": "354957a6fc00788c8b300546ff4f0ba52eb1a3930579c28e381e4cb6eca68811"
+    }
+  ],
+  "authorized_scope": [
+    "Persistent temporary models for Job, WorkItem, StageAttempt, Checkpoint, ResourceSlot, Lease, ConflictKey, Dependency, and SharedEvidenceWork",
+    "Cooperative fair scheduling across deterministic fake audit and protected test_fixture loading-detail probes",
+    "One-slot platform_browser, gpu_ocr_slot, cpu_ocr_slot, and db_commit_gate resource contracts",
+    "Per-Job pause, resume, and cancel at browser-request or single-image OCR safe boundaries",
+    "Conflict-key attachment or explicit rejection for duplicate active audit scopes",
+    "Shared fake OCR work keyed by image SHA-256 and pipeline fingerprint",
+    "Audit batches containing normal, suspected-swapped, and reliable numeric-mismatch items",
+    "Server-authoritative resource, blocker, checkpoint, and action projections in the local console",
+    "Deterministic fairness and fault-injection tests with no external resources"
+  ],
+  "forbidden_scope": [
+    "Real Chengfeng access, login, requests, credentials, browser profile, or platform write",
+    "Legacy project, database, process, port, browser profile, launcher, or runtime access",
+    "Real PaddleOCR, CPU OCR, GPU OCR, CUDA, model installation, or production image access",
+    "Enabling the daily, settlement, dispatch, history, or maintenance business modules",
+    "Production database migration, Alembic, durable evidence storage, process supervision, heartbeat, or crash takeover owned by Loop 4",
+    "Human settlement confirmation, payment, receipt cancellation, automatic ticket swapping, or any platform mutation",
+    "Background login, Windows DNS, proxy, VPN, routing, hosts-file, or global browser changes"
+  ],
+  "scheduler_contract": {
+    "preemption": "cooperative only at one fake browser request or one fake image OCR boundary",
+    "capacities": {
+      "platform_browser": 1,
+      "gpu_ocr_slot": 1,
+      "cpu_ocr_slot": 1,
+      "db_commit_gate": 1
+    },
+    "fairness": "task-category base priority plus monotonic waiting-time aging; rotate after every contested atomic unit",
+    "resource_order": "never hold platform_browser while waiting for OCR and never hold OCR while waiting for platform_browser",
+    "waiting_user": "holds no browser or OCR lease",
+    "pause": "stop new WorkItems, finish current atomic unit, checkpoint, release owned automatic leases, then pause",
+    "resume": "reuse the same Job, frozen fixture, and latest checkpoint without repeating completed download stages",
+    "cancel": "preserve committed results, cancel unfinished items with end_reason=not_processed when never started, and do not stop shared work still needed by another Job"
+  },
+  "acceptance": [
+    "A fake loading-detail probe can acquire platform_browser while an audit item holds gpu_ocr_slot",
+    "Pause releases the audit GPU lease after its current image and resume does not repeat a completed download",
+    "Pause followed by cancel ends safely without losing committed results",
+    "Cancelling one consumer does not stop another Job or shared evidence work",
+    "Suspected swapped and numeric mismatch items wait for a person while normal items continue",
+    "The same image and pipeline fingerprint produce one OCR StageAttempt",
+    "A duplicate active audit ConflictKey does not create a competing Job",
+    "Three visible Jobs retain independent controls and selection context",
+    "Long and short Jobs rotate under contention without deadlock or starvation",
+    "Every wait exposes a resource, dependency, or user reason"
+  ],
+  "external_resources": [],
+  "production_data_used": false
+}

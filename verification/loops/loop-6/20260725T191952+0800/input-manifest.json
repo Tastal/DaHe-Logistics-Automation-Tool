@@ -1,0 +1,113 @@
+{
+  "schema_version": 1,
+  "project_id": "DaHeLogistics",
+  "loop_id": "loop-6",
+  "run_id": "20260725T191952+0800",
+  "frozen_at": "2026-07-25T19:19:52+08:00",
+  "git_baseline": {
+    "accepted_tag": "loop-5-accepted",
+    "attestation_commit": "0303d9081120d55f3f1b66bd82802989c6c9620d",
+    "subject_commit": "8c24828997d0f7781ba859ff559fa40b298ed9ca"
+  },
+  "sources": [
+    {
+      "path": "DEVELOPMENT_GUIDE.md",
+      "sha256": "b66afecd686101ff6a94c7461eab32bc028462f427ff294d751694f12612a207"
+    },
+    {
+      "path": "PRODUCT.md",
+      "sha256": "6bf0972b15db1b348e24340b8f2372a37929e49a657c4b2716e77fee2ae19bda"
+    },
+    {
+      "path": "AGENTS.md",
+      "sha256": "b064ed06e99c2ef8cc3e36e7afa3cab0c4941fbbdf9c2dcb52de10b1e916b113"
+    },
+    {
+      "path": "pyproject.toml",
+      "sha256": "eaf725e1eb2d39fc0c7f4b89cb94d0d93987e4e4f054d8d0e6dcea0b631e0fb2"
+    },
+    {
+      "path": "requirements.lock",
+      "sha256": "af5be0963a67da4c7fd5263d865087a3e42722695f743df7281930b5dd132924"
+    },
+    {
+      "path": "docs/adr/ADR-003-process-isolation.md",
+      "sha256": "5ddd4aa03e04bef75d1fbb0868835566708986a6522845dfa15a8561f25a7caa"
+    },
+    {
+      "path": "docs/adr/ADR-004-separate-ocr-runtimes.md",
+      "sha256": "ad97ffb225427787793b8e968271eff6229da7ea8a2e55b6e94d5455503596c1"
+    },
+    {
+      "path": "docs/adr/ADR-005-independent-ocr-extraction.md",
+      "sha256": "7f0d8182da8db11c91a21476ab63895f3ca3c31af3a7622ed51053673b93e867"
+    }
+  ],
+  "read_only_external_references": [
+    {
+      "reference_id": "isolated-paddle-gpu-evaluation-lock",
+      "file_name": "requirements-gpu.lock",
+      "size_bytes": 1449,
+      "sha256": "e26f07d92aa52a054d6d36655da5bcc7d54e190314835cd5138e1e654684da80",
+      "allowed_use": "Version and compatibility evidence only; do not execute or import the old runtime."
+    },
+    {
+      "reference_id": "isolated-paddle-gpu-evaluation-report",
+      "file_name": "PADDLE_GPU_EVALUATION.md",
+      "size_bytes": 4759,
+      "sha256": "0e15256820db082bee50b1d5fa1e1091c4b7ffdb2bbdcf7f3c5e824abe988801",
+      "allowed_use": "Historical device-profile evidence only; do not copy legacy OCR code or models."
+    },
+    {
+      "reference_id": "isolated-evaluation-source-manifest",
+      "file_name": "SOURCE_MANIFEST.json",
+      "size_bytes": 1447,
+      "sha256": "2e78ea72d006202a4dac18f68625cc9274beb83305bed890d2610f564bf2ab0d",
+      "allowed_use": "Dataset provenance and isolation evidence only."
+    }
+  ],
+  "fixture_manifest": {
+    "path": "verification/loops/loop-6/20260725T191952+0800/fixture-manifest.json",
+    "kind": "synthetic_sanitized",
+    "production_data": false
+  },
+  "authorized_scope": [
+    "Separate main, CPU OCR, and GPU OCR dependency locks and runtime directories",
+    "A versioned credential-free NDJSON worker protocol using only image hashes and data-root-relative paths",
+    "NVIDIA device discovery with stable hardware identity and per-start index mapping",
+    "Runtime and pipeline fingerprints that include locks, models, profile, code, and device evidence",
+    "CPU-first safety smoke, conservative GPU profile qualification, and explicit CPU fallback",
+    "Waybill-boundary fallback that discards uncommitted GPU attempt results",
+    "Per-image CPU/GPU critical-field and role difference reports",
+    "Windows-owned OCR process cleanup and heartbeat behavior",
+    "Application version 0.6.0 while real_platform_access remains false"
+  ],
+  "forbidden_scope": [
+    "Real Chengfeng access, login, capture, browser automation, credentials, cookies, signed URLs, or writes",
+    "Legacy project scripts, runtimes, models, databases, browser profiles, processes, ports, caches, or data mutation",
+    "Cloud OCR calls or paid-service activation",
+    "Platform expected weight, upload slot, or platform candidates in OCR requests or candidate selection",
+    "Installing CPU and GPU Paddle packages into the same environment or into the main application environment",
+    "Hard-coded developer paths, GPU index, GPU model, CUDA path, Edge path, or network settings",
+    "Silent model downloads during normal application or worker startup",
+    "Loop 7 template or role implementation before Loop 6 acceptance",
+    "Loop 8 audit production integration, Loop 9 real shadow access, or production switch"
+  ],
+  "assumptions": [
+    "The current Windows machine may qualify one local GPU profile, but source defaults remain portable and conservative.",
+    "The first GPU capacity remains one worker even when the device has more available memory.",
+    "A runtime failure is a technical failure or an explicit CPU fallback, never a finance review item.",
+    "The synthetic fixture proves protocol, isolation, and smoke behavior; it is not an OCR accuracy benchmark.",
+    "The main application remains free of Paddle and OpenCV imports."
+  ],
+  "gates": [
+    "loop-6-environment-isolation",
+    "loop-6-device-discovery-and-profile",
+    "loop-6-independent-ndjson-protocol",
+    "loop-6-waybill-boundary-fallback",
+    "loop-6-runtime-difference-report",
+    "loop-6-owned-worker-cleanup",
+    "loop-6-real-cpu-gpu-smoke",
+    "loop-6-offline-regression"
+  ]
+}

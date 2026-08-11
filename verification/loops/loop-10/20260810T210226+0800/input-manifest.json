@@ -1,0 +1,54 @@
+{
+  "allowed_external_resources": [
+    {
+      "host": "pc.chengfengkuaiyun.com",
+      "methods": [
+        "GET",
+        "HEAD",
+        "POST"
+      ],
+      "purpose": "User-authorized read-only Gate A acceptance for settlement and daily reads"
+    }
+  ],
+  "base_git_commit": "66e3ed63d17aa130387828f3e092a7c51c28ce22",
+  "fixture_manifest": [
+    {
+      "path": "src/dahe/adapters/sqlite/audit_workflow.py",
+      "sha256": "471c75ace809888ffd6d2d332764c7365f0ad5e645e5711739e8fbc91c428d67"
+    },
+    {
+      "path": "browser-runtime/src/dahe_browser_worker/engine.py",
+      "sha256": "3ccfef56dfaf82e8b1d4e1ae1ae8d60581992f03fe28458e2271864e71ca49b1"
+    },
+    {
+      "path": "tests/unit/api/test_loop9_review_workspace.py",
+      "sha256": "dfd7d6104de219a92735b92e903a1a7928ed2a35048c50a6c08e698b03f384e6"
+    },
+    {
+      "path": "tests/unit/platform/test_loop9_daily_browser_worker.py",
+      "sha256": "eb38ec5cc6770d283654b0dbc95b71da38766d6e76bcd87829c822c84680011c"
+    },
+    {
+      "path": "tests/unit/application/daily/test_fast_operational_daily_capture.py",
+      "sha256": "d38561fab3878b5986f512e81d18f03194662444569d800d52be0743cdc923a5"
+    }
+  ],
+  "frozen_assumptions": [
+    "Only OCR net-weight values may receive the review highlight.",
+    "One visible Chengfeng tab is reused across both business scopes.",
+    "Every business read disables cache, reloads with ignoreCache=true, and waits for a new native query response.",
+    "The exact daily response scope is authoritative; an unrelated account-wide display total is not comparable.",
+    "All Chengfeng business writes remain forbidden."
+  ],
+  "loop": "loop-10",
+  "prohibited_external_actions": [
+    "settlement confirmation",
+    "payment",
+    "receipt cancellation",
+    "dispatch",
+    "credential automation",
+    "any other Chengfeng business write"
+  ],
+  "run_id": "20260810T210226+0800",
+  "schema_version": 1
+}

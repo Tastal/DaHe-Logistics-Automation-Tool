@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites name="vitest tests" tests="25" failures="0" errors="0" time="1.1682134">
+    <testsuite name="src/app/App.test.tsx" timestamp="2026-07-25T09:18:35.146Z" hostname="ProArtJH" tests="8" failures="0" errors="0" skipped="0" time="0.4699103">
+        <testcase classname="src/app/App.test.tsx" name="App &gt; uses business language and keeps future modules visibly disabled" time="0.1202956">
+        </testcase>
+        <testcase classname="src/app/App.test.tsx" name="App &gt; prevents rapid repeated starts while one create request is pending" time="0.0902622">
+        </testcase>
+        <testcase classname="src/app/App.test.tsx" name="App &gt; restores existing backend state and does not infer a pause action" time="0.03407">
+        </testcase>
+        <testcase classname="src/app/App.test.tsx" name="App &gt; blocks the console when frontend and backend versions differ" time="0.0127014">
+        </testcase>
+        <testcase classname="src/app/App.test.tsx" name="App &gt; subscribes only after loading a fresh snapshot cursor" time="0.0112769">
+        </testcase>
+        <testcase classname="src/app/App.test.tsx" name="App &gt; loads and renders the completed fake audit result" time="0.11339">
+        </testcase>
+        <testcase classname="src/app/App.test.tsx" name="App &gt; shows protected-data guidance and the backend diagnostic code for a failed job" time="0.0240043">
+        </testcase>
+        <testcase classname="src/app/App.test.tsx" name="App &gt; coalesces delayed event refreshes and rejects an older snapshot cursor" time="0.0628044">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/app/Loop3.test.tsx" timestamp="2026-07-25T09:18:35.149Z" hostname="ProArtJH" tests="4" failures="0" errors="0" skipped="0" time="0.4990771">
+        <testcase classname="src/app/Loop3.test.tsx" name="Loop 3 operator console &gt; shows three jobs together and controls only the selected job" time="0.2526285">
+        </testcase>
+        <testcase classname="src/app/Loop3.test.tsx" name="Loop 3 operator console &gt; keeps each protected start action independent and labels the probe" time="0.0746416">
+        </testcase>
+        <testcase classname="src/app/Loop3.test.tsx" name="Loop 3 operator console &gt; shows resource waits, stages, resource use, and the latest checkpoint" time="0.1560782">
+        </testcase>
+        <testcase classname="src/app/Loop3.test.tsx" name="Loop 3 operator console &gt; does not claim browser or OCR occupancy for a waiting-user job" time="0.0146799">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/api/client.test.ts" timestamp="2026-07-25T09:18:35.151Z" hostname="ProArtJH" tests="10" failures="0" errors="0" skipped="0" time="0.0113295">
+        <testcase classname="src/api/client.test.ts" name="BrowserAppServices &gt; maps Loop 3 job projections and backend action versions" time="0.0039203">
+        </testcase>
+        <testcase classname="src/api/client.test.ts" name="BrowserAppServices &gt; loads the resource overview from its dedicated endpoint" time="0.0016826">
+        </testcase>
+        <testcase classname="src/api/client.test.ts" name="BrowserAppServices &gt; posts pause with its own expected version and idempotency key" time="0.000669">
+        </testcase>
+        <testcase classname="src/api/client.test.ts" name="BrowserAppServices &gt; posts resume with its own expected version and idempotency key" time="0.0003396">
+        </testcase>
+        <testcase classname="src/api/client.test.ts" name="BrowserAppServices &gt; posts cancel with its own expected version and idempotency key" time="0.0002809">
+        </testcase>
+        <testcase classname="src/api/client.test.ts" name="BrowserAppServices &gt; reuses the same job-action idempotency key after an uncertain failure" time="0.0014443">
+        </testcase>
+        <testcase classname="src/api/client.test.ts" name="BrowserAppServices &gt; creates only a declared protected Loop 3 fixture" time="0.0005026">
+        </testcase>
+        <testcase classname="src/api/client.test.ts" name="BrowserAppServices &gt; maps a failed job diagnostic code from the backend snapshot" time="0.000268">
+        </testcase>
+        <testcase classname="src/api/client.test.ts" name="BrowserAppServices &gt; maps the real job-items endpoint into finance-facing result data" time="0.0005187">
+        </testcase>
+        <testcase classname="src/api/client.test.ts" name="BrowserAppServices &gt; maps aggregate_id from a fake EventSource message and closes the stream" time="0.0007313">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/features/jobs/ActionBar.test.tsx" timestamp="2026-07-25T09:18:35.154Z" hostname="ProArtJH" tests="3" failures="0" errors="0" skipped="0" time="0.1878965">
+        <testcase classname="src/features/jobs/ActionBar.test.tsx" name="ActionBar &gt; renders only actions that the backend marks visible" time="0.1785593">
+        </testcase>
+        <testcase classname="src/features/jobs/ActionBar.test.tsx" name="ActionBar &gt; places a backend-supplied reason beside every disabled action" time="0.0069219">
+        </testcase>
+        <testcase classname="src/features/jobs/ActionBar.test.tsx" name="ActionBar &gt; treats a disabled action without a reason as a contract error" time="0.0014174">
+        </testcase>
+    </testsuite>
+</testsuites>

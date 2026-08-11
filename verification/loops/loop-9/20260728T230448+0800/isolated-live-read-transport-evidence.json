@@ -1,0 +1,79 @@
+{
+  "browser_runtime": {
+    "installation_manifest_sha256": "be73b4386a8180be87c125a9b1b99676157f763ce3f63d7b3962f0e9ddc055b4",
+    "playwright_version": "1.61.0",
+    "protocol_version": 2,
+    "smoke_selected_browser": "msedge",
+    "worker_source_sha256": "48afd863d3b357bcdf64d4a6e292f09330b9dc58dd018cdc3b3eb467fd14f2bc"
+  },
+  "build": {
+    "loop9_build_sha256": "cd75947b78ff688222229f3cf02fe8829d9468c43fd3b1d025ef8b76c9608312",
+    "source_count": 34,
+    "starting_git_commit": "50e7e70e19af52c4b256d362967212997c7e8e7d"
+  },
+  "candidate_selection": {
+    "contract_canonical_sha256": "7ba032ecd0a99c59722cdd72a153973b7308aaec242d1ee4df81285de4bbc00d",
+    "contract_file_sha256": "e299e8b584d730776b3e36270d1012d402cc6cc233c07a962752520cc1a766ab",
+    "freeze_evidence_sha256": "59786a25fea5f1224983e0f8fe85241a5d6685697af705f3f8c4c638f3afe950",
+    "selection_sha256": "0857ce1f2168f295f3082362542c93500b5da4c4729c855c122a21cf3be26d33",
+    "selection_status": "offline_verified_not_live_accepted"
+  },
+  "checks": [
+    {
+      "command": ".\\.venv\\Scripts\\python.exe tools\\bootstrap_browser.py",
+      "result": "passed: isolated runtime rebuilt; protocol v2 worker smoke selected msedge"
+    },
+    {
+      "command": ".\\.venv\\Scripts\\python.exe tools\\check.py",
+      "result": "passed: ruff; mypy 204 source files; pytest 1470 passed and 4 Windows symlink privilege skips; frontend boundary, lint, typecheck, 107 tests, and production build"
+    },
+    {
+      "command": ".\\.venv\\Scripts\\python.exe -m pytest tests\\integration\\test_loop9_platform_api.py -q",
+      "result": "passed: 12 integration tests, including validation success, replay, and failure cleanup"
+    },
+    {
+      "command": ".\\.venv\\Scripts\\python.exe -m pytest tests\\unit\\platform\\test_loop9_browser_live_transport.py tests\\unit\\platform\\test_loop9_live_connector_runtime.py tests\\unit\\platform\\test_loop9_live_contract_selection.py tests\\unit\\platform\\test_loop9_live_contract_validation.py tests\\unit\\adapters\\test_browser_runtime.py tests\\contract\\test_loop9_browser_runtime_isolation.py -q",
+      "result": "passed: 35 focused transport, connector, selection, evidence, runtime, and isolation tests"
+    },
+    {
+      "command": "restart verified owned Loop 9 service on 127.0.0.1:8899 and query local session state",
+      "result": "passed: HTML loaded; application 0.7.0; shadow access enabled; frozen candidate selected; browser stopped; fresh access window required"
+    },
+    {
+      "command": "git diff --check",
+      "result": "passed"
+    }
+  ],
+  "completed_at": "2026-07-29T15:57:18.2879397+08:00",
+  "gate_id": "loop-9-isolated-live-read-transport",
+  "implemented_contracts": [
+    "formal reads close the human Chengfeng page and retain only a network-aborted about:blank page",
+    "the browser worker accepts only typed list, detail, and response-derived image commands",
+    "HTTP redirects, unknown operations, unsafe parameters, oversized bodies, changed media types, and tampered staged results fail closed",
+    "raw JSON and images remain in bounded DaHe staging until main-process path, size, media type, and SHA-256 verification, then are removed",
+    "complete signed image URLs remain behind five-minute in-memory opaque capabilities and never enter worker stdout, logs, database records, checkpoints, or evidence",
+    "the existing verified Chengfeng connector and browser-control fencing remain authoritative",
+    "one local API action validates list, bounded detail attempts, and two ticket images, then consumes the window and closes the browser on success or failure",
+    "validation evidence keeps only technical identities, operation counts, image hashes, media types, sizes, and safety assertions"
+  ],
+  "real_platform_access": {
+    "access_window_created": false,
+    "chengfeng_requests_sent": 0,
+    "credential_entry_requested": false,
+    "legacy_browser_profile_accessed": false,
+    "legacy_database_accessed": false,
+    "legacy_process_accessed": false
+  },
+  "remaining_gate": {
+    "fresh_authorization_required": true,
+    "real_request_contract_status": "pending",
+    "required_live_reads": [
+      "pending-settlement list",
+      "one bounded matching detail",
+      "loading ticket image",
+      "unloading ticket image"
+    ]
+  },
+  "schema_version": 1,
+  "status": "passed"
+}

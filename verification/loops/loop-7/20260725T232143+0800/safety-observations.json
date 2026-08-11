@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "loop_id": "loop-7",
+  "observed_at": "2026-07-26T03:21:17+08:00",
+  "status": "passed_with_release_gate_pending",
+  "observations": [
+    "No Chengfeng host, login, account, cookie, signed URL, browser profile, request, response, or platform write was used.",
+    "No cloud OCR request, paid OCR service, production ticket image, credential, or personal business data was used.",
+    "No legacy project script, database, runtime, process, port, browser profile, cache, or application-data directory was executed, attached to, stopped, reused, or modified.",
+    "No Windows DNS, proxy, VPN, routing, hosts file, global browser setting, GPU driver, or system Python installation was changed.",
+    "All project Python commands used the project .venv; pip check reported no broken requirements.",
+    "The ordinary generated regression fixture cannot authorize a template lifecycle transition.",
+    "Persistent development evidence accepts only the version-controlled code registry path and canonical SHA-256; external copies, changed content, caller reports, and arbitrary manifest paths fail closed.",
+    "The approved development observations are explicitly code_authored_synthetic. They are not real image hashes, human labels, locked-set evidence, or an accuracy claim.",
+    "Candidate templates are loaded by immutable SQLite version IDs. Candidate content, lifecycle, coverage, current shadow set, accepted build, OCR runtime, matcher, policy, pair results, and the absolute latest evaluation are rechecked before lifecycle changes.",
+    "Template matching and OCR role input contain no platform weight or upload-slot evidence. Conflicting, unknown-layout, and non-ticket evidence remains unknown.",
+    "Reference uploads are normalized locally, held by content identity, recoverable across a page reload, manually releasable, and expired after the bounded startup recovery window.",
+    "The final browser service used a new test-fixture-marked data root on 127.0.0.1:8897 with fake OCR. The staged reference was abandoned, the browser was closed, the exact owned server was stopped, and ports 8877, 8897, and 5173 were confirmed free.",
+    "Program or infrastructure failures remain technical failures and are not converted into finance-review items."
+  ],
+  "environment_limit": "Two backend tests were skipped because this Windows account cannot create symbolic links. Fail-closed path and reparse behavior remains covered by non-privileged tests.",
+  "release_limit": "The independent human-confirmed locked set of 50 unseen waybills and its authoritative persisted exclusion and invalidation lifecycle do not exist yet. Loop 7 acceptance and real ticket accuracy therefore remain pending."
+}

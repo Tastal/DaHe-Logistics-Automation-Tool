@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="5" skipped="0" tests="10" time="0.862" timestamp="2026-07-25T15:01:42.437699+08:00" hostname="ProArtJH"><testcase classname="tests.integration.test_loop3_operator_contract" name="test_operator_contract_exposes_versioned_starts_controls_and_resources" time="0.108"><failure message="AssertionError: assert {'start_audit_long', 'start_audit_short', 'start_loading_probe'} &lt;= dict_keys(['start_audit'])&#10; +  where dict_keys(['start_audit']) = &lt;built-in method keys of dict object at 0x000001DEF5B43A00&gt;()&#10; +    where &lt;built-in method keys of dict object at 0x000001DEF5B43A00&gt; = {'start_audit': {'enabled': True, 'label': '开始审核', 'reason': None, 'visible': True}}.keys">loop3_client = (&lt;fastapi.applications.FastAPI object at 0x000001DEF5A2A750&gt;, &lt;starlette.testclient.TestClient object at 0x000001DEF5A2ADB0&gt;, '5DB0AhAtUQae0v4ycuZ_JeZbqJ2yuje2PtDAVjHfYPw')
+
+    def test_operator_contract_exposes_versioned_starts_controls_and_resources(
+        loop3_client: tuple[FastAPI, TestClient, str],
+    ) -&gt; None:
+        app, client, csrf = loop3_client
+        initial = client.get("/api/v1/jobs", headers=_read_headers()).json()
+    
+&gt;       assert {
+            "start_audit_long",
+            "start_audit_short",
+            "start_loading_probe",
+        } &lt;= initial["start_actions"].keys()
+E       AssertionError: assert {'start_audit_long', 'start_audit_short', 'start_loading_probe'} &lt;= dict_keys(['start_audit'])
+E        +  where dict_keys(['start_audit']) = &lt;built-in method keys of dict object at 0x000001DEF5B43A00&gt;()
+E        +    where &lt;built-in method keys of dict object at 0x000001DEF5B43A00&gt; = {'start_audit': {'enabled': True, 'label': '开始审核', 'reason': None, 'visible': True}}.keys
+
+tests\integration\test_loop3_operator_contract.py:88: AssertionError</failure></testcase><testcase classname="tests.integration.test_loop3_operator_contract" name="test_fixture_start_version_is_scoped_and_reusable_after_terminal_job" time="0.056"><failure message="AssertionError: {&quot;detail&quot;:[{&quot;type&quot;:&quot;extra_forbidden&quot;,&quot;loc&quot;:[&quot;body&quot;,&quot;expected_record_version&quot;],&quot;msg&quot;:&quot;Extra inputs are not permitted&quot;,&quot;input&quot;:0}]}&#10;assert 422 == 200&#10; +  where 422 = &lt;Response [422 Unprocessable Entity]&gt;.status_code">loop3_client = (&lt;fastapi.applications.FastAPI object at 0x000001DEF5B9DD00&gt;, &lt;starlette.testclient.TestClient object at 0x000001DEF5B9F440&gt;, 'E4Bad2LuxTwBP64IFyn4qSVajMRB4beYWjF4Z10bpiE')
+
+    def test_fixture_start_version_is_scoped_and_reusable_after_terminal_job(
+        loop3_client: tuple[FastAPI, TestClient, str],
+    ) -&gt; None:
+        app, client, csrf = loop3_client
+&gt;       first = _create_fixture(
+            client,
+            csrf,
+            "audit-batch-short-002",
+            key="restart-first",
+            expected_record_version=0,
+        )
+
+tests\integration\test_loop3_operator_contract.py:162: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+client = &lt;starlette.testclient.TestClient object at 0x000001DEF5B9F440&gt;
+csrf = 'E4Bad2LuxTwBP64IFyn4qSVajMRB4beYWjF4Z10bpiE'
+fixture_id = 'audit-batch-short-002'
+
+    def _create_fixture(
+        client: TestClient,
+        csrf: str,
+        fixture_id: str,
+        *,
+        key: str,
+        expected_record_version: int,
+    ) -&gt; dict[str, Any]:
+        task_type = "loading_probe" if fixture_id == "loading-probe-001" else "audit"
+        response = client.post(
+            "/api/v1/jobs",
+            json={
+                "task_type": task_type,
+                "job_kind": "test_fixture",
+                "scope": {
+                    "label": fixture_id,
+                    "fixture_id": fixture_id,
+                },
+                "expected_record_version": expected_record_version,
+            },
+            headers=_write_headers(csrf, key),
+        )
+&gt;       assert response.status_code == 200, response.text
+E       AssertionError: {"detail":[{"type":"extra_forbidden","loc":["body","expected_record_version"],"msg":"Extra inputs are not permitted","input":0}]}
+E       assert 422 == 200
+E        +  where 422 = &lt;Response [422 Unprocessable Entity]&gt;.status_code
+
+tests\integration\test_loop3_operator_contract.py:78: AssertionError</failure></testcase><testcase classname="tests.integration.test_loop3_operator_contract" name="test_conflict_creation_and_control_cas_are_atomic_under_threads" time="0.046"><failure message="TypeError: TemporarySqliteJobRepository.create_scheduled_job() got an unexpected keyword argument 'expected_record_version'">tmp_path = WindowsPath('C:/Users/aya72/AppData/Local/Temp/pytest-of-aya72/pytest-310/test_conflict_creation_and_con0')
+
+    def test_conflict_creation_and_control_cas_are_atomic_under_threads(
+        tmp_path: Path,
+    ) -&gt; None:
+        repository = TemporarySqliteJobRepository(tmp_path)
+        fixture = get_loop3_fixture("audit-batch-short-002")
+        create_barrier = Barrier(2)
+    
+        def create(index: int) -&gt; str:
+            create_barrier.wait()
+            try:
+                job, _ = repository.create_scheduled_job(
+                    fixture=fixture,
+                    scope_label=f"parallel-{index}",
+                    idempotency_key=f"parallel-create-{index}",
+                    request_hash=f"parallel-create-hash-{index}",
+                    expected_record_version=0,
+                )
+            except (ActiveScopeConflictError, RecordVersionConflictError):
+                return "conflict"
+            return job.job_id
+    
+        try:
+            with ThreadPoolExecutor(max_workers=2) as executor:
+&gt;               create_results = list(executor.map(create, range(2)))
+                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\integration\test_loop3_operator_contract.py:225: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+..\..\..\..\AppData\Local\Programs\Python\Python312\Lib\concurrent\futures\_base.py:619: in result_iterator
+    yield _result_or_cancel(fs.pop())
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\AppData\Local\Programs\Python\Python312\Lib\concurrent\futures\_base.py:317: in _result_or_cancel
+    return fut.result(timeout)
+           ^^^^^^^^^^^^^^^^^^^
+..\..\..\..\AppData\Local\Programs\Python\Python312\Lib\concurrent\futures\_base.py:456: in result
+    return self.__get_result()
+           ^^^^^^^^^^^^^^^^^^^
+..\..\..\..\AppData\Local\Programs\Python\Python312\Lib\concurrent\futures\_base.py:401: in __get_result
+    raise self._exception
+..\..\..\..\AppData\Local\Programs\Python\Python312\Lib\concurrent\futures\thread.py:59: in run
+    result = self.fn(*self.args, **self.kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+index = 0
+
+    def create(index: int) -&gt; str:
+        create_barrier.wait()
+        try:
+&gt;           job, _ = repository.create_scheduled_job(
+                fixture=fixture,
+                scope_label=f"parallel-{index}",
+                idempotency_key=f"parallel-create-{index}",
+                request_hash=f"parallel-create-hash-{index}",
+                expected_record_version=0,
+            )
+E           TypeError: TemporarySqliteJobRepository.create_scheduled_job() got an unexpected keyword argument 'expected_record_version'
+
+tests\integration\test_loop3_operator_contract.py:212: TypeError</failure></testcase><testcase classname="tests.unit.jobs.test_loop3_scheduler_policy" name="test_scheduler_priority_uses_business_first_then_bounded_aging" time="0.001"><failure message="AssertionError: assert {'item_index'...sequence': 10} == {'item_index'...sequence': 10}&#10;  &#10;  Omitting 2 identical items, use -vv to show&#10;  Differing items:&#10;  {'job_kind': 'test_fixture'} != {'job_kind': 'business'}&#10;  {'job_id': 'fixture'} != {'job_id': 'business'}&#10;  Use -v to get more diff">def test_scheduler_priority_uses_business_first_then_bounded_aging() -&gt; None:
+        business = _candidate(
+            job_id="business",
+            job_kind="business",
+            ready_sequence=10,
+        )
+        fixture = _candidate(
+            job_id="fixture",
+            job_kind="test_fixture",
+            ready_sequence=10,
+        )
+    
+        selected = TemporarySqliteJobRepository._choose_candidate(
+            [fixture, business],
+            last_granted_job_id=None,
+            sequence=10,
+        )
+&gt;       assert selected == business
+E       AssertionError: assert {'item_index'...sequence': 10} == {'item_index'...sequence': 10}
+E         
+E         Omitting 2 identical items, use -vv to show
+E         Differing items:
+E         {'job_kind': 'test_fixture'} != {'job_kind': 'business'}
+E         {'job_id': 'fixture'} != {'job_id': 'business'}
+E         Use -v to get more diff
+
+tests\unit\jobs\test_loop3_scheduler_policy.py:39: AssertionError</failure></testcase><testcase classname="tests.unit.jobs.test_loop3_scheduler_policy" name="test_scheduler_rotation_and_fifo_are_deterministic" time="0.000" /><testcase classname="tests.unit.jobs.test_loop3_scheduler_policy" name="test_shared_evidence_identity_includes_pipeline_fingerprint" time="0.000" /><testcase classname="tests.unit.jobs.test_action_matrix" name="test_queued_loop2_job_only_exposes_a_safe_details_action" time="0.000" /><testcase classname="tests.unit.jobs.test_action_matrix" name="test_succeeded_loop2_job_exposes_results_without_inventing_controls" time="0.000" /><testcase classname="tests.unit.jobs.test_action_matrix" name="test_start_action_reports_the_real_conflict_reason" time="0.000" /><testcase classname="tests.unit.jobs.test_action_matrix" name="test_versioned_controls_serialize_the_authoritative_job_version" time="0.001"><failure message="TypeError: JobActionFacts.__init__() got an unexpected keyword argument 'record_version'">def test_versioned_controls_serialize_the_authoritative_job_version() -&gt; None:
+        matrix = build_action_matrix(
+&gt;           JobActionFacts(
+                task_type="audit",
+                status=JobStatus.RUNNING,
+                has_active_attempt=True,
+                supports_controls=True,
+                record_version=7,
+            )
+        )
+E       TypeError: JobActionFacts.__init__() got an unexpected keyword argument 'record_version'
+
+tests\unit\jobs\test_action_matrix.py:52: TypeError</failure></testcase></testsuite></testsuites>

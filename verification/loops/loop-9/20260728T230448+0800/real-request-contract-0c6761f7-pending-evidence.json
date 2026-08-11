@@ -1,0 +1,27 @@
+{
+  "build": {
+    "current_loop9_build_sha256": "0c6761f7bac98a9ce2cd024d1beade211b953d9ea36e7658a81f1898aaf5b07c",
+    "previous_loop9_build_sha256": "0093e0072fcc34706035c3b97f5389f905b3fc20cab09dd73a496944987bbb40",
+    "starting_git_commit": "ceedbb364ac6ec0c0d2df62a0c8e65b62bc343c0"
+  },
+  "created_at": "2026-07-31T00:47:51.5132131+08:00",
+  "gate_id": "loop-9-real-request-contract",
+  "gate_status": "pending",
+  "previous_evidence": {
+    "canonical_sha256": "08e90811c800cdb7043cff1de7c45ec842d14289e7a77ef07671fab1ad68efc4",
+    "file": "verification/loops/loop-9/20260728T230448+0800/real-request-contract-0093e007-passed-evidence.json",
+    "meaning": "historical passed evidence for the previous protected build only"
+  },
+  "reason": "The protected frontend decision source and production bundle changed to fix both manual audit decisions. Build-bound real request validation and daily snapshots cannot roll forward across that change.",
+  "required_current_build_evidence": [
+    "a fresh isolated real read-contract validation with zero forbidden, write, and redirect requests",
+    "three fresh independently authorized daily snapshots with schema v5 request-audit lineage",
+    "a replay-equal daily triplet bound to the current build"
+  ],
+  "safety": {
+    "old_evidence_modified": false,
+    "platform_access_performed_for_this_transition": false,
+    "platform_write_request_count": 0
+  },
+  "schema_version": 1
+}

@@ -1,0 +1,168 @@
+{
+  "schema_version": 1,
+  "request_contract_version": "loop5.synthetic.v1",
+  "fixture_kind": "synthetic_sanitized",
+  "origin": "https://contract.chengfeng.invalid",
+  "allowed_operations": [
+    "list_waybills",
+    "get_waybill_detail",
+    "download_ticket_image"
+  ],
+  "requests": [
+    {
+      "operation": "list_waybills",
+      "method": "POST",
+      "path": "/shadow-api/waybills/list",
+      "parameters_location": "json",
+      "parameters": {
+        "scope": "loop5-synthetic-scope",
+        "page_number": 1,
+        "page_size": 50
+      },
+      "response": {
+        "status_code": 200,
+        "media_type": "application/json",
+        "body_file": "list.json",
+        "body_encoding": "utf-8",
+        "file_size": 546,
+        "file_sha256": "b092977cfe061e52946e887427726bceec27c8da60c0dff7c8c495dff7f78d0d"
+      }
+    },
+    {
+      "operation": "get_waybill_detail",
+      "method": "POST",
+      "path": "/shadow-api/waybills/detail",
+      "parameters_location": "json",
+      "parameters": {
+        "platform_waybill_id": "synthetic-waybill-001"
+      },
+      "response": {
+        "status_code": 200,
+        "media_type": "application/json",
+        "body_file": "detail-synthetic-waybill-001.json",
+        "body_encoding": "utf-8",
+        "file_size": 575,
+        "file_sha256": "f19823a0f9471c1c99cd5d1546888c940a4bf3fc6b7c4b9cc84309dc04c1082e"
+      }
+    },
+    {
+      "operation": "get_waybill_detail",
+      "method": "POST",
+      "path": "/shadow-api/waybills/detail",
+      "parameters_location": "json",
+      "parameters": {
+        "platform_waybill_id": "synthetic-waybill-002"
+      },
+      "response": {
+        "status_code": 200,
+        "media_type": "application/json",
+        "body_file": "detail-synthetic-waybill-002.json",
+        "body_encoding": "utf-8",
+        "file_size": 533,
+        "file_sha256": "328c03ccc0b1525b876920a6abb30085ea730fc293a04e9e298972646993f18d"
+      }
+    },
+    {
+      "operation": "download_ticket_image",
+      "method": "GET",
+      "path": "/shadow-api/tickets/image",
+      "parameters_location": "query",
+      "parameters": {
+        "ticket_ref": "synthetic-ticket-load-001"
+      },
+      "response": {
+        "status_code": 200,
+        "media_type": "image/png",
+        "body_file": "image-synthetic-ticket-load-001.b64",
+        "body_encoding": "base64",
+        "file_size": 93,
+        "file_sha256": "7d3363a1a467b98174155c190e6d4b4c3e37226ec51f910b818b8e3bb8267e61",
+        "body_size": 68,
+        "body_sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+      }
+    },
+    {
+      "operation": "download_ticket_image",
+      "method": "GET",
+      "path": "/shadow-api/tickets/image",
+      "parameters_location": "query",
+      "parameters": {
+        "ticket_ref": "synthetic-ticket-unload-001"
+      },
+      "response": {
+        "status_code": 200,
+        "media_type": "image/png",
+        "body_file": "image-synthetic-ticket-unload-001.b64",
+        "body_encoding": "base64",
+        "file_size": 93,
+        "file_sha256": "7d3363a1a467b98174155c190e6d4b4c3e37226ec51f910b818b8e3bb8267e61",
+        "body_size": 68,
+        "body_sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+      }
+    },
+    {
+      "operation": "download_ticket_image",
+      "method": "GET",
+      "path": "/shadow-api/tickets/image",
+      "parameters_location": "query",
+      "parameters": {
+        "ticket_ref": "synthetic-ticket-load-002"
+      },
+      "response": {
+        "status_code": 200,
+        "media_type": "image/png",
+        "body_file": "image-synthetic-ticket-load-002.b64",
+        "body_encoding": "base64",
+        "file_size": 93,
+        "file_sha256": "7d3363a1a467b98174155c190e6d4b4c3e37226ec51f910b818b8e3bb8267e61",
+        "body_size": 68,
+        "body_sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+      }
+    },
+    {
+      "operation": "download_ticket_image",
+      "method": "GET",
+      "path": "/shadow-api/tickets/image",
+      "parameters_location": "query",
+      "parameters": {
+        "ticket_ref": "synthetic-ticket-unload-002"
+      },
+      "response": {
+        "status_code": 200,
+        "media_type": "image/png",
+        "body_file": "image-synthetic-ticket-unload-002.b64",
+        "body_encoding": "base64",
+        "file_size": 93,
+        "file_sha256": "7d3363a1a467b98174155c190e6d4b4c3e37226ec51f910b818b8e3bb8267e61",
+        "body_size": 68,
+        "body_sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+      }
+    }
+  ],
+  "fault_responses": {
+    "login_required": {
+      "status_code": 200,
+      "media_type": "text/html",
+      "body_file": "login-required.html",
+      "body_encoding": "utf-8",
+      "file_size": 194,
+      "file_sha256": "36eec9c702d643baba0efc6d935e2fb7041973a23e48ba41c8ba1e12797bdf53"
+    },
+    "page_contract_changed": {
+      "status_code": 200,
+      "media_type": "text/html",
+      "body_file": "page-contract-changed.html",
+      "body_encoding": "utf-8",
+      "file_size": 141,
+      "file_sha256": "832920cc6801cc639d5d20effa032128c6cdce80ffaf005179f6d6d2ac02c90b"
+    }
+  },
+  "safety": {
+    "real_platform_capture": false,
+    "real_host_or_path_verified": false,
+    "credentials_present": false,
+    "signed_urls_present": false,
+    "production_identifiers_present": false,
+    "network_allowed": false
+  }
+}

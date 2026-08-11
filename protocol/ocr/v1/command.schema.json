@@ -1,0 +1,105 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:dahe:ocr:command:1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "protocol_version",
+    "command_id",
+    "operation",
+    "image_sha256",
+    "relative_path",
+    "pipeline_fingerprint",
+    "runtime_fingerprint",
+    "profile_id"
+  ],
+  "properties": {
+    "protocol_version": {
+      "const": 1
+    },
+    "command_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "operation": {
+      "enum": [
+        "hello",
+        "smoke",
+        "extract",
+        "shutdown"
+      ]
+    },
+    "image_sha256": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "relative_path": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 512,
+      "pattern": "^(?!/)(?!.*\\\\)(?!.*:)(?!.*(?:^|/)\\.\\.?(?:/|$)).+$"
+    },
+    "pipeline_fingerprint": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "runtime_fingerprint": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "profile_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "smoke",
+              "extract"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "image_sha256": {
+            "type": "string"
+          },
+          "relative_path": {
+            "type": "string"
+          },
+          "pipeline_fingerprint": {
+            "type": "string"
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "image_sha256": {
+            "type": "null"
+          },
+          "relative_path": {
+            "type": "null"
+          },
+          "pipeline_fingerprint": {
+            "type": "null"
+          }
+        }
+      }
+    }
+  ]
+}

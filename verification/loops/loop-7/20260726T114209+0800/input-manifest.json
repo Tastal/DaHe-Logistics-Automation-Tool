@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "loop_id": "loop-7",
+  "run_id": "20260726T114209+0800",
+  "frozen_at": "2026-07-26T11:42:09+08:00",
+  "subject_git_commit": "9abb53b2af0de72b60c6663ebc12cab4d6b5bb33",
+  "scope": "locked_set_candidate_review_handoff",
+  "source_inputs": {
+    "classification": "immutable_legacy_json_and_image_evidence_read_only",
+    "legacy_database_opened": false,
+    "legacy_program_executed": false,
+    "source_manifest_sha256s": [
+      "08f445c7abe8425a8f48566260f90c6fcec2b7d78bb86fa64f34b9e92b9e180c",
+      "8ba2d34463bad8f567b0e8fa73e80377eb50d1f0c417ffab23aaefdb827f1a64",
+      "a7f6244f6d6fecb3ed4821771c8a742390f4eae91e9538b43a6437346c62c639",
+      "b8d7417faebddc9acd214d119419b6b9e2274efdcd36ffab078487dd31ecb791",
+      "f39a746fd8106fbffb06815cfda0c90bc29cf11739f0608fa9ed2241a904a519"
+    ],
+    "candidate_index_sha256": "c37ca2781d690c396fd6f0bdd8301faa49ac14af459b06d8a7864a35d8dc7c1f",
+    "candidate_exclusion_snapshot_sha256": "c48b07e14775975f77ecbd4fc32b5615041a47cb27914bae7467a8b7ed6aee8b",
+    "external_exclusion_snapshot_sha256": "c1af8356d4b403e8650ec5fdc370be78d57d57e5d91f250768b3a20b7e6e80ad",
+    "external_exclusion_file_sha256": "49f6ee5a9a69f24a49d1a979e1d14252af38e38f52eb5ebf5809c18dfb839cf9",
+    "excluded_image_identities": 2053,
+    "excluded_waybill_identities": 765,
+    "excluded_candidate_waybills": 26,
+    "conflicting_source_waybills": 0
+  },
+  "candidate_package": {
+    "package_id": "loop7-locked-set-review-20260726-b",
+    "canonical_sha256": "161deab72f190334509b2a7a40c32df9c831654b960204498f2b9590843e6671",
+    "waybill_count": 50,
+    "unique_waybill_identity_count": 50,
+    "image_count": 100,
+    "unique_image_count": 100,
+    "file_count": 102,
+    "total_bytes": 15796729,
+    "initial_review_rows": 0,
+    "initial_idempotency_rows": 0
+  },
+  "allowed_external_resources": {
+    "real_chengfeng_access": false,
+    "legacy_browser_or_process_access": false,
+    "ocr_execution": false,
+    "network_access": false,
+    "local_isolated_browser_review": true
+  }
+}

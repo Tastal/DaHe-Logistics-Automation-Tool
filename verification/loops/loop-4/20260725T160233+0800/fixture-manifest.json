@@ -1,0 +1,76 @@
+{
+  "schema_version": 1,
+  "project_id": "DaHeLogistics",
+  "loop_id": "loop-4",
+  "run_id": "20260725T160233+0800",
+  "fixture_namespace": "loop4-offline-foundation-v1",
+  "production_data_used": false,
+  "real_external_resources_allowed": [],
+  "images": [
+    {
+      "fixture_id": "ticket-shared",
+      "sha256": "ece477d3d431f35520012446c736fd061b8b3fa8d38e4aa6517d89fa53453a82",
+      "byte_length": 25,
+      "media_type": "application/octet-stream",
+      "used_by": [
+        "L4-WAYBILL-001:unloading",
+        "L4-WAYBILL-002:loading"
+      ]
+    },
+    {
+      "fixture_id": "ticket-loading-a",
+      "sha256": "7f8efad475ea223948cc7457d9747d93533d9924792b26ddd9e7dbc9a2da619c",
+      "byte_length": 28,
+      "media_type": "application/octet-stream",
+      "used_by": [
+        "L4-WAYBILL-001:loading"
+      ]
+    },
+    {
+      "fixture_id": "ticket-unloading-b",
+      "sha256": "92389211bf6f09d4ec5b6a0af8723737a348ed711a6c0e1ac46209bebee4b048",
+      "byte_length": 30,
+      "media_type": "application/octet-stream",
+      "used_by": [
+        "L4-WAYBILL-002:unloading"
+      ]
+    }
+  ],
+  "waybills": [
+    {
+      "waybill_number": "L4-WAYBILL-001",
+      "platform_stable_id": "loop4-platform-001",
+      "snapshot_contract_version": "loop4-frozen-v1",
+      "loading_image": "ticket-loading-a",
+      "unloading_image": "ticket-shared",
+      "decision": "pass",
+      "business_outcome": "normal_ready"
+    },
+    {
+      "waybill_number": "L4-WAYBILL-002",
+      "platform_stable_id": "loop4-platform-002",
+      "snapshot_contract_version": "loop4-frozen-v1",
+      "loading_image": "ticket-shared",
+      "unloading_image": "ticket-unloading-b",
+      "decision": "review",
+      "business_outcome": "awaiting_review"
+    }
+  ],
+  "faults": [
+    "exception after file publication but before database commit",
+    "exception between snapshot and decision inserts",
+    "application restart with one completed and one queued WorkItem",
+    "expired worker lease from a stopped matching-data-root instance",
+    "unexpired lease and active old instance that must not be reclaimed",
+    "browser automatic holder crash with a stale fencing token",
+    "shared producer failure with concurrent safe retry requests",
+    "cleanup claim racing with a new business reference",
+    "incomplete staging file present during startup recovery",
+    "online backup taken while the source database remains open"
+  ],
+  "notes": [
+    "Image contents are fixed ASCII test bytes, not document images.",
+    "Expected hashes are independent of platform weights and OCR results.",
+    "No fixture contains a host, credential, signed URL, person, production path, or legacy identifier."
+  ]
+}

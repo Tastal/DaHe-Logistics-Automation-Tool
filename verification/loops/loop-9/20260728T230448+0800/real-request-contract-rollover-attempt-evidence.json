@@ -1,0 +1,73 @@
+{
+  "browser_runtime": {
+    "dependency_lock_sha256": "54e0b3b4066f8cc28f2a716780f7f845af2de5e986bf2a7f5ae77d46e633e3d4",
+    "installation_manifest_sha256": "fb293e905cc10273de754155c3dee1e97b8bd801af37edcab9e7670f394c8c86",
+    "smoke_selected_browser": "msedge",
+    "worker_source_sha256": "a6a5a1fd0c2e9e22744aa5b354b9615b048847a1a2e59b47e22d483b4ca74b98"
+  },
+  "build": {
+    "loop9_build_sha256": "6fe0cc3bf24dd71790ab7b8d6681d612abf0d9026164b84f9daca74c4d2d066d",
+    "starting_git_commit": "bf89f81c4ee07121cea59358bdc1abbe5a5291aa"
+  },
+  "candidate_rollover": {
+    "contract_canonical_sha256": "1fa5832e2091641ab0ec21a43a50eeb0802c0b3e9b8f3a496bc96ebc2196a169",
+    "contract_file_sha256": "f81d076589cdd18198742c91dda09462925f414a4cb7769c0813bcfd2df31573",
+    "freeze_evidence_sha256": "6eb54b9b371198e623b101a42dba77826688286cc376f5a3dda4404c840f1a07",
+    "parent_contract_canonical_sha256": "7ba032ecd0a99c59722cdd72a153973b7308aaec242d1ee4df81285de4bbc00d",
+    "request_structure_artifact_file_sha256": "d4a41c98e99d0c58e5568a31f585d0e26f32fd952429e179dfbbcd9612286142",
+    "request_structure_canonical_sha256": "af179dae0f0c8bd6c5bcde763aaaa1188cf7043cc09687899910be2a0a5a4d63",
+    "rollover_source_sha256": "700467de1ec1d1c35d3856d490cbf6524c16ddb532c64686638eabc13aa86418",
+    "selection_sha256": "a374726f1e4c17444ccec8927bb1c1b9c8e1d4a35dc3453adb98586d5ad2c610"
+  },
+  "checks": [
+    {
+      "command": ".\\.venv\\Scripts\\python.exe -m pytest tests\\unit\\platform\\test_loop9_live_contract_validation.py -q",
+      "result": "red: the initial empty list was not confirmed and both new tests failed"
+    },
+    {
+      "command": ".\\.venv\\Scripts\\python.exe -m pytest tests\\unit\\platform\\test_loop9_browser_live_transport.py tests\\unit\\platform\\test_loop9_live_connector_runtime.py tests\\unit\\platform\\test_loop9_contract_freezer.py tests\\unit\\platform\\test_loop9_live_contract_selection.py tests\\unit\\platform\\test_loop9_live_contract_validation.py tests\\unit\\platform\\test_loop9_live_payload.py tests\\integration\\test_loop9_platform_api.py tests\\contract\\test_loop9_browser_runtime_isolation.py -q",
+      "result": "passed: 107 focused browser, connector, contract, validation, API, and isolation tests"
+    },
+    {
+      "command": ".\\.venv\\Scripts\\python.exe tools\\bootstrap_browser.py",
+      "result": "passed: isolated Playwright runtime rebuilt and offline smoke selected msedge"
+    },
+    {
+      "command": ".\\.venv\\Scripts\\python.exe tools\\check.py",
+      "result": "passed: ruff; mypy; 1524 backend tests passed with 4 Windows symlink privilege skips; frontend boundary, lint, typecheck, 107 tests, and production build passed"
+    }
+  ],
+  "completed_at": "2026-07-29T19:49:28.556502+08:00",
+  "gate_id": "loop-9-real-request-contract",
+  "gate_status": "pending",
+  "implemented_contracts": [
+    "official reset request field changes produce only a value-free field and type diagnostic",
+    "a rollover candidate binds the exact selected parent and inherits the response, detail, and image contracts",
+    "the active candidate replacement is atomic and idempotent",
+    "an initial empty pending-settlement list is repeated once with the same authorization and request contract",
+    "two consecutive empty results stop safely without widening dates, filters, or business scope"
+  ],
+  "real_validation_attempt": {
+    "access_window_consumed": true,
+    "browser_closed_after_attempt": true,
+    "detail_requests_sent": 0,
+    "diagnostic_code": "CF-CONTRACT-PENDING-LIST-EMPTY-CONFIRMED",
+    "formal_contract_evidence_created": false,
+    "image_requests_sent": 0,
+    "legacy_browser_profile_accessed": false,
+    "legacy_database_accessed": false,
+    "legacy_process_accessed": false,
+    "list_item_count_first_read": 0,
+    "list_item_count_second_read": 0,
+    "list_requests_sent": 2,
+    "platform_write_requests_sent": 0,
+    "raw_platform_values_retained": false,
+    "redirects_followed": 0,
+    "result": "failed_closed_current_scope_empty"
+  },
+  "remaining_gate": {
+    "required_result": "a fresh authorized validation must read a nonempty pending-settlement list, a bounded matching detail, and exactly two ticket images",
+    "software_fault_detected": false
+  },
+  "schema_version": 1
+}

@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="0.558" timestamp="2026-07-25T14:25:36.840189+08:00" hostname="ProArtJH"><testcase classname="tests.integration.test_loop2_backend_blockers" name="test_partial_current_version_schema_fails_without_write_or_lock" time="0.053"><failure message="Failed: DID NOT RAISE &lt;class 'dahe.adapters.sqlite.repository.TemporarySchemaMismatchError'&gt;">tmp_path = WindowsPath('C:/Users/aya72/AppData/Local/Temp/pytest-of-aya72/pytest-289/test_partial_current_version_s0')
+
+    def test_partial_current_version_schema_fails_without_write_or_lock(
+        tmp_path: Path,
+    ) -&gt; None:
+        runtime_dir = tmp_path / "runtime"
+        runtime_dir.mkdir()
+        database_path = runtime_dir / "loop2-temporary.sqlite3"
+        with closing(sqlite3.connect(database_path)) as connection:
+            connection.execute(
+                "CREATE TABLE system_meta (key TEXT PRIMARY KEY, value TEXT NOT NULL)"
+            )
+            connection.execute(
+                "INSERT INTO system_meta (key, value) VALUES (?, ?)",
+                ("temporary_schema_version", "2"),
+            )
+            connection.execute("CREATE TABLE jobs (diagnostic_code TEXT)")
+            connection.execute("CREATE TABLE work_items (placeholder TEXT)")
+            connection.execute("CREATE TABLE idempotency_records (placeholder TEXT)")
+            connection.execute("CREATE TABLE event_outbox (placeholder TEXT)")
+            connection.commit()
+        original_sha256 = hashlib.sha256(database_path.read_bytes()).hexdigest()
+    
+&gt;       with pytest.raises(
+            TemporarySchemaMismatchError,
+            match=r"jobs: missing columns",
+        ):
+E       Failed: DID NOT RAISE &lt;class 'dahe.adapters.sqlite.repository.TemporarySchemaMismatchError'&gt;
+
+tests\integration\test_loop2_backend_blockers.py:281: Failed</failure></testcase></testsuite></testsuites>

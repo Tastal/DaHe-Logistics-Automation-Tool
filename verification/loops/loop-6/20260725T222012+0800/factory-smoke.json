@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "loop_id": "loop-6",
+  "qualification_run_id": "20260725T222012+0800",
+  "cases": [
+    {
+      "case": "standard AUTO composition",
+      "expected": "Use the qualified GPU and keep the independently qualified CPU fallback.",
+      "observed": {
+        "primary_runtime_kind": "gpu",
+        "has_gpu": true,
+        "has_cpu": true,
+        "gpu_profile_id": "gpu-c7fe21693329-fp16-b6-w1",
+        "cpu_profile_id": "cpu-portable-fp32-b1-w1"
+      },
+      "status": "passed"
+    },
+    {
+      "case": "explicit CPU_ONLY composition",
+      "expected": "Start only CPU and do not discover or start a GPU worker for business execution.",
+      "observed": {
+        "primary_runtime_kind": "cpu",
+        "has_gpu": false,
+        "has_cpu": true
+      },
+      "status": "passed"
+    },
+    {
+      "case": "owned worker cleanup after normal close",
+      "expected": "No Python process with -m dahe_ocr_worker remains.",
+      "observed": {
+        "auto_workers_after_close": 0,
+        "cpu_only_workers_after_close": 0
+      },
+      "status": "passed"
+    }
+  ],
+  "measurement_note": "An initial broad process filter counted its own PowerShell command as one match. The result was discarded. Both recorded checks use the corrected Python-process and -m dahe_ocr_worker filter.",
+  "reproduction_command": ".\\.venv\\Scripts\\python.exe verification\\loops\\loop-6\\20260725T222012+0800\\factory-smoke.py",
+  "status": "passed"
+}

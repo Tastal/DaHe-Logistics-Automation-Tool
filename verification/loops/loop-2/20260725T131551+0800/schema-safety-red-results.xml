@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="2" skipped="0" tests="2" time="1.356" timestamp="2026-07-25T14:15:43.251901+08:00" hostname="ProArtJH"><testcase classname="tests.integration.test_loop2_backend_blockers" name="test_incompatible_old_temporary_schema_fails_before_use" time="0.031"><failure message="AssertionError: assert '7b6ada4e4f21...6c459389d3227' == '714f291163ca...9d31676f4f985'&#10;  &#10;  - 714f291163caea4eb971cf24042d966152fd22516d70a306df79d31676f4f985&#10;  + 7b6ada4e4f214e45047aa87e289e1fa12dd0d6d756aed8a5e1d6c459389d3227">tmp_path = WindowsPath('C:/Users/aya72/AppData/Local/Temp/pytest-of-aya72/pytest-275/test_incompatible_old_temporar0')
+
+    def test_incompatible_old_temporary_schema_fails_before_use(tmp_path: Path) -&gt; None:
+        runtime_dir = tmp_path / "runtime"
+        runtime_dir.mkdir()
+        database_path = runtime_dir / "loop2-temporary.sqlite3"
+        with sqlite3.connect(database_path) as connection:
+            connection.execute(
+                "CREATE TABLE system_meta (key TEXT PRIMARY KEY, value TEXT NOT NULL)"
+            )
+            connection.execute(
+                "INSERT INTO system_meta (key, value) VALUES (?, ?)",
+                ("temporary_schema_version", "1"),
+            )
+        original_sha256 = hashlib.sha256(database_path.read_bytes()).hexdigest()
+    
+        with pytest.raises(
+            TemporarySchemaMismatchError,
+            match=r"expected version 2, found 1",
+        ):
+            create_app(
+                data_root=tmp_path,
+                auto_run_jobs=False,
+                stage_delay_seconds=0,
+            )
+    
+&gt;       assert hashlib.sha256(database_path.read_bytes()).hexdigest() == original_sha256
+E       AssertionError: assert '7b6ada4e4f21...6c459389d3227' == '714f291163ca...9d31676f4f985'
+E         
+E         - 714f291163caea4eb971cf24042d966152fd22516d70a306df79d31676f4f985
+E         + 7b6ada4e4f214e45047aa87e289e1fa12dd0d6d756aed8a5e1d6c459389d3227
+
+tests\integration\test_loop2_backend_blockers.py:194: AssertionError</failure></testcase><testcase classname="tests.integration.test_cli_preflight" name="test_cli_incompatible_temporary_schema_stops_cleanly_without_mutation" time="0.800"><failure message="AssertionError: assert 1 == 2&#10; +  where 1 = CompletedProcess(args=['C:\\Users\\aya72\\OneDrive\\Desktop\\AI开发\\DaHe\\.venv\\Scripts\\python.exe', '-m', 'dahe', '-...\Temp\\pytest-of-aya72\\pytest-275\\test_cli_incompatible_temporar0\\data', '--port', '5615'], returncode=1, stdout='').returncode">tmp_path = WindowsPath('C:/Users/aya72/AppData/Local/Temp/pytest-of-aya72/pytest-275/test_cli_incompatible_temporar0')
+
+    def test_cli_incompatible_temporary_schema_stops_cleanly_without_mutation(
+        tmp_path: Path,
+    ) -&gt; None:
+        data_root = tmp_path / "data"
+        runtime_dir = data_root / "runtime"
+        runtime_dir.mkdir(parents=True)
+        database_path = runtime_dir / "loop2-temporary.sqlite3"
+        with sqlite3.connect(database_path) as connection:
+            connection.execute(
+                "CREATE TABLE system_meta (key TEXT PRIMARY KEY, value TEXT NOT NULL)"
+            )
+            connection.execute(
+                "INSERT INTO system_meta (key, value) VALUES (?, ?)",
+                ("temporary_schema_version", "1"),
+            )
+        original_sha256 = hashlib.sha256(database_path.read_bytes()).hexdigest()
+    
+        result = _run_serve(data_root, _free_port())
+    
+&gt;       assert result.returncode == 2
+E       AssertionError: assert 1 == 2
+E        +  where 1 = CompletedProcess(args=['C:\\Users\\aya72\\OneDrive\\Desktop\\AI开发\\DaHe\\.venv\\Scripts\\python.exe', '-m', 'dahe', '-...\Temp\\pytest-of-aya72\\pytest-275\\test_cli_incompatible_temporar0\\data', '--port', '5615'], returncode=1, stdout='').returncode
+
+tests\integration\test_cli_preflight.py:118: AssertionError</failure></testcase></testsuite></testsuites>

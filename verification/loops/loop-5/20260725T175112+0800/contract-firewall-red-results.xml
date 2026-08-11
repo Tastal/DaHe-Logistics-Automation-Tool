@@ -1,0 +1,349 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="10" skipped="0" tests="11" time="0.780" timestamp="2026-07-25T18:00:10.495376+08:00" hostname="ProArtJH"><testcase classname="tests.contract.test_loop5_frozen_contract" name="test_manifest_freezes_one_synthetic_origin_and_exact_read_operations" time="0.002"><failure message="ModuleNotFoundError: No module named 'dahe.adapters.chengfeng'">def test_manifest_freezes_one_synthetic_origin_and_exact_read_operations() -&gt; None:
+&gt;       manifest = _load_manifest()
+                   ^^^^^^^^^^^^^^^^
+
+tests\contract\test_loop5_frozen_contract.py:41: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\contract\test_loop5_frozen_contract.py:30: in _load_manifest
+    return _manifest_type().load(FIXTURE_ROOT)
+           ^^^^^^^^^^^^^^^^
+tests\contract\test_loop5_frozen_contract.py:20: in _manifest_type
+    module = importlib.import_module("dahe.adapters.chengfeng.manifest")
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\AppData\Local\Programs\Python\Python312\Lib\importlib\__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+&lt;frozen importlib._bootstrap&gt;:1387: in _gcd_import
+    ???
+&lt;frozen importlib._bootstrap&gt;:1360: in _find_and_load
+    ???
+&lt;frozen importlib._bootstrap&gt;:1310: in _find_and_load_unlocked
+    ???
+&lt;frozen importlib._bootstrap&gt;:488: in _call_with_frames_removed
+    ???
+&lt;frozen importlib._bootstrap&gt;:1387: in _gcd_import
+    ???
+&lt;frozen importlib._bootstrap&gt;:1360: in _find_and_load
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+name = 'dahe.adapters.chengfeng'
+import_ = &lt;function _gcd_import at 0x00000283DF52C0E0&gt;
+
+&gt;   ???
+E   ModuleNotFoundError: No module named 'dahe.adapters.chengfeng'
+
+&lt;frozen importlib._bootstrap&gt;:1324: ModuleNotFoundError</failure></testcase><testcase classname="tests.contract.test_loop5_frozen_contract" name="test_loading_manifest_verifies_every_declared_fixture_hash" time="0.006"><failure message="ModuleNotFoundError: No module named 'dahe.adapters.chengfeng'">tmp_path = WindowsPath('C:/Users/aya72/AppData/Local/Temp/pytest-of-aya72/pytest-524/test_loading_manifest_verifies0')
+
+    def test_loading_manifest_verifies_every_declared_fixture_hash(tmp_path: Path) -&gt; None:
+&gt;       manifest = _load_manifest()
+                   ^^^^^^^^^^^^^^^^
+
+tests\contract\test_loop5_frozen_contract.py:53: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\contract\test_loop5_frozen_contract.py:30: in _load_manifest
+    return _manifest_type().load(FIXTURE_ROOT)
+           ^^^^^^^^^^^^^^^^
+tests\contract\test_loop5_frozen_contract.py:20: in _manifest_type
+    module = importlib.import_module("dahe.adapters.chengfeng.manifest")
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\AppData\Local\Programs\Python\Python312\Lib\importlib\__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+&lt;frozen importlib._bootstrap&gt;:1387: in _gcd_import
+    ???
+&lt;frozen importlib._bootstrap&gt;:1360: in _find_and_load
+    ???
+&lt;frozen importlib._bootstrap&gt;:1310: in _find_and_load_unlocked
+    ???
+&lt;frozen importlib._bootstrap&gt;:488: in _call_with_frames_removed
+    ???
+&lt;frozen importlib._bootstrap&gt;:1387: in _gcd_import
+    ???
+&lt;frozen importlib._bootstrap&gt;:1360: in _find_and_load
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+name = 'dahe.adapters.chengfeng'
+import_ = &lt;function _gcd_import at 0x00000283DF52C0E0&gt;
+
+&gt;   ???
+E   ModuleNotFoundError: No module named 'dahe.adapters.chengfeng'
+
+&lt;frozen importlib._bootstrap&gt;:1324: ModuleNotFoundError</failure></testcase><testcase classname="tests.contract.test_loop5_frozen_contract" name="test_synthetic_contract_contains_no_credentials_or_production_markers" time="0.001"><failure message="ModuleNotFoundError: No module named 'dahe.adapters.chengfeng'">def test_synthetic_contract_contains_no_credentials_or_production_markers() -&gt; None:
+&gt;       manifest = _load_manifest()
+                   ^^^^^^^^^^^^^^^^
+
+tests\contract\test_loop5_frozen_contract.py:74: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\contract\test_loop5_frozen_contract.py:30: in _load_manifest
+    return _manifest_type().load(FIXTURE_ROOT)
+           ^^^^^^^^^^^^^^^^
+tests\contract\test_loop5_frozen_contract.py:20: in _manifest_type
+    module = importlib.import_module("dahe.adapters.chengfeng.manifest")
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\AppData\Local\Programs\Python\Python312\Lib\importlib\__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+&lt;frozen importlib._bootstrap&gt;:1387: in _gcd_import
+    ???
+&lt;frozen importlib._bootstrap&gt;:1360: in _find_and_load
+    ???
+&lt;frozen importlib._bootstrap&gt;:1310: in _find_and_load_unlocked
+    ???
+&lt;frozen importlib._bootstrap&gt;:488: in _call_with_frames_removed
+    ???
+&lt;frozen importlib._bootstrap&gt;:1387: in _gcd_import
+    ???
+&lt;frozen importlib._bootstrap&gt;:1360: in _find_and_load
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+name = 'dahe.adapters.chengfeng'
+import_ = &lt;function _gcd_import at 0x00000283DF52C0E0&gt;
+
+&gt;   ???
+E   ModuleNotFoundError: No module named 'dahe.adapters.chengfeng'
+
+&lt;frozen importlib._bootstrap&gt;:1324: ModuleNotFoundError</failure></testcase><testcase classname="tests.contract.test_loop5_frozen_contract" name="test_frozen_adapter_replays_list_details_and_images_without_socket_access" time="0.001"><failure message="ModuleNotFoundError: No module named 'dahe.adapters.chengfeng'">monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x00000283E2D02E70&gt;
+
+    def test_frozen_adapter_replays_list_details_and_images_without_socket_access(
+        monkeypatch: pytest.MonkeyPatch,
+    ) -&gt; None:
+        attempts: list[tuple[object, ...]] = []
+    
+        def reject_connect(*args: object, **kwargs: object) -&gt; None:
+            attempts.append((*args, kwargs))
+            raise AssertionError("Loop 5 frozen replay must not open a socket")
+    
+        monkeypatch.setattr(socket.socket, "connect", reject_connect)
+&gt;       adapter = _adapter()
+                  ^^^^^^^^^^
+
+tests\contract\test_loop5_frozen_contract.py:101: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\contract\test_loop5_frozen_contract.py:34: in _adapter
+    manifest = _load_manifest()
+               ^^^^^^^^^^^^^^^^
+tests\contract\test_loop5_frozen_contract.py:30: in _load_manifest
+    return _manifest_type().load(FIXTURE_ROOT)
+           ^^^^^^^^^^^^^^^^
+tests\contract\test_loop5_frozen_contract.py:20: in _manifest_type
+    module = importlib.import_module("dahe.adapters.chengfeng.manifest")
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\AppData\Local\Programs\Python\Python312\Lib\importlib\__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+&lt;frozen importlib._bootstrap&gt;:1387: in _gcd_import
+    ???
+&lt;frozen importlib._bootstrap&gt;:1360: in _find_and_load
+    ???
+&lt;frozen importlib._bootstrap&gt;:1310: in _find_and_load_unlocked
+    ???
+&lt;frozen importlib._bootstrap&gt;:488: in _call_with_frames_removed
+    ???
+&lt;frozen importlib._bootstrap&gt;:1387: in _gcd_import
+    ???
+&lt;frozen importlib._bootstrap&gt;:1360: in _find_and_load
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+name = 'dahe.adapters.chengfeng'
+import_ = &lt;function _gcd_import at 0x00000283DF52C0E0&gt;
+
+&gt;   ???
+E   ModuleNotFoundError: No module named 'dahe.adapters.chengfeng'
+
+&lt;frozen importlib._bootstrap&gt;:1324: ModuleNotFoundError</failure></testcase><testcase classname="tests.contract.test_loop5_frozen_contract" name="test_normal_application_cannot_enable_or_expose_real_platform_access" time="0.577" /><testcase classname="tests.unit.platform.test_loop5_request_firewall" name="test_every_frozen_request_is_authorized_by_exact_contract" time="0.001"><failure message="ModuleNotFoundError: No module named 'dahe.adapters.chengfeng'">def test_every_frozen_request_is_authorized_by_exact_contract() -&gt; None:
+&gt;       firewall_type, request_type, _, manifest = _types()
+                                                   ^^^^^^^^
+
+tests\unit\platform\test_loop5_request_firewall.py:35: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\unit\platform\test_loop5_request_firewall.py:13: in _types
+    manifest_module = importlib.import_module("dahe.adapters.chengfeng.manifest")
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\AppData\Local\Programs\Python\Python312\Lib\importlib\__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+&lt;frozen importlib._bootstrap&gt;:1387: in _gcd_import
+    ???
+&lt;frozen importlib._bootstrap&gt;:1360: in _find_and_load
+    ???
+&lt;frozen importlib._bootstrap&gt;:1310: in _find_and_load_unlocked
+    ???
+&lt;frozen importlib._bootstrap&gt;:488: in _call_with_frames_removed
+    ???
+&lt;frozen importlib._bootstrap&gt;:1387: in _gcd_import
+    ???
+&lt;frozen importlib._bootstrap&gt;:1360: in _find_and_load
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+name = 'dahe.adapters.chengfeng'
+import_ = &lt;function _gcd_import at 0x00000283DF52C0E0&gt;
+
+&gt;   ???
+E   ModuleNotFoundError: No module named 'dahe.adapters.chengfeng'
+
+&lt;frozen importlib._bootstrap&gt;:1324: ModuleNotFoundError</failure></testcase><testcase classname="tests.unit.platform.test_loop5_request_firewall" name="test_origin_rejects_scheme_port_userinfo_suffix_subdomain_ip_and_trailing_dot" time="0.001"><failure message="ModuleNotFoundError: No module named 'dahe.adapters.chengfeng'">def test_origin_rejects_scheme_port_userinfo_suffix_subdomain_ip_and_trailing_dot() -&gt; None:
+&gt;       firewall_type, request_type, denied_type, manifest = _types()
+                                                             ^^^^^^^^
+
+tests\unit\platform\test_loop5_request_firewall.py:48: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\unit\platform\test_loop5_request_firewall.py:13: in _types
+    manifest_module = importlib.import_module("dahe.adapters.chengfeng.manifest")
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\AppData\Local\Programs\Python\Python312\Lib\importlib\__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+&lt;frozen importlib._bootstrap&gt;:1387: in _gcd_import
+    ???
+&lt;frozen importlib._bootstrap&gt;:1360: in _find_and_load
+    ???
+&lt;frozen importlib._bootstrap&gt;:1310: in _find_and_load_unlocked
+    ???
+&lt;frozen importlib._bootstrap&gt;:488: in _call_with_frames_removed
+    ???
+&lt;frozen importlib._bootstrap&gt;:1387: in _gcd_import
+    ???
+&lt;frozen importlib._bootstrap&gt;:1360: in _find_and_load
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+name = 'dahe.adapters.chengfeng'
+import_ = &lt;function _gcd_import at 0x00000283DF52C0E0&gt;
+
+&gt;   ???
+E   ModuleNotFoundError: No module named 'dahe.adapters.chengfeng'
+
+&lt;frozen importlib._bootstrap&gt;:1324: ModuleNotFoundError</failure></testcase><testcase classname="tests.unit.platform.test_loop5_request_firewall" name="test_path_rejects_aliases_traversal_encoding_and_near_matches" time="0.001"><failure message="ModuleNotFoundError: No module named 'dahe.adapters.chengfeng'">def test_path_rejects_aliases_traversal_encoding_and_near_matches() -&gt; None:
+&gt;       firewall_type, request_type, denied_type, manifest = _types()
+                                                             ^^^^^^^^
+
+tests\unit\platform\test_loop5_request_firewall.py:76: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\unit\platform\test_loop5_request_firewall.py:13: in _types
+    manifest_module = importlib.import_module("dahe.adapters.chengfeng.manifest")
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\AppData\Local\Programs\Python\Python312\Lib\importlib\__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+&lt;frozen importlib._bootstrap&gt;:1387: in _gcd_import
+    ???
+&lt;frozen importlib._bootstrap&gt;:1360: in _find_and_load
+    ???
+&lt;frozen importlib._bootstrap&gt;:1310: in _find_and_load_unlocked
+    ???
+&lt;frozen importlib._bootstrap&gt;:488: in _call_with_frames_removed
+    ???
+&lt;frozen importlib._bootstrap&gt;:1387: in _gcd_import
+    ???
+&lt;frozen importlib._bootstrap&gt;:1360: in _find_and_load
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+name = 'dahe.adapters.chengfeng'
+import_ = &lt;function _gcd_import at 0x00000283DF52C0E0&gt;
+
+&gt;   ???
+E   ModuleNotFoundError: No module named 'dahe.adapters.chengfeng'
+
+&lt;frozen importlib._bootstrap&gt;:1324: ModuleNotFoundError</failure></testcase><testcase classname="tests.unit.platform.test_loop5_request_firewall" name="test_method_and_parameter_location_must_match_the_operation_contract" time="0.001"><failure message="ModuleNotFoundError: No module named 'dahe.adapters.chengfeng'">def test_method_and_parameter_location_must_match_the_operation_contract() -&gt; None:
+&gt;       firewall_type, request_type, denied_type, manifest = _types()
+                                                             ^^^^^^^^
+
+tests\unit\platform\test_loop5_request_firewall.py:104: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\unit\platform\test_loop5_request_firewall.py:13: in _types
+    manifest_module = importlib.import_module("dahe.adapters.chengfeng.manifest")
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\AppData\Local\Programs\Python\Python312\Lib\importlib\__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+&lt;frozen importlib._bootstrap&gt;:1387: in _gcd_import
+    ???
+&lt;frozen importlib._bootstrap&gt;:1360: in _find_and_load
+    ???
+&lt;frozen importlib._bootstrap&gt;:1310: in _find_and_load_unlocked
+    ???
+&lt;frozen importlib._bootstrap&gt;:488: in _call_with_frames_removed
+    ???
+&lt;frozen importlib._bootstrap&gt;:1387: in _gcd_import
+    ???
+&lt;frozen importlib._bootstrap&gt;:1360: in _find_and_load
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+name = 'dahe.adapters.chengfeng'
+import_ = &lt;function _gcd_import at 0x00000283DF52C0E0&gt;
+
+&gt;   ???
+E   ModuleNotFoundError: No module named 'dahe.adapters.chengfeng'
+
+&lt;frozen importlib._bootstrap&gt;:1324: ModuleNotFoundError</failure></testcase><testcase classname="tests.unit.platform.test_loop5_request_firewall" name="test_payload_is_key_order_independent_but_rejects_missing_extra_null_and_wrong_type" time="0.001"><failure message="ModuleNotFoundError: No module named 'dahe.adapters.chengfeng'">def test_payload_is_key_order_independent_but_rejects_missing_extra_null_and_wrong_type() -&gt; None:
+&gt;       firewall_type, request_type, denied_type, manifest = _types()
+                                                             ^^^^^^^^
+
+tests\unit\platform\test_loop5_request_firewall.py:133: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\unit\platform\test_loop5_request_firewall.py:13: in _types
+    manifest_module = importlib.import_module("dahe.adapters.chengfeng.manifest")
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\AppData\Local\Programs\Python\Python312\Lib\importlib\__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+&lt;frozen importlib._bootstrap&gt;:1387: in _gcd_import
+    ???
+&lt;frozen importlib._bootstrap&gt;:1360: in _find_and_load
+    ???
+&lt;frozen importlib._bootstrap&gt;:1310: in _find_and_load_unlocked
+    ???
+&lt;frozen importlib._bootstrap&gt;:488: in _call_with_frames_removed
+    ???
+&lt;frozen importlib._bootstrap&gt;:1387: in _gcd_import
+    ???
+&lt;frozen importlib._bootstrap&gt;:1360: in _find_and_load
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+name = 'dahe.adapters.chengfeng'
+import_ = &lt;function _gcd_import at 0x00000283DF52C0E0&gt;
+
+&gt;   ???
+E   ModuleNotFoundError: No module named 'dahe.adapters.chengfeng'
+
+&lt;frozen importlib._bootstrap&gt;:1324: ModuleNotFoundError</failure></testcase><testcase classname="tests.unit.platform.test_loop5_request_firewall" name="test_unknown_operations_redirects_and_named_write_requests_are_denied" time="0.001"><failure message="ModuleNotFoundError: No module named 'dahe.adapters.chengfeng'">def test_unknown_operations_redirects_and_named_write_requests_are_denied() -&gt; None:
+&gt;       firewall_type, request_type, denied_type, manifest = _types()
+                                                             ^^^^^^^^
+
+tests\unit\platform\test_loop5_request_firewall.py:169: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\unit\platform\test_loop5_request_firewall.py:13: in _types
+    manifest_module = importlib.import_module("dahe.adapters.chengfeng.manifest")
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\AppData\Local\Programs\Python\Python312\Lib\importlib\__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+&lt;frozen importlib._bootstrap&gt;:1387: in _gcd_import
+    ???
+&lt;frozen importlib._bootstrap&gt;:1360: in _find_and_load
+    ???
+&lt;frozen importlib._bootstrap&gt;:1310: in _find_and_load_unlocked
+    ???
+&lt;frozen importlib._bootstrap&gt;:488: in _call_with_frames_removed
+    ???
+&lt;frozen importlib._bootstrap&gt;:1387: in _gcd_import
+    ???
+&lt;frozen importlib._bootstrap&gt;:1360: in _find_and_load
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+name = 'dahe.adapters.chengfeng'
+import_ = &lt;function _gcd_import at 0x00000283DF52C0E0&gt;
+
+&gt;   ???
+E   ModuleNotFoundError: No module named 'dahe.adapters.chengfeng'
+
+&lt;frozen importlib._bootstrap&gt;:1324: ModuleNotFoundError</failure></testcase></testsuite></testsuites>

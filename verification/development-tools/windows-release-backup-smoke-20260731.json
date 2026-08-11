@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "kind": "development_only_windows_release_and_backup_evidence",
+  "development_only": true,
+  "formal_acceptance": false,
+  "production_installer_built": false,
+  "production_backup_enabled": false,
+  "loop_9_state_changed": false,
+  "source_manifest_sha256": "2f2f68b9562712498c8dbfe143a1bddb8eb99ad74d69e5472f4afbf8f4fb806a",
+  "installer_definition_sha256": "d744cb1b12db06bf68e6a476e43f698dcb20e4bff66dd400f374add65e6b9e1d",
+  "inno_setup": {
+    "version": "7.0.2",
+    "asset_sha256": "5ad54ca3def786f8f4212552e54cc6d8d61329e2d24a1cfee0571d42c2684ff1",
+    "runtime_manifest_sha256": "0f6f30c36a909eac1b7952c4dc01a8187b642e831b90b0518b03b14ceb16e8fa",
+    "asset_verified": true,
+    "installer_executed": false,
+    "compiler_installed": false,
+    "commercial_license_decision": "not_made"
+  },
+  "restic": {
+    "version": "0.19.1",
+    "archive_sha256": "da948ad707ed690426473aaba2046cd61f8f90f6f0e7dab6be0d5796531de67d",
+    "executable_sha256": "b0dd1fd21eea5d8fe1325f55f7118213c21f36de8a261e04c0624a5ab9fd7830",
+    "runtime_manifest_sha256": "f7b60200a63da936aaeb7b220c9802b31a44ea34b5978797327053afc80c99af",
+    "redistributed_in_installer": false
+  },
+  "backup_smoke": {
+    "run_id": "20260731T145621Z-1e165906504f",
+    "result_sha256": "331a8ce679d5217376ff84b2164bc9c9976ed000d7436d85380787aca4ce0b16",
+    "synthetic_sqlite_online_backup": true,
+    "snapshot_count": 1,
+    "restic_check_passed": true,
+    "restore_integrity": "ok",
+    "restored_row_count": 25,
+    "temporary_work_removed": true
+  },
+  "existing_backup_contract": {
+    "authoritative_service": "dahe.maintenance.backup.SqliteBackupService",
+    "direct_live_database_archiving_allowed": false,
+    "loop4_targeted_tests_passed": 5,
+    "loop7_targeted_tests_passed": 1
+  },
+  "safety": {
+    "production_data_accessed": false,
+    "chengfeng_accessed": false,
+    "legacy_resources_accessed": false,
+    "ledger_modified": false
+  }
+}

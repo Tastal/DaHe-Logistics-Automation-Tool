@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "project_id": "DaHeLogistics",
+  "loop": "loop-8",
+  "run_id": "20260727T182531+0800",
+  "started_at": "2026-07-27T18:25:31+08:00",
+  "baseline_commit": "967ecd343e81e1cfed2fb6eb6d66c6012408a558",
+  "purpose": "Build the complete offline audit workflow without human identity attribution.",
+  "inputs": {
+    "development_guide": "DEVELOPMENT_GUIDE.md",
+    "product_contract": "PRODUCT.md",
+    "loop_7_waiver_evidence": "verification/loops/loop-7/20260727T171900+0800/waiver.json",
+    "loop_7_formal_report": "verification/loops/loop-7/20260727T171900+0800/formal-locked-set-report.json"
+  },
+  "allowed_external_resources": [],
+  "safety_boundaries": [
+    "Do not access Chengfeng.",
+    "Do not access or run any legacy project, database, browser profile, or process.",
+    "Use only the project .venv and isolated OCR runtimes.",
+    "Keep sealed Loop 7 evidence byte-for-byte unchanged.",
+    "Do not collect or emit human identity in new business data or evidence."
+  ],
+  "acceptance_batch": {
+    "expected_work_items": 12,
+    "source_kind": "local_development_evidence_and_deterministic_derivations",
+    "formal_accuracy_claim": false
+  }
+}

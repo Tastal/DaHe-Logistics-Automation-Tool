@@ -1,0 +1,98 @@
+{
+  "schema_version": 1,
+  "loop_id": "loop-2",
+  "run_id": "20260725T131551+0800",
+  "cases": [
+    {
+      "case": "stale frontend version",
+      "expected": "Stop before reading business state",
+      "observed": "HTTP 409 client_version_mismatch and a blocking operator message",
+      "status": "passed"
+    },
+    {
+      "case": "missing local write proof",
+      "expected": "Reject the write",
+      "observed": "HTTP 403 local_write_protection_failed",
+      "status": "passed"
+    },
+    {
+      "case": "duplicate idempotency key",
+      "expected": "Return the original Job",
+      "observed": "The second request returned created=false and the same job_id",
+      "status": "passed"
+    },
+    {
+      "case": "unknown Host",
+      "expected": "Reject the request",
+      "observed": "HTTP 400 invalid_local_host",
+      "status": "passed"
+    },
+    {
+      "case": "static path traversal",
+      "expected": "Do not serve files outside the frontend build",
+      "observed": "The outside file returned HTTP 404",
+      "status": "passed"
+    },
+    {
+      "case": "application recreation",
+      "expected": "Restore the persisted task",
+      "observed": "A new FastAPI application instance loaded the same Job and event cursor",
+      "status": "passed"
+    },
+    {
+      "case": "second instance and occupied port",
+      "expected": "Stop without replacing the owner",
+      "observed": "The second instance returned exit code 2 and the original owned process remained available",
+      "status": "passed"
+    },
+    {
+      "case": "fake OCR independence",
+      "expected": "Changing platform values cannot change ticket-recognition values",
+      "observed": "The extractor input type contains only evidence-set identity, image SHA-256, and relative paths; the fake extractor kept its ticket values constant while the application-layer platform snapshot values changed",
+      "status": "passed"
+    },
+    {
+      "case": "fake OCR runtime failure",
+      "expected": "Persist a technical failure without creating a finance-review outcome",
+      "observed": "The Job and WorkItem were failed with LOOP2-RUNTIMEERROR; business_outcome and review_reason remained empty",
+      "status": "passed"
+    },
+    {
+      "case": "failure-state persistence failure",
+      "expected": "Expose the second failure instead of silently losing it",
+      "observed": "The service raised a diagnostic RuntimeError when the injected repository fail_job write also failed",
+      "status": "passed"
+    },
+    {
+      "case": "incompatible temporary schema",
+      "expected": "Stop before mutating or retaining a lock on an older temporary database",
+      "observed": "Schema version 1 was read through an unconfigured read-only connection and rejected before WAL configuration; SHA-256 stayed unchanged, no WAL or SHM sidecar appeared, and the file could be renamed and reopened immediately",
+      "status": "passed"
+    },
+    {
+      "case": "partial current-version temporary schema",
+      "expected": "Reject a forged version 2 database before configuring WAL",
+      "observed": "The read-only gate compared every required table, complete column definitions, foreign keys, and unique constraints; the partial database was rejected with unchanged SHA-256, no sidecars, and immediate rename and reopen",
+      "status": "passed"
+    },
+    {
+      "case": "CLI incompatible temporary schema",
+      "expected": "Stop clearly, release guards, and do not emit an unhandled traceback",
+      "observed": "The serve command returned exit code 2 with a concise incompatibility message, no Traceback, unchanged database bytes, and an immediately renameable file",
+      "status": "passed"
+    },
+    {
+      "case": "non-default configured port",
+      "expected": "Use the configured local authority consistently",
+      "observed": "Port 9123 accepted its matching Host and Origin while the old 8877 authority was rejected",
+      "status": "passed"
+    },
+    {
+      "case": "out-of-order event refresh",
+      "expected": "Do not let an older snapshot replace a newer task state",
+      "observed": "Frontend tests delayed and coalesced refreshes; lower event cursors were rejected and selected-task focus was preserved",
+      "status": "passed"
+    }
+  ],
+  "status": "passed"
+}

@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "loop_id": "loop-7",
+  "run_id": "20260726T142335+0800",
+  "reviewed_subject_git_commit": "9e1ff869d23e54e9e694a24ecaa2c0949c7dfc6f",
+  "review_type": "independent_read_only_contract_and_persistence_review",
+  "initial_findings": [
+    {
+      "severity": "P1",
+      "finding": "Observed pair role_issue accepted any non-empty string and was not compared with the production role assessment.",
+      "resolution": "All 50 observed pairs now reconstruct the expected outcome and issue through production assess_ticket_roles and require an exact match. Regression tests cover unknown, wrong-but-valid, and last-item mutations."
+    },
+    {
+      "severity": "P1",
+      "finding": "A partially rewritten formal evaluation row could replace raw results and derived hashes while retaining a stale request hash and run-context hash.",
+      "resolution": "Normal, replayable, and idempotent paths now validate the exact runner version, complete run-context schema and hash, request hash, persisted authority, and reproduced formal report. The reviewed partial-row forgery is rejected."
+    },
+    {
+      "severity": "P2",
+      "finding": "A boolean root schema_version could compare equal to integer one in the formal review package.",
+      "resolution": "The root schema version now requires exact integer type and value; a boolean regression test is present."
+    },
+    {
+      "severity": "P2",
+      "finding": "A future formal set with no normal pair could divide by zero while computing the normal-pair false-positive rate.",
+      "resolution": "The metric now reports not_measured with a zero sample count; a red-green regression test covers the boundary."
+    }
+  ],
+  "final_review": {
+    "blocking_p0_count": 0,
+    "blocking_p1_count": 0,
+    "observed_pair_production_policy_reuse": "confirmed",
+    "derived_denominator_isolation": "confirmed",
+    "request_and_run_context_revalidation": "confirmed",
+    "documentation_consistency": "confirmed"
+  },
+  "remaining_boundaries": [
+    "The exact-duplicate scenario proves only identical content hashes, not different hashes depicting the same ticket.",
+    "Derived scenarios prove deterministic safe routing only; they do not establish natural prevalence, real recall, or performance.",
+    "The formal manifest does not yet contain exhaustive per-image layout and quality labels, so those formal distributions remain not_measured.",
+    "Same-database hashes and append-only triggers do not defend against a privileged actor coherently rewriting the entire SQLite database and every authority hash; that would require an external trust root."
+  ]
+}

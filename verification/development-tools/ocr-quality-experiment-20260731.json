@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "kind": "development_only_ocr_quality_experiment_evidence",
+  "development_only": true,
+  "formal_acceptance": false,
+  "future_locked_set_eligible": false,
+  "production_promotion_allowed": false,
+  "run_id": "20260731T144009Z-2083e5d0df94",
+  "result_sha256": "9e4a2b502a31c9287ee094c1cb74e868170f6910a9a715cc51898f9ae885d85b",
+  "source_record_sha256": "4c7f0cdf78b8b930334a933086514d137c86349f404701fbc0593e2d92d716bf",
+  "source_image_set_sha256": "f149988146043949b3e3aa851614330028f2ab4181f13b690b39b79a1fa9d745",
+  "runtime_sha256s": {
+    "cleanvision": "6b7684ed131a937681ccab192ece886dcf2987dd6bc4030c7840f3d1341a1408",
+    "rapidocr": "cf285a7992888a4ae7722c1dc7ca438b5ad0af2b8aaaa5ece1c146bbb683755e"
+  },
+  "sample": {
+    "count": 20,
+    "human_truth_evaluated": 17,
+    "rapidocr_truth_matches": 17,
+    "rapidocr_truth_match_rate": 1.0,
+    "quality_condition_count": 11,
+    "cleanvision_flag_count": 0
+  },
+  "timing_ms": {
+    "historical_cpu_paddle_median": 15400.141,
+    "historical_cpu_paddle_p95": 63685.423,
+    "rapidocr_median": 857.653,
+    "rapidocr_p95": 1146.903,
+    "median_speedup_ratio": 17.956
+  },
+  "dependency_audit": {
+    "cleanvision_lock_exit_code": 0,
+    "rapidocr_lock_exit_code": 0,
+    "known_vulnerabilities": 0,
+    "automatic_changes": false
+  },
+  "privacy_checks": {
+    "temporary_inputs_removed": true,
+    "raw_ocr_text_present": false,
+    "source_path_present": false,
+    "platform_weight_present": false
+  },
+  "decision": {
+    "cleanvision": "do_not_integrate_default_rules_did_not_flag_reviewed_quality_examples",
+    "rapidocr": "retain_as_development_candidate_only",
+    "loop_9_state_changed": false
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "accepted_at": "2026-07-27T17:19:00+08:00",
+  "accepted_by": "尹浩远",
+  "decision": "close_loop_7_with_waiver",
+  "failed_formal_report_sha256": "33d8c65205c40945980a6d41eadbd6799dc0641ced92f81c36f4a399628af268",
+  "invalidation_evidence_file_sha256": "110ef099db951f1b6fb8383e421eac40d63ccc57e3ac226e4ee1a3c8a761c160",
+  "permits_next_loop": true,
+  "prohibited_claims": [
+    "loop_7_accepted",
+    "shadow_accepted",
+    "natural_locked_set_passed",
+    "formal_role_accuracy_passed",
+    "cpu_gpu_parity"
+  ],
+  "reason": "The business owner declined another 50-waybill review and accepted the remaining validation risk after adding fail-safe weight review routes.",
+  "schema_version": 1
+}

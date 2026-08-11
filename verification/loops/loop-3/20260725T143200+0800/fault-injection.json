@@ -1,0 +1,86 @@
+{
+  "schema_version": 1,
+  "loop_id": "loop-3",
+  "run_id": "20260725T143200+0800",
+  "cases": [
+    {
+      "case": "concurrent duplicate scope creation",
+      "expected": "Exactly one active Job owns a ConflictKey",
+      "observed": "Two synchronized threads attempted the same active audit scope; one Job was created and the other operation returned a conflict.",
+      "status": "passed"
+    },
+    {
+      "case": "concurrent stale control writes",
+      "expected": "Only one action may commit against a record version",
+      "observed": "Synchronized resume and cancel requests used the same paused version; one committed and the other received a record-version conflict.",
+      "status": "passed"
+    },
+    {
+      "case": "pause at an OCR boundary",
+      "expected": "Finish the current atomic unit, checkpoint, and release automatic resources",
+      "observed": "The Job reached paused with a checkpoint and held no resource lease; resume reused completed download work.",
+      "status": "passed"
+    },
+    {
+      "case": "pause-boundary WorkItem observability",
+      "expected": "Every changed WorkItem increments its record version and emits an event",
+      "observed": "The RED test first exposed a changed WorkItem with neither a matching event nor version increment; after the fix, the same pause-boundary test passed with both guarantees.",
+      "status": "passed"
+    },
+    {
+      "case": "resource and WorkItem projection events",
+      "expected": "An atomic resource projection change advances the event cursor for both affected projections",
+      "observed": "Separate RED checks exposed missing resource.changed and then missing work_item.changed; the final contract test passed with both events.",
+      "status": "passed"
+    },
+    {
+      "case": "pause followed by cancel",
+      "expected": "Preserve committed work and leave another consumer and shared work running",
+      "observed": "The selected long Job was cancelled, never-started items kept end_reason=not_processed, the short Job succeeded, and its shared evidence work succeeded.",
+      "status": "passed"
+    },
+    {
+      "case": "injected fake OCR failure",
+      "expected": "Create a technical failure, not a finance-review item",
+      "observed": "The Job and WorkItem failed with diagnostic code LOOP3-FAKE-OCR-FAILURE; business_outcome and review_reason remained null and waiting_user stayed zero.",
+      "status": "passed"
+    },
+    {
+      "case": "failed shared evidence reused by a later consumer",
+      "expected": "Fail the later consumer deterministically without deadlock or human review",
+      "observed": "After the shared producer failed, a later short Job failed with LOOP3-FAKE-OCR-FAILURE and produced no business outcome or review reason.",
+      "status": "passed"
+    },
+    {
+      "case": "application restart with a queued Loop 3 Job",
+      "expected": "One scheduler owner resumes the Job without a competing legacy runner",
+      "observed": "A second application instance restored the queued Job to succeeded with no diagnostic, and application state exposed no second runner.",
+      "status": "passed"
+    },
+    {
+      "case": "three sustained Jobs contend for one resource",
+      "expected": "Rotate deterministically without starvation",
+      "observed": "The pure scheduling policy selected a, b, c, a, b, c across six grants.",
+      "status": "passed"
+    },
+    {
+      "case": "suspected swapped and numeric mismatch fixture items",
+      "expected": "Wait for a person without blocking normal items or holding heavy resources",
+      "observed": "The two problem simulations remained waiting_user while normal items, the short audit exercise, and the loading probe continued to their expected fixture states.",
+      "status": "passed"
+    },
+    {
+      "case": "protected fixture used without explicit gate",
+      "expected": "Reject the request",
+      "observed": "The loading probe request returned HTTP 403 test_fixture_disabled when the application was not started with the protected fixture gate.",
+      "status": "passed"
+    },
+    {
+      "case": "final control boundary events",
+      "expected": "Emit observable paused and cancelled terminal-control events",
+      "observed": "The event outbox emitted job.paused after the pause boundary and job.cancelled plus work_item.changed after the cancel boundary.",
+      "status": "passed"
+    }
+  ],
+  "status": "passed"
+}

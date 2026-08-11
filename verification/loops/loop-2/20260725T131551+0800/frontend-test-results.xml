@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites name="vitest tests" tests="14" failures="0" errors="0" time="0.6123656">
+    <testsuite name="src/api/client.test.ts" timestamp="2026-07-25T06:19:50.549Z" hostname="ProArtJH" tests="3" failures="0" errors="0" skipped="0" time="0.0074463">
+        <testcase classname="src/api/client.test.ts" name="BrowserAppServices &gt; maps a failed job diagnostic code from the backend snapshot" time="0.0033253">
+        </testcase>
+        <testcase classname="src/api/client.test.ts" name="BrowserAppServices &gt; maps the real job-items endpoint into finance-facing result data" time="0.0022889">
+        </testcase>
+        <testcase classname="src/api/client.test.ts" name="BrowserAppServices &gt; maps aggregate_id from a fake EventSource message and closes the stream" time="0.000928">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/app/App.test.tsx" timestamp="2026-07-25T06:19:50.553Z" hostname="ProArtJH" tests="8" failures="0" errors="0" skipped="0" time="0.4774545">
+        <testcase classname="src/app/App.test.tsx" name="App &gt; uses business language and keeps future modules visibly disabled" time="0.1369871">
+        </testcase>
+        <testcase classname="src/app/App.test.tsx" name="App &gt; prevents rapid repeated starts while one create request is pending" time="0.0943796">
+        </testcase>
+        <testcase classname="src/app/App.test.tsx" name="App &gt; restores existing backend state and does not infer a pause action" time="0.0282356">
+        </testcase>
+        <testcase classname="src/app/App.test.tsx" name="App &gt; blocks the console when frontend and backend versions differ" time="0.0215625">
+        </testcase>
+        <testcase classname="src/app/App.test.tsx" name="App &gt; subscribes only after loading a fresh snapshot cursor" time="0.0089624">
+        </testcase>
+        <testcase classname="src/app/App.test.tsx" name="App &gt; loads and renders the completed fake audit result" time="0.0878906">
+        </testcase>
+        <testcase classname="src/app/App.test.tsx" name="App &gt; shows protected-data guidance and the backend diagnostic code for a failed job" time="0.0304965">
+        </testcase>
+        <testcase classname="src/app/App.test.tsx" name="App &gt; coalesces delayed event refreshes and rejects an older snapshot cursor" time="0.0674035">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/features/jobs/ActionBar.test.tsx" timestamp="2026-07-25T06:19:50.556Z" hostname="ProArtJH" tests="3" failures="0" errors="0" skipped="0" time="0.1274648">
+        <testcase classname="src/features/jobs/ActionBar.test.tsx" name="ActionBar &gt; renders only actions that the backend marks visible" time="0.1108074">
+        </testcase>
+        <testcase classname="src/features/jobs/ActionBar.test.tsx" name="ActionBar &gt; places a backend-supplied reason beside every disabled action" time="0.0135649">
+        </testcase>
+        <testcase classname="src/features/jobs/ActionBar.test.tsx" name="ActionBar &gt; treats a disabled action without a reason as a contract error" time="0.0018909">
+        </testcase>
+    </testsuite>
+</testsuites>

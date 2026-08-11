@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "loop_id": "loop-5",
+  "run_id": "20260725T175112+0800",
+  "fixture_manifest_sha256": "8d6660b1390edaced63df20b0ff3267fd85a9a61066193f3d45c936cccdb4396",
+  "fixture_kind": "synthetic_sanitized",
+  "real_contract_verified": false,
+  "observed": {
+    "waybill_count": 2,
+    "ticket_reference_count": 4,
+    "list_reads": 1,
+    "detail_reads": 2,
+    "image_reads": 4,
+    "durable_checkpoint_rows": 8,
+    "content_addressed_blob_rows": 1,
+    "image_reference_rows": 4,
+    "connector_staging_payloads_after_completion": 0,
+    "completed_replay_platform_reads": 0
+  },
+  "restart": {
+    "committed_detail_reads_repeated": 0,
+    "remaining_detail_reads": 1,
+    "remaining_image_reads": 4,
+    "result_count_reconciled": true
+  },
+  "limits": [
+    "The four synthetic image responses intentionally share one byte identity, so this fixture proves content deduplication but not real ticket-to-image mapping accuracy.",
+    "The synthetic login marker proves error routing only; it does not establish compatibility with a real login page, HTTP status, or redirect flow.",
+    "No real host, endpoint, payload, response, credential, browser profile, network, or Chengfeng session was used."
+  ],
+  "status": "passed"
+}

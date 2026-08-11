@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "results": [
+    {
+      "fault": "127.0.0.1:8877 already owned by an unknown listener",
+      "expected": "startup stops without changing the port or owner",
+      "actual": "exit code 2; owner remained bound",
+      "status": "passed"
+    },
+    {
+      "fault": "second instance for the same data root",
+      "expected": "second instance is rejected without overwriting active metadata",
+      "actual": "AlreadyRunningError; first instance metadata preserved",
+      "status": "passed"
+    },
+    {
+      "fault": "stale or malformed diagnostic instance file",
+      "expected": "OS mutex remains authoritative and no process is terminated",
+      "actual": "new instance acquired the free mutex and replaced only diagnostic metadata",
+      "status": "passed"
+    },
+    {
+      "fault": "ledger write fails before os.replace",
+      "expected": "the old ledger remains byte-for-byte intact",
+      "actual": "old ledger preserved and temporary file removed",
+      "status": "passed"
+    },
+    {
+      "fault": "stale ledger revision",
+      "expected": "compare-and-swap rejects the overwrite",
+      "actual": "LedgerConflictError",
+      "status": "passed"
+    },
+    {
+      "fault": "outbound socket connect attempted during startup",
+      "expected": "test sentinel fails immediately",
+      "actual": "no connect call occurred; external connection count remained zero",
+      "status": "passed"
+    }
+  ]
+}

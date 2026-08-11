@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "loop_id": "loop-1",
+  "review_status": "passed",
+  "reviews": [
+    {
+      "scope": "complete Loop 1 domain contract",
+      "result": "passed_after_findings_fixed",
+      "confirmed": [
+        "same-role conflicts are suspected problems",
+        "only a validated human action can dismiss a role suspicion",
+        "manual corrections remain overlays on immutable source evidence",
+        "ticket absence and acquisition failure are distinct",
+        "shadow projections cannot contain real settlement effects or platform actions"
+      ]
+    },
+    {
+      "scope": "kilogram review and decimal exactness",
+      "result": "passed_after_findings_fixed",
+      "confirmed": [
+        "kilogram readings always have no automatic comparison value",
+        "kilogram-to-tonne derivation is independent of Decimal context precision",
+        "automatic comparison rejects kilogram units and values requiring rounding",
+        "explicit human correction in exact two-decimal tonnes is re-compared",
+        "large Decimal inputs preserve exact conversion and exact differences"
+      ]
+    }
+  ],
+  "independent_checks": {
+    "domain_tests": "50 passed",
+    "full_project_tests": "87 passed",
+    "ruff": "passed",
+    "mypy": "passed",
+    "frontend_boundary": "passed",
+    "future_runtime_boundary": "passed",
+    "git_diff_check": "passed"
+  },
+  "reviewer_mutations": false,
+  "network_access": false,
+  "legacy_access": false
+}

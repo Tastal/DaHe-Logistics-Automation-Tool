@@ -1,0 +1,77 @@
+{
+  "build": {
+    "loop9_build_sha256": "0093e0072fcc34706035c3b97f5389f905b3fc20cab09dd73a496944987bbb40",
+    "starting_git_commit": "ceedbb364ac6ec0c0d2df62a0c8e65b62bc343c0"
+  },
+  "checks": [
+    {
+      "command": ".\\.venv\\Scripts\\python.exe -m pytest tests\\integration\\test_loop9_daily_live_execution.py::test_terminal_cleanup_consumes_its_window_and_closes_idle_runtime -q",
+      "result": "red then green: terminal daily cleanup now closes an idle ready browser runtime and persists stopped control state"
+    },
+    {
+      "command": ".\\.venv\\Scripts\\python.exe -m pytest tests\\integration\\test_loop9_daily_live_execution.py tests\\integration\\test_loop9_platform_api.py tests\\integration\\test_loop3_scheduler.py -q",
+      "result": "passed: 95 tests"
+    },
+    {
+      "command": ".\\.venv\\Scripts\\python.exe tools\\loop9_run_fault_injections.py --data-root <formal-data-root>",
+      "result": "passed twice with the same result SHA and run identities"
+    },
+    {
+      "command": ".\\.venv\\Scripts\\python.exe tools\\check.py",
+      "result": "passed: Ruff; mypy 274 source files; pytest 2414 passed and 8 Windows-symlink skips; frontend boundary, lint, typecheck, 113 tests, and production build"
+    },
+    {
+      "command": "git diff --check",
+      "result": "passed"
+    },
+    {
+      "command": "npm.cmd --prefix frontend run test:e2e",
+      "result": "passed: 7 Playwright tests, including the Loop 9 locked-set review workflow at 1366x768 and horizontal-containment verification at simulated 200% scaling"
+    }
+  ],
+  "completed_at": "2026-07-31T00:19:43.2312103+08:00",
+  "daily_snapshot_triplet": {
+    "candidate_count": 63,
+    "evidence_file_sha256": "179c120cf1c4dfe7b00eeaa592c3a05b4d8308eaeb5101f92ecc9f0761a852b1",
+    "evidence_sha256": "0466621972783eaeac660b45aa80217a325f0929147e7feec7b37bef73d5cc79",
+    "gate_passed": true,
+    "platform_write_request_count": 0,
+    "replay_equal": true,
+    "schema_version": 5,
+    "snapshot_ids": [
+      "30a2a9443a914c2abe4bfa14ae538fde",
+      "6f2bd04662704564a76dffc5a0727b7c",
+      "5bcfd497ecf84102a0f590f4eac7dda6"
+    ]
+  },
+  "fault_injection": {
+    "browser_closed_run_id": "97bf9ff2aaddb941044b902aa907d2b283433c757355951cd6ce4fef5a4b7b5f",
+    "gpu_worker_failure_run_id": "d984105c291f5ab252d364e258d9978093cd0100bfc8d6526657716eea1e9199",
+    "injector_contract_sha256": "bc9a06019767aa758bb24615683e12ef02addfaf01675284204289d5c88dc0b5",
+    "main_application_restart_run_id": "504f286339b401ed8897d3996387c5e264b863689d02221083ffff7c2dc143ab",
+    "result_sha256": "b6627ec25eeb8cf9247c978f84edf6884452917ac00ab9663174c88247c67a20",
+    "transient_network_failure_run_id": "3ac12663949b8bca25a4174fb0191923810387831780f1624a0e565fbefa361a"
+  },
+  "full_check": {
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stdout_sha256": "a10b72d209b14ba0e2b299499b18d6accc97f90cf79d4e230c7c15e545c60398",
+    "storage": "DaHe application data root"
+  },
+  "gate_id": "loop-9-recovery-scheduling-and-ui",
+  "gate_status": "pending",
+  "remaining_requirement": "Run the deterministic unloading scheduler probe concurrently with the future nonoverlapping real shadow batch and complete the final user UI flow.",
+  "schema_version": 1,
+  "ui_preflight": {
+    "artifact_sha256": "58484ce2a7f0a142efba3abfbcb92354c7f8c24fd72d839bc6d0861d8fb8bdad",
+    "artifact_storage": "DaHe application data root",
+    "fixture_scope": "anonymous local fixture; no Chengfeng request",
+    "verified_behaviors": [
+      "both original ticket images must be checked before confirmation",
+      "confirmation advances to the next review item",
+      "the write request carries idempotency and record-version data",
+      "the write request contains no reviewer, operator, employee, or notes field",
+      "the review page has no horizontal overflow at 1366x768 or simulated 200% scaling"
+    ]
+  },
+  "updated_at": "2026-07-31T01:16:00+08:00"
+}

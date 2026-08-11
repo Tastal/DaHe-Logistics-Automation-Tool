@@ -1,0 +1,62 @@
+{
+  "build": {
+    "loop9_build_sha256": "068fc83618c1e787f5976f3e0b496fc051c78ec9de487b0b25db7c5987fd8d02",
+    "starting_git_commit": "206775fa1e061f1ac747d87ecaff42803b7198f5"
+  },
+  "checks": [
+    {
+      "command": ".\\.venv\\Scripts\\python.exe -m pytest tests\\contract\\test_loop9_browser_runtime_isolation.py tests\\unit\\system\\test_ocr_process_environment.py tests\\unit\\verification\\test_loop9_build.py -q",
+      "result": "passed: 9"
+    },
+    {
+      "command": ".\\.venv\\Scripts\\python.exe tools\\bootstrap_browser.py",
+      "result": "passed: isolated smoke selected msedge and wrote the qualified runtime manifest"
+    },
+    {
+      "command": "IsolatedBrowserRuntime headful about:blank smoke under supervised child environment",
+      "result": "passed: available, selected msedge, running, and closed without an orphan"
+    },
+    {
+      "command": ".\\.venv\\Scripts\\python.exe tools\\check.py",
+      "result": "passed: ruff; mypy 196 source files; pytest 1419 passed and 4 Windows-symlink skips; frontend boundary, lint, typecheck, 105 tests, and production build"
+    },
+    {
+      "command": "git diff --check",
+      "result": "passed"
+    }
+  ],
+  "completed_at": "2026-07-29T12:24:26+08:00",
+  "failed_attempt": {
+    "access_window_consumed_without_platform_access": true,
+    "browser_worker_orphaned": false,
+    "diagnostic_code": "browser_start_failed",
+    "observed_at": [
+      "2026-07-29T04:12:18.575694+00:00",
+      "2026-07-29T04:12:54.580314+00:00"
+    ],
+    "platform_requests": 0,
+    "root_cause": "The supervised child replaced LOCALAPPDATA with an isolated directory, while Playwright channel discovery searched that directory instead of the Windows system Edge installation.",
+    "user_error": false
+  },
+  "gate_id": "loop-9-contract-discovery-tooling",
+  "implemented_fix": [
+    "whitelist only Windows Program Files roots needed for system browser discovery",
+    "dynamically resolve Edge under the allowed system installation roots",
+    "do not inherit the real user LOCALAPPDATA or hard-code a browser path",
+    "run bootstrap smoke through the same supervised restricted environment as the production worker",
+    "require the isolated smoke result in the runtime installation manifest",
+    "include process supervision in the Loop 9 build fingerprint"
+  ],
+  "platform_requests": {
+    "forbidden": 0,
+    "real_total": 0,
+    "writes": 0
+  },
+  "runtime": {
+    "installation_manifest_sha256": "b724df57f2357e1dc32819bc4caf671fa5450686db563e692b3079445f106992",
+    "isolated_smoke_selected_browser": "msedge",
+    "playwright_version": "1.61.0"
+  },
+  "schema_version": 1,
+  "status": "passed"
+}

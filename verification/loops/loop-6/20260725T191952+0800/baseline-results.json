@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "loop_id": "loop-6",
+  "run_id": "20260725T191952+0800",
+  "baseline_commit": "0303d9081120d55f3f1b66bd82802989c6c9620d",
+  "command": ".\\.venv\\Scripts\\python.exe tools\\check.py",
+  "exit_code": 0,
+  "results": {
+    "ruff": "passed",
+    "mypy_source_files": 87,
+    "python_tests_passed": 375,
+    "python_tests_skipped": 1,
+    "frontend_tests_passed": 25,
+    "frontend_lint": "passed",
+    "frontend_typecheck": "passed",
+    "frontend_build": "passed"
+  },
+  "notes": [
+    "The single skip is the existing Windows symlink-privilege limitation.",
+    "No OCR runtime, model, legacy script, Chengfeng access, or service startup occurred during the baseline check."
+  ]
+}

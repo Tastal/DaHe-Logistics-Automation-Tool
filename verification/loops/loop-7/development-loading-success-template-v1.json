@@ -1,0 +1,40 @@
+{
+  "anchors": [
+    {
+      "anchor_id": "loading-save-success",
+      "box": {
+        "height": "0.036458333",
+        "width": "0.195370371",
+        "x": "0.106481481",
+        "y": "0.646875"
+      },
+      "expected_text": "\u4fdd\u5b58\u6210\u529f",
+      "loading_evidence": "1",
+      "match_kind": "contains",
+      "max_edit_distance": "0.1",
+      "required": true,
+      "unloading_evidence": "-0.4",
+      "weight": "1"
+    }
+  ],
+  "family_id": "loop7-real-loading-success",
+  "name": "\u88c5\u8d27\u78c5\u5355\uff08\u4fdd\u5b58\u6210\u529f\u53c2\u8003\u5b57\u6bb5\uff09",
+  "regions": [
+    {
+      "box": {
+        "height": "0.12",
+        "width": "0.24",
+        "x": "0.70",
+        "y": "0.50"
+      },
+      "field": "ordinary_net",
+      "format_pattern": "^[0-9]+(?:\\.[0-9]{1,3})?$",
+      "layout_scope": "ticket",
+      "region_id": "loading-success-ordinary-net",
+      "relative_to_anchor_id": null,
+      "required": true,
+      "unit": "t"
+    }
+  ],
+  "role": "loading"
+}

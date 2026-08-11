@@ -1,0 +1,80 @@
+{
+  "schema_version": 1,
+  "project_id": "DaHeLogistics",
+  "loop_id": "loop-4",
+  "run_id": "20260725T160233+0800",
+  "frozen_at": "2026-07-25T16:02:33+08:00",
+  "git_baseline": {
+    "accepted_tag": "loop-3-accepted",
+    "attestation_commit": "21adfcfabc653f739366a1bd7166d2b5876cdf53",
+    "subject_commit": "f42e667f8ac61d14261f92a4d97d8007ce3c7890"
+  },
+  "sources": [
+    {
+      "path": "DEVELOPMENT_GUIDE.md",
+      "sha256": "b66afecd686101ff6a94c7461eab32bc028462f427ff294d751694f12612a207"
+    },
+    {
+      "path": "PRODUCT.md",
+      "sha256": "6bf0972b15db1b348e24340b8f2372a37929e49a657c4b2716e77fee2ae19bda"
+    },
+    {
+      "path": "AGENTS.md",
+      "sha256": "b064ed06e99c2ef8cc3e36e7afa3cab0c4941fbbdf9c2dcb52de10b1e916b113"
+    },
+    {
+      "path": "pyproject.toml",
+      "sha256": "3df7ac4aafe1078d2550da549763defe77cf9b26ff6bb1bc1200e8d120e14f80"
+    },
+    {
+      "path": "requirements.lock",
+      "sha256": "7f053172856978c0b53d7a069deabe0ab9b47b32b746f2441e777578af96e133"
+    },
+    {
+      "path": "verification/loop-ledger.json",
+      "sha256": "531d5c360215c0a9ecf246bddb66ee6d77e7ddf40f32e2fc81490b979d93e0bf"
+    }
+  ],
+  "fixture_manifest": {
+    "path": "verification/loops/loop-4/20260725T160233+0800/fixture-manifest.json",
+    "sha256": "e721a2cd650d4fb25a5a7f6f4d7c1f1df5b3bc685b47546617d0167d0a14bf80"
+  },
+  "authorized_scope": [
+    "Alembic-managed SQLite production schema in an explicitly selected DaHe data directory",
+    "WAL, foreign keys, busy timeout, short coordinated write transactions, and migration backup",
+    "Immutable sanitized platform snapshots and audit decisions using synthetic offline records",
+    "Content-addressed synthetic ticket files, business references, holds, and controlled quarantine claims",
+    "Atomic file publication, staging recovery, online SQLite backup, temporary restore, and integrity checks",
+    "Persistent application instance identity, heartbeats, supervised owned-child contracts, and expired lease recovery",
+    "Persistent SharedEvidenceWork retry state and one-cause failure propagation",
+    "Persistent BrowserControlSession fencing and protected automatic-holder recovery",
+    "Repeatable offline import and restart processing with deterministic fake adapters"
+  ],
+  "forbidden_scope": [
+    "Real Chengfeng access, login, requests, credentials, browser profiles, or writes",
+    "Legacy project, database, process, port, browser profile, runtime, or data access",
+    "Real CPU or GPU OCR, CUDA, models, production images, or cloud OCR",
+    "Loop 5 Chengfeng adapter implementation or request-contract discovery",
+    "Automatic settlement confirmation, payment, receipt cancellation, or ticket swapping",
+    "Scheduled seven-day production image deletion or full historical migration",
+    "Terminating or attaching to an unknown process",
+    "Windows DNS, proxy, VPN, routing, hosts-file, or global browser changes"
+  ],
+  "assumptions": [
+    "Existing Loop 2 and Loop 3 databases contain protected development fixtures only and remain untouched.",
+    "The durable database starts at database/dahe.sqlite3 inside an explicit application data root.",
+    "Browser crash recovery is validated through a persisted fake control session and fencing contract without launching a browser.",
+    "Process supervision tests may start only a harmless child process created by the test supervisor.",
+    "All ticket bytes and platform records are synthetic and contain no production or personal data.",
+    "Backup restore verification targets a temporary directory and never replaces the active database."
+  ],
+  "gates": [
+    "loop-4-migration-and-db-contract",
+    "loop-4-evidence-atomicity-and-deduplication",
+    "loop-4-backup-and-staging-recovery",
+    "loop-4-instance-heartbeat-and-lease-recovery",
+    "loop-4-browser-fencing-and-protected-recovery",
+    "loop-4-shared-failure-retry-and-cleanup-race",
+    "loop-4-offline-replay-and-regression"
+  ]
+}

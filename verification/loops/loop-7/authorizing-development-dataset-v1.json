@@ -1,0 +1,175 @@
+{
+  "schema_version": 1,
+  "kind": "authorizing_observation_dataset",
+  "dataset_id": "loop7-authorizing-development-v1",
+  "production_data": false,
+  "contains_credentials": false,
+  "contains_personal_data": false,
+  "description": "Code-authored synthetic OCR observations for development lifecycle evidence only; not real images or human labels.",
+  "observations": [
+    {
+      "case_id": "loading-clear",
+      "truth_role": "loading",
+      "truth_source": "code_authored_synthetic",
+      "quality_tags": ["printed"],
+      "rotations": [
+        {
+          "sample_id": "loading-clear@0",
+          "orientation_degrees": 0,
+          "observation_sha256": "051b7cce549426b359bf43c7eb38fcd34001bc8f767a1fe663616bffa233acea",
+          "ocr_lines": [
+            {"text": "装车磅单", "confidence": "0.98", "box": {"x": "0.12", "y": "0.06", "width": "0.28", "height": "0.07"}},
+            {"text": "发货单位", "confidence": "0.98", "box": {"x": "0.08", "y": "0.22", "width": "0.18", "height": "0.05"}},
+            {"text": "净重", "confidence": "0.98", "box": {"x": "0.08", "y": "0.68", "width": "0.12", "height": "0.05"}}
+          ]
+        },
+        {
+          "sample_id": "loading-clear@90",
+          "orientation_degrees": 90,
+          "observation_sha256": "aa3be5c8b286ce010aa794e2b53727685ffb73565211fb0fb685e6d0d87a2a1a",
+          "ocr_lines": [
+            {"text": "装车磅单", "confidence": "0.98", "box": {"x": "0.87", "y": "0.12", "width": "0.07", "height": "0.28"}},
+            {"text": "发货单位", "confidence": "0.98", "box": {"x": "0.73", "y": "0.08", "width": "0.05", "height": "0.18"}},
+            {"text": "净重", "confidence": "0.98", "box": {"x": "0.27", "y": "0.08", "width": "0.05", "height": "0.12"}}
+          ]
+        },
+        {
+          "sample_id": "loading-clear@180",
+          "orientation_degrees": 180,
+          "observation_sha256": "6ae948d33d5c55060d738705a733f51f8a6afe8497d56573e62421c13d4d5a7b",
+          "ocr_lines": [
+            {"text": "装车磅单", "confidence": "0.98", "box": {"x": "0.6", "y": "0.87", "width": "0.28", "height": "0.07"}},
+            {"text": "发货单位", "confidence": "0.98", "box": {"x": "0.74", "y": "0.73", "width": "0.18", "height": "0.05"}},
+            {"text": "净重", "confidence": "0.98", "box": {"x": "0.8", "y": "0.27", "width": "0.12", "height": "0.05"}}
+          ]
+        },
+        {
+          "sample_id": "loading-clear@270",
+          "orientation_degrees": 270,
+          "observation_sha256": "b620fcb8c1c86ef37347d46a27bc5ee8c28152e146015de2efaa25734e52600c",
+          "ocr_lines": [
+            {"text": "装车磅单", "confidence": "0.98", "box": {"x": "0.06", "y": "0.6", "width": "0.07", "height": "0.28"}},
+            {"text": "发货单位", "confidence": "0.98", "box": {"x": "0.22", "y": "0.74", "width": "0.05", "height": "0.18"}},
+            {"text": "净重", "confidence": "0.98", "box": {"x": "0.68", "y": "0.8", "width": "0.05", "height": "0.12"}}
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "unloading-clear",
+      "truth_role": "unloading",
+      "truth_source": "code_authored_synthetic",
+      "quality_tags": ["screen"],
+      "rotations": [
+        {
+          "sample_id": "unloading-clear@0",
+          "orientation_degrees": 0,
+          "observation_sha256": "eea0f546cedcfd068d4d0484dc13e338a12b143863cd8ecea6bceeb56e9341d3",
+          "ocr_lines": [
+            {"text": "卸车磅单", "confidence": "0.98", "box": {"x": "0.12", "y": "0.06", "width": "0.28", "height": "0.07"}},
+            {"text": "收货单位", "confidence": "0.98", "box": {"x": "0.08", "y": "0.22", "width": "0.18", "height": "0.05"}},
+            {"text": "净重", "confidence": "0.98", "box": {"x": "0.08", "y": "0.68", "width": "0.12", "height": "0.05"}}
+          ]
+        },
+        {
+          "sample_id": "unloading-clear@90",
+          "orientation_degrees": 90,
+          "observation_sha256": "f354396678013913540f685085bf46af4dd0a5a71692c3325b69a57477f53856",
+          "ocr_lines": [
+            {"text": "卸车磅单", "confidence": "0.98", "box": {"x": "0.87", "y": "0.12", "width": "0.07", "height": "0.28"}},
+            {"text": "收货单位", "confidence": "0.98", "box": {"x": "0.73", "y": "0.08", "width": "0.05", "height": "0.18"}},
+            {"text": "净重", "confidence": "0.98", "box": {"x": "0.27", "y": "0.08", "width": "0.05", "height": "0.12"}}
+          ]
+        },
+        {
+          "sample_id": "unloading-clear@180",
+          "orientation_degrees": 180,
+          "observation_sha256": "b6d20ab3cb0876f47add52fd0d1a187a7b64b20b665a9e7eecf674a735851dc6",
+          "ocr_lines": [
+            {"text": "卸车磅单", "confidence": "0.98", "box": {"x": "0.6", "y": "0.87", "width": "0.28", "height": "0.07"}},
+            {"text": "收货单位", "confidence": "0.98", "box": {"x": "0.74", "y": "0.73", "width": "0.18", "height": "0.05"}},
+            {"text": "净重", "confidence": "0.98", "box": {"x": "0.8", "y": "0.27", "width": "0.12", "height": "0.05"}}
+          ]
+        },
+        {
+          "sample_id": "unloading-clear@270",
+          "orientation_degrees": 270,
+          "observation_sha256": "ded22a339d18bcd9f640922b264c06b6736852173c23d0d3ff1584909294d1c8",
+          "ocr_lines": [
+            {"text": "卸车磅单", "confidence": "0.98", "box": {"x": "0.06", "y": "0.6", "width": "0.07", "height": "0.28"}},
+            {"text": "收货单位", "confidence": "0.98", "box": {"x": "0.22", "y": "0.74", "width": "0.05", "height": "0.18"}},
+            {"text": "净重", "confidence": "0.98", "box": {"x": "0.68", "y": "0.8", "width": "0.05", "height": "0.12"}}
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "unknown-layout",
+      "truth_role": "unknown",
+      "truth_source": "code_authored_synthetic",
+      "quality_tags": ["screen"],
+      "rotations": [
+        {
+          "sample_id": "unknown-layout@0",
+          "orientation_degrees": 0,
+          "observation_sha256": "ebdc827ecbb0c7076e84e0dbceeb38c0e1a4cee76bebf548b27feea71e03b251",
+          "ocr_lines": [
+            {"text": "磅单", "confidence": "0.95", "box": {"x": "0.62", "y": "0.34", "width": "0.16", "height": "0.05"}},
+            {"text": "净重", "confidence": "0.95", "box": {"x": "0.66", "y": "0.48", "width": "0.12", "height": "0.05"}}
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "non-ticket",
+      "truth_role": "unknown",
+      "truth_source": "code_authored_synthetic",
+      "quality_tags": ["other_document"],
+      "rotations": [
+        {
+          "sample_id": "non-ticket@0",
+          "orientation_degrees": 0,
+          "observation_sha256": "d28962b457176ecbd567f77eab4bbbe964f609e238732ce69a62efccaab4088f",
+          "ocr_lines": [
+            {"text": "普通发票", "confidence": "0.99", "box": {"x": "0.62", "y": "0.36", "width": "0.22", "height": "0.06"}}
+          ]
+        }
+      ]
+    },
+    {
+      "case_id": "mixed-conflict",
+      "truth_role": "unknown",
+      "truth_source": "code_authored_synthetic",
+      "quality_tags": ["printed"],
+      "rotations": [
+        {
+          "sample_id": "mixed-conflict@0",
+          "orientation_degrees": 0,
+          "observation_sha256": "05ee49326e5d371ed44f7234688e7402377f70da64dd27e81d7080c50640121b",
+          "ocr_lines": [
+            {"text": "装车磅单", "confidence": "0.98", "box": {"x": "0.12", "y": "0.06", "width": "0.28", "height": "0.07"}},
+            {"text": "发货单位", "confidence": "0.98", "box": {"x": "0.08", "y": "0.22", "width": "0.18", "height": "0.05"}},
+            {"text": "净重", "confidence": "0.98", "box": {"x": "0.08", "y": "0.68", "width": "0.12", "height": "0.05"}},
+            {"text": "卸车磅单", "confidence": "0.98", "box": {"x": "0.12", "y": "0.06", "width": "0.28", "height": "0.07"}},
+            {"text": "收货单位", "confidence": "0.98", "box": {"x": "0.08", "y": "0.22", "width": "0.18", "height": "0.05"}},
+            {"text": "净重", "confidence": "0.98", "box": {"x": "0.08", "y": "0.68", "width": "0.12", "height": "0.05"}}
+          ]
+        }
+      ]
+    }
+  ],
+  "pair_cases": [
+    {
+      "case_id": "normal-pair",
+      "loading_sample_id": "loading-clear@0",
+      "unloading_sample_id": "unloading-clear@0",
+      "expected_issue": null
+    },
+    {
+      "case_id": "swapped-pair",
+      "loading_sample_id": "unloading-clear@0",
+      "unloading_sample_id": "loading-clear@0",
+      "expected_issue": "suspected_swapped"
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "python": {
+    "version": "3.12.10",
+    "project_venv": true,
+    "lock_rebuilt_in_fresh_environment": true,
+    "pip_check": "passed",
+    "forbidden_phase_one_imports_found": []
+  },
+  "frontend": {
+    "node_version": "24.14.0",
+    "npm_version": "11.9.0",
+    "lockfile_version": 3,
+    "runtime_dependencies": [],
+    "check": "passed"
+  },
+  "excluded_runtimes": [
+    "FastAPI",
+    "React",
+    "SQLite",
+    "SQLAlchemy",
+    "Playwright",
+    "Paddle",
+    "PaddleOCR"
+  ]
+}

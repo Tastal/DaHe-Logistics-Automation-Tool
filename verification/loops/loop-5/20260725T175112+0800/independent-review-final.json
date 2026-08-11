@@ -1,0 +1,88 @@
+{
+  "schema_version": 1,
+  "loop_id": "loop-5",
+  "run_id": "20260725T175112+0800",
+  "reviewed_at": "2026-07-25T18:59:00+08:00",
+  "reviewers": [
+    "codex:/root/loop5_independent_review",
+    "codex:/root/loop5_chain_design",
+    "codex:/root/loop5_final_review"
+  ],
+  "blocking": [],
+  "passed": [
+    {
+      "id": "single_atomic_capture_coordinator",
+      "result": "Each advance performs at most one platform read and persists one safe boundary. The coordinator does not own resource leases or create a second scheduler."
+    },
+    {
+      "id": "durable_checkpoint_and_restart",
+      "result": "Structured SQLite checkpoints, content-addressed images, evidence references, crash recovery, and completed replay were verified across a closed and reopened runtime."
+    },
+    {
+      "id": "end_to_end_browser_fencing",
+      "result": "Authority is checked before the connector read, around staged-file verification, and again inside the SQLite commit transaction. Recovery retains session, instance, and job ownership while requiring a higher epoch and new token."
+    },
+    {
+      "id": "actual_result_protocol_chain",
+      "result": "The executable path is ConnectorCommand NDJSON to ConnectorResult NDJSON, strict correlation, command-scoped staging verification, typed result decoding, CAS persistence, and SQLite reference/checkpoint commit."
+    },
+    {
+      "id": "staging_lifecycle",
+      "result": "Each command removes its own verified staging in a finally boundary. Runtime startup recovers safe orphan command directories while retaining active commands and refusing unknown, nested, symlink, or reparse entries."
+    },
+    {
+      "id": "read_only_offline_scope",
+      "result": "There is one ChengfengStage definition, no connector next_job_status, no platform write or generic request API, no network client dependency, and no real Chengfeng access path."
+    }
+  ],
+  "verification": [
+    {
+      "command": "focused Loop 5 test suite",
+      "result": "172 passed, 1 skipped"
+    },
+    {
+      "command": "full backend test suite",
+      "result": "375 passed, 1 skipped"
+    },
+    {
+      "command": "ruff and mypy",
+      "result": "Ruff passed; the reviewer mypy scope checked 86 source files without issues."
+    },
+    {
+      "command": "git diff --check",
+      "result": "passed"
+    },
+    {
+      "command": "static connector dependency and write-surface scans",
+      "result": "zero forbidden network-client dependencies and zero settlement, payment, receipt-cancellation, generic platform-request, or other Chengfeng write routes"
+    },
+    {
+      "command": "authority and command representation inspection",
+      "result": "raw fencing tokens are excluded from repr output"
+    }
+  ],
+  "non_blocking": [
+    {
+      "priority": "Environment",
+      "risk": "One symlink test was skipped because the current Windows account lacks symlink creation privilege. The implementation checks symlink mode and Windows reparse attributes, and all other path and tamper cases passed."
+    },
+    {
+      "priority": "Fixture improvement",
+      "risk": "All four synthetic ticket images have identical bytes. This proves one blob with four references but cannot detect a swapped ticket-to-file mapping."
+    },
+    {
+      "priority": "Future approved capture",
+      "risk": "Only the synthetic .invalid contract is verified. Real Chengfeng host, page, login, redirect, payload, and response compatibility remain unknown."
+    }
+  ],
+  "safety_scope": {
+    "legacy_program_touched": false,
+    "real_chengfeng_accessed": false,
+    "browser_started": false,
+    "network_used": false,
+    "production_data_used": false,
+    "source_files_modified_by_final_reviewer": false
+  },
+  "acceptance_recommendation": "accepted",
+  "status": "passed"
+}

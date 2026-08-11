@@ -1,0 +1,75 @@
+{
+  "build": {
+    "loop9_build_sha256": "a72db73e018baacc1f9b8300114a5efd3dc9c78e1e142e835bb05372d9441ff6",
+    "starting_git_commit": "80a3619504c473b56239691b54c9ba807a24fa8e"
+  },
+  "checks": [
+    {
+      "command": ".\\.venv\\Scripts\\python.exe -m pytest tests\\unit\\adapters\\test_browser_runtime.py tests\\contract\\test_loop9_browser_runtime_isolation.py tests\\integration\\test_loop9_platform_api.py tests\\integration\\test_loop4_recovery_contract.py -q",
+      "result": "passed: 41"
+    },
+    {
+      "command": ".\\.venv\\Scripts\\python.exe tools\\bootstrap_browser.py",
+      "result": "passed: rebuilt the isolated runtime and selected msedge in the offline smoke"
+    },
+    {
+      "command": "isolated browser worker smoke, status, and close protocol",
+      "result": "passed: exact response shape, no open context after smoke, and closed state confirmed"
+    },
+    {
+      "command": "isolated Edge fixed-entry test with offline request interception",
+      "result": "passed: fixed entry visible, exact URL, owned process observed, no --no-sandbox flag, closed-window detection, network failure rejection, and cross-origin redirect rejection"
+    },
+    {
+      "command": ".\\.venv\\Scripts\\python.exe tools\\check.py",
+      "result": "passed: ruff; mypy 196 source files; pytest 1434 passed and 4 Windows-symlink skips; frontend boundary, lint, typecheck, 106 tests, and production build"
+    },
+    {
+      "command": "playwright-cli local final-service inspection",
+      "result": "passed: 1366x768 and 1920x1080; application and System status rendered; zero browser console errors"
+    },
+    {
+      "command": "git diff --check",
+      "result": "passed"
+    }
+  ],
+  "completed_at": "2026-07-29T13:33:19+08:00",
+  "gate_id": "loop-9-contract-discovery-tooling",
+  "implemented_contracts": [
+    "the human-login action opens the fixed HTTPS Chengfeng settlement entry instead of about:blank",
+    "the browser worker protocol still accepts no URL or generic navigation command",
+    "only the fixed settlement entry or a same-origin login redirect can become the landing page",
+    "empty content, failed responses, insecure or cross-origin redirects, and unexpected landing paths fail closed",
+    "the controlled Chromium context explicitly enables the browser sandbox",
+    "closing the controlled window is detected and reconciled without consuming an unexpired access window",
+    "worker responses use an exact allowlist so unexpected page or protocol content cannot cross into the application",
+    "the finance-facing UI shows the precise safe retry reason instead of a generic failure"
+  ],
+  "local_service": {
+    "application_rendered": true,
+    "browser_console_errors": 0,
+    "final_port": 8899,
+    "legacy_preview_port_8877_untouched": true,
+    "system_status_rendered": true
+  },
+  "platform_requests": {
+    "forbidden": 0,
+    "real_total": 0,
+    "writes": 0
+  },
+  "predecessor_evidence": {
+    "path": "verification/loops/loop-9/20260728T230448+0800/browser-edge-discovery-fix-evidence.json",
+    "sha256": "91de9100042ccb09b5f6cce803a7e5265b8a3aee4d4fd06baf4d89c2461be8ec"
+  },
+  "runtime": {
+    "installation_manifest_sha256": "c3caad7eae44134fbd60d79d1336dce44d86ba78c17541b21b3c967277d7597d",
+    "isolated_smoke_selected_browser": "msedge",
+    "playwright_version": "1.61.0"
+  },
+  "schema_version": 1,
+  "status": "passed",
+  "ui_evidence": {
+    "path": "verification/loops/loop-9/20260728T230448+0800/ui/fixed-login-entry-system-status-1366x768.png",
+    "sha256": "8acaede94dafb7acd668d867d4aa9de311cae141f5ad708f25ce304d7ea6f12e"
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "build_fingerprint": "30512b0f08c8b9f7e99963e6a36311236403a0114982da2b1a259c37cd201125",
+  "checks": [
+    {
+      "command": ".\\.venv\\Scripts\\python.exe -m pytest tests\\unit\\verification\\test_loop7_locked_set_runner.py::test_runner_passes_only_independent_image_identity_to_role_evaluator tests\\unit\\verification\\test_loop7_locked_set_acceptance.py::test_release_derives_order_independent_adversarial_role_routing_suite -q",
+      "result": "2 passed",
+      "status": "passed"
+    },
+    {
+      "command": "npm.cmd --prefix frontend test -- --run src/features/audit/AuditResults.test.tsx",
+      "result": "2 passed",
+      "status": "passed"
+    },
+    {
+      "command": ".\\.venv\\Scripts\\python.exe tools\\loop7_controlled_non_ticket_challenge.py evaluate [isolated local paths]",
+      "result": "passed; result_sha256=c710966c4b18d9e69c232ed8d14d7594b5d591ae2af11f16c4c47469050de690",
+      "status": "passed"
+    },
+    {
+      "command": ".\\.venv\\Scripts\\python.exe tools\\check.py",
+      "result": "ruff passed; mypy passed; pytest 1370 passed and 4 skipped for unavailable Windows symlink privilege; frontend 12 files and 94 tests passed; production build passed",
+      "status": "passed"
+    },
+    {
+      "command": "git diff --check",
+      "result": "passed",
+      "status": "passed"
+    }
+  ],
+  "controlled_non_ticket_gate": "passed",
+  "derived_relationship_gate": "passed",
+  "formal_accuracy_claim": false,
+  "formal_locked_set_gate": "failed",
+  "loop_status": "closed_with_waiver",
+  "natural_locked_set_classification": "invalidated_to_development",
+  "platform_access": false,
+  "schema_version": 1
+}

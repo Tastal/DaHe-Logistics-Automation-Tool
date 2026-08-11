@@ -1,0 +1,108 @@
+{
+  "evidence_version": 1,
+  "generated_at": "2026-07-28T18:15:00.9411523+08:00",
+  "scope": "loop8_post_acceptance_ux_redesign",
+  "starting_git_commit": "136a4a58b85f2e5c91d5cfedaf12eb38e1f22013",
+  "loop_state_changed": false,
+  "loop_9_started": false,
+  "checks": [
+    {
+      "command": ".\\.venv\\Scripts\\python.exe tools\\check.py",
+      "result": "passed",
+      "details": "ruff passed; mypy passed for 184 source files; pytest 1381 passed and 4 Windows symlink tests skipped; frontend 95 tests passed; production build passed"
+    },
+    {
+      "command": "git diff --check",
+      "result": "passed"
+    },
+    {
+      "command": "Playwright local browser acceptance",
+      "result": "passed",
+      "details": "1366x768 and 1920x1080 inspected; equivalent 125, 150, and 200 percent viewports had no horizontal overflow; 200 percent list-detail-return flow passed; browser console had 0 errors and 0 warnings"
+    }
+  ],
+  "browser_boundary": {
+    "origin": "http://127.0.0.1:8877",
+    "data": "isolated deterministic test fixture",
+    "external_requests": 0,
+    "chengfeng_requests": 0,
+    "legacy_access": false
+  },
+  "viewport_results": [
+    {
+      "label": "100_percent_1366",
+      "width": 1366,
+      "height": 768,
+      "visual_result": "passed"
+    },
+    {
+      "label": "100_percent_1920",
+      "width": 1920,
+      "height": 1080,
+      "visual_result": "passed"
+    },
+    {
+      "label": "125_percent_equivalent",
+      "width": 1093,
+      "client_width": 1093,
+      "scroll_width": 1093,
+      "visual_result": "passed"
+    },
+    {
+      "label": "150_percent_equivalent",
+      "width": 911,
+      "client_width": 911,
+      "scroll_width": 911,
+      "visual_result": "passed"
+    },
+    {
+      "label": "200_percent_equivalent",
+      "width": 683,
+      "client_width": 683,
+      "scroll_width": 683,
+      "list_detail_return": "passed"
+    }
+  ],
+  "screenshots": [
+    {
+      "path": "output/playwright/settlement-detail-1366x768.png",
+      "sha256": "687207ac58ac74652969225432abf05280a5ada08f251bccfbcb6c4b2f1e003c"
+    },
+    {
+      "path": "output/playwright/system-status-1920x1080.png",
+      "sha256": "764c490965bfb1b199a90e141030e9c1bf67cfe28061d2ef7c749b1b5f9da302"
+    },
+    {
+      "path": "output/playwright/settlement-125-percent.png",
+      "sha256": "376654fb62c0e6f30a509e45bd39eab101ab8a72fd27eef95f1dca88e9feed52"
+    },
+    {
+      "path": "output/playwright/settlement-150-percent.png",
+      "sha256": "c4b6eef0cf5c6f5c8b8be394b9d8f49082c999d714622ecefe14b11db825edb4"
+    },
+    {
+      "path": "output/playwright/settlement-list-200-percent.png",
+      "sha256": "95f96d36a671fa041bed45f18bdbc50d59252104cc0368818ca67c8ef52e7d34"
+    },
+    {
+      "path": "output/playwright/settlement-detail-200-percent.png",
+      "sha256": "485232f18c56c2c0b8828390491c23abfde0eef8af7275c73322388ffb9a95c4"
+    }
+  ],
+  "build_artifacts": [
+    {
+      "path": "frontend/dist/assets/index-DdGjjDi6.css",
+      "sha256": "17cdc7fcc80f579a0366914063866c8a418907b04c672ac1da9f813a20f04475"
+    },
+    {
+      "path": "frontend/dist/assets/index-DbXdIoIg.js",
+      "sha256": "c12053a74c57472e067794de4c8bc34c23f1c5a68060723ea0f3985a46409d8d"
+    }
+  ],
+  "design_reference_manifest_sha256": "886b72bd93b44c8091dd781ab6932bc8163b3a45077102add659ef319dc19d86",
+  "remaining_risks": [
+    "Browser screenshots use isolated deterministic data and do not re-run the accepted 12-item Loop 8 human batch.",
+    "Windows display scaling was represented by equivalent CSS viewport widths; physical high-DPI rendering still needs user observation on the deployment computer.",
+    "The legacy correction schema remains intentionally available to read historical records only."
+  ]
+}

@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "loop_id": "loop-7",
+  "run_id": "20260726T054610+0800",
+  "reviewed_at": "2026-07-26T05:52:16+08:00",
+  "subject_git_commit": "610ba83b9e536262fc2e70c91966162b7f1065e0",
+  "review_mode": "independent_read_only_static_and_focused_tests",
+  "files_modified_by_reviewer": false,
+  "p0_findings": 0,
+  "p1_findings": 0,
+  "closed_prior_findings": [
+    {
+      "finding": "An invalidated formal dataset could replay an old result through an idempotency key.",
+      "result": "Closed. Repository and application boundaries now reject the replay with LockedSetStateTransitionError."
+    },
+    {
+      "finding": "Quality coverage could bind all scene conditions to arbitrary or incorrect subjects.",
+      "result": "Closed. Review evidence now binds sealed sample and image truth, pair membership, reviewer identity, timezone-aware time, notes, and a recomputed canonical hash."
+    },
+    {
+      "finding": "Complete OCR composition provenance was absent from the formal run context.",
+      "result": "Closed. The composition evidence hash is bound to the formal context, validation, report, and replay identity."
+    },
+    {
+      "finding": "The migration omitted exclusion identities for historical locked images.",
+      "result": "Closed. Migration 0006 preserves available legacy dataset_kind=locked images as prior_locked_image inventory."
+    },
+    {
+      "finding": "The formal CLI could overwrite protected output, lacked a complete offline human-review workflow, and could imply Loop acceptance.",
+      "result": "Closed. Output is no-overwrite and protected-root checked; prepare, bind-review, validate, evaluate, and invalidate are distinct; evaluate reports only locked_set_gate_passed and explicitly leaves loop_7_accepted false."
+    }
+  ],
+  "verification": {
+    "focused_tests": {
+      "passed": 114,
+      "failed": 0,
+      "duration_seconds": 31.34
+    },
+    "ruff": "passed",
+    "ruff_format": {
+      "status": "passed",
+      "files": 8
+    },
+    "mypy": {
+      "status": "passed",
+      "files": 8
+    },
+    "exact_invalidated_replay_reproduction": "rejected_with_LockedSetStateTransitionError"
+  },
+  "not_run": [
+    "Real OCR",
+    "Chengfeng platform access",
+    "Network access",
+    "A second full repository test suite"
+  ],
+  "remaining_risks": [
+    "The independent real locked set of 50 waybills has not been supplied, so Loop 7 remains in progress.",
+    "Blur, glare, crop, rotation, and related scene conditions depend on honest direct human attestation; the software verifies exact binding and durable provenance rather than inferring those labels."
+  ],
+  "conclusion": "All four previously blocking or medium findings and the related CLI boundary findings are closed. No new P0 or P1 was found in the reviewed scope."
+}

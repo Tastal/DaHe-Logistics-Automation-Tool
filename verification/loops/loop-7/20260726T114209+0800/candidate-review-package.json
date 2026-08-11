@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "loop_id": "loop-7",
+  "run_id": "20260726T114209+0800",
+  "package_id": "loop7-locked-set-review-20260726-b",
+  "package_canonical_sha256": "161deab72f190334509b2a7a40c32df9c831654b960204498f2b9590843e6671",
+  "status": "awaiting_human_review",
+  "tuning_prohibited": true,
+  "loader_validation": {
+    "status": "passed",
+    "waybills": 50,
+    "images": 100,
+    "unique_waybill_identities": 50,
+    "unique_image_sha256s": 100
+  },
+  "selection_clue_counts": {
+    "waybill": {
+      "historical_hash_reuse_hint": 1,
+      "legacy_review_hint": 41,
+      "rotation_90_hint": 1,
+      "rotation_180_hint": 1,
+      "rotation_270_hint": 6
+    },
+    "image": {
+      "rotation_0_hint": 77,
+      "rotation_90_hint": 1,
+      "rotation_180_hint": 1,
+      "rotation_270_hint": 6
+    }
+  },
+  "visual_prefilter": {
+    "status": "candidate_only_not_truth",
+    "represented_clues": [
+      "ordinary printed and screen-photographed tickets",
+      "blur, glare, crop, dark exposure, occlusion, and small-ticket candidates",
+      "handwritten or unknown-layout candidates",
+      "non-ticket or wrong-upload candidates",
+      "historical exact-hash reuse clue"
+    ],
+    "not_yet_confirmed": [
+      "swapped loading and unloading pair",
+      "same-role loading pair",
+      "same-role unloading pair",
+      "duplicate-upload pair"
+    ]
+  },
+  "truth_boundary": "No OCR output, platform weight, legacy decision, candidate clue, or upload slot is accepted as human truth."
+}

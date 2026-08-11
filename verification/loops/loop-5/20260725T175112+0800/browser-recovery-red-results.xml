@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="5" skipped="0" tests="5" time="0.138" timestamp="2026-07-25T17:57:14.262732+08:00" hostname="ProArtJH"><testcase classname="tests.integration.test_loop5_browser_checkpoint_recovery" name="test_capture_checkpoint_enum_uses_the_frozen_atomic_stage_order" time="0.002"><failure message="ModuleNotFoundError: No module named 'dahe.ports.chengfeng'">def test_capture_checkpoint_enum_uses_the_frozen_atomic_stage_order() -&gt; None:
+&gt;       _, _, _, capture_module, _ = _modules()
+                                     ^^^^^^^^^^
+
+tests\integration\test_loop5_browser_checkpoint_recovery.py:69: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\integration\test_loop5_browser_checkpoint_recovery.py:19: in _modules
+    ports = importlib.import_module("dahe.ports.chengfeng")
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\AppData\Local\Programs\Python\Python312\Lib\importlib\__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+&lt;frozen importlib._bootstrap&gt;:1387: in _gcd_import
+    ???
+&lt;frozen importlib._bootstrap&gt;:1360: in _find_and_load
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+name = 'dahe.ports.chengfeng'
+import_ = &lt;function _gcd_import at 0x0000022117B8C0E0&gt;
+
+&gt;   ???
+E   ModuleNotFoundError: No module named 'dahe.ports.chengfeng'
+
+&lt;frozen importlib._bootstrap&gt;:1324: ModuleNotFoundError</failure></testcase><testcase classname="tests.integration.test_loop5_browser_checkpoint_recovery" name="test_complete_capture_commits_each_atomic_stage_only_after_success" time="0.001"><failure message="ModuleNotFoundError: No module named 'dahe.ports.chengfeng'">def test_complete_capture_commits_each_atomic_stage_only_after_success() -&gt; None:
+        checkpoints: list[object] = []
+&gt;       coordinator, transport, authorizer, ports = _coordinator(
+            checkpoint_writer=checkpoints.append,
+        )
+
+tests\integration\test_loop5_browser_checkpoint_recovery.py:82: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\integration\test_loop5_browser_checkpoint_recovery.py:51: in _coordinator
+    ports, manifest_module, frozen_module, capture_module, _ = _modules()
+                                                               ^^^^^^^^^^
+tests\integration\test_loop5_browser_checkpoint_recovery.py:19: in _modules
+    ports = importlib.import_module("dahe.ports.chengfeng")
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\AppData\Local\Programs\Python\Python312\Lib\importlib\__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+&lt;frozen importlib._bootstrap&gt;:1387: in _gcd_import
+    ???
+&lt;frozen importlib._bootstrap&gt;:1360: in _find_and_load
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+name = 'dahe.ports.chengfeng'
+import_ = &lt;function _gcd_import at 0x0000022117B8C0E0&gt;
+
+&gt;   ???
+E   ModuleNotFoundError: No module named 'dahe.ports.chengfeng'
+
+&lt;frozen importlib._bootstrap&gt;:1324: ModuleNotFoundError</failure></testcase><testcase classname="tests.integration.test_loop5_browser_checkpoint_recovery" name="test_browser_close_after_detail_checkpoint_rebuilds_and_resumes_images_only" time="0.001"><failure message="ModuleNotFoundError: No module named 'dahe.ports.chengfeng'">def test_browser_close_after_detail_checkpoint_rebuilds_and_resumes_images_only() -&gt; None:
+        checkpoints: list[object] = []
+        recovered: list[tuple[object, object]] = []
+        state: dict[str, object] = {}
+    
+        def recover(old_authority: object, checkpoint: object) -&gt; object:
+            recovered.append((old_authority, checkpoint))
+            return state["replacement_authority"]
+    
+&gt;       coordinator, transport, _, ports = _coordinator(
+            checkpoint_writer=checkpoints.append,
+            recover_browser=recover,
+        )
+
+tests\integration\test_loop5_browser_checkpoint_recovery.py:118: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\integration\test_loop5_browser_checkpoint_recovery.py:51: in _coordinator
+    ports, manifest_module, frozen_module, capture_module, _ = _modules()
+                                                               ^^^^^^^^^^
+tests\integration\test_loop5_browser_checkpoint_recovery.py:19: in _modules
+    ports = importlib.import_module("dahe.ports.chengfeng")
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\AppData\Local\Programs\Python\Python312\Lib\importlib\__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+&lt;frozen importlib._bootstrap&gt;:1387: in _gcd_import
+    ???
+&lt;frozen importlib._bootstrap&gt;:1360: in _find_and_load
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+name = 'dahe.ports.chengfeng'
+import_ = &lt;function _gcd_import at 0x0000022117B8C0E0&gt;
+
+&gt;   ???
+E   ModuleNotFoundError: No module named 'dahe.ports.chengfeng'
+
+&lt;frozen importlib._bootstrap&gt;:1324: ModuleNotFoundError</failure></testcase><testcase classname="tests.integration.test_loop5_browser_checkpoint_recovery" name="test_sqlite_navigation_authorizer_fences_job_identity" time="0.006"><failure message="ModuleNotFoundError: No module named 'dahe.ports.chengfeng'">tmp_path = WindowsPath('C:/Users/aya72/AppData/Local/Temp/pytest-of-aya72/pytest-523/test_sqlite_navigation_authori0')
+project_root = WindowsPath('C:/Users/aya72/OneDrive/Desktop/AI开发/DaHe')
+
+    def test_sqlite_navigation_authorizer_fences_job_identity(
+        tmp_path: Path,
+        project_root: Path,
+    ) -&gt; None:
+&gt;       ports, _, _, _, gate_module = _modules()
+                                      ^^^^^^^^^^
+
+tests\integration\test_loop5_browser_checkpoint_recovery.py:159: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\integration\test_loop5_browser_checkpoint_recovery.py:19: in _modules
+    ports = importlib.import_module("dahe.ports.chengfeng")
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\AppData\Local\Programs\Python\Python312\Lib\importlib\__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+&lt;frozen importlib._bootstrap&gt;:1387: in _gcd_import
+    ???
+&lt;frozen importlib._bootstrap&gt;:1360: in _find_and_load
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+name = 'dahe.ports.chengfeng'
+import_ = &lt;function _gcd_import at 0x0000022117B8C0E0&gt;
+
+&gt;   ???
+E   ModuleNotFoundError: No module named 'dahe.ports.chengfeng'
+
+&lt;frozen importlib._bootstrap&gt;:1324: ModuleNotFoundError</failure></testcase><testcase classname="tests.integration.test_loop5_browser_checkpoint_recovery" name="test_sqlite_navigation_authorizer_rejects_old_token_after_recovery" time="0.002"><failure message="ModuleNotFoundError: No module named 'dahe.ports.chengfeng'">tmp_path = WindowsPath('C:/Users/aya72/AppData/Local/Temp/pytest-of-aya72/pytest-523/test_sqlite_navigation_authori1')
+project_root = WindowsPath('C:/Users/aya72/OneDrive/Desktop/AI开发/DaHe')
+
+    def test_sqlite_navigation_authorizer_rejects_old_token_after_recovery(
+        tmp_path: Path,
+        project_root: Path,
+    ) -&gt; None:
+&gt;       ports, _, _, _, gate_module = _modules()
+                                      ^^^^^^^^^^
+
+tests\integration\test_loop5_browser_checkpoint_recovery.py:205: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\integration\test_loop5_browser_checkpoint_recovery.py:19: in _modules
+    ports = importlib.import_module("dahe.ports.chengfeng")
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\AppData\Local\Programs\Python\Python312\Lib\importlib\__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+&lt;frozen importlib._bootstrap&gt;:1387: in _gcd_import
+    ???
+&lt;frozen importlib._bootstrap&gt;:1360: in _find_and_load
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+name = 'dahe.ports.chengfeng'
+import_ = &lt;function _gcd_import at 0x0000022117B8C0E0&gt;
+
+&gt;   ???
+E   ModuleNotFoundError: No module named 'dahe.ports.chengfeng'
+
+&lt;frozen importlib._bootstrap&gt;:1324: ModuleNotFoundError</failure></testcase></testsuite></testsuites>

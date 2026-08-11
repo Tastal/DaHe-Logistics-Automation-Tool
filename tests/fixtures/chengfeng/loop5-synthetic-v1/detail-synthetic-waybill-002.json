@@ -1,0 +1,23 @@
+{
+  "ok": true,
+  "data": {
+    "platform_waybill_id": "synthetic-waybill-002",
+    "waybill_number": "SYN-WB-002",
+    "vehicle_number": null,
+    "loading_net": null,
+    "unloading_net": "28.10",
+    "tickets": [
+      {
+        "slot": "loading",
+        "ticket_ref": "synthetic-ticket-load-002",
+        "media_type": "image/png"
+      },
+      {
+        "slot": "unloading",
+        "ticket_ref": "synthetic-ticket-unload-002",
+        "media_type": "image/png"
+      }
+    ]
+  },
+  "correlation_id": "synthetic-detail-002"
+}

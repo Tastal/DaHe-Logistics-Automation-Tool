@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "loop_id": "loop-7",
+  "run_id": "20260726T054610+0800",
+  "subject_git_commit": "610ba83b9e536262fc2e70c91966162b7f1065e0",
+  "status": "passed_with_environment_limited_skips",
+  "authoritative_check": {
+    "command": ".\\.venv\\Scripts\\python.exe tools\\check.py",
+    "exit_code": 0,
+    "ruff": "passed",
+    "mypy": {
+      "status": "passed",
+      "source_files": 140
+    },
+    "backend_pytest": {
+      "passed": 797,
+      "skipped": 2,
+      "failed": 0,
+      "duration_seconds": 103.84
+    },
+    "frontend": {
+      "boundary": "passed",
+      "eslint": "passed",
+      "typescript": "passed",
+      "vitest_files": 7,
+      "vitest_tests_passed": 70,
+      "vite_build": "passed",
+      "vite_modules_transformed": 25
+    }
+  },
+  "skipped_checks": [
+    {
+      "test": "tests/unit/system/test_runtime_layout.py:197",
+      "reason": "The current Windows account cannot create the symlink required by this test."
+    },
+    {
+      "test": "tests/unit/verification/test_loop5_result_file_verifier.py:365",
+      "reason": "The current Windows account cannot create the symlink required by this test."
+    }
+  ],
+  "additional_checks": [
+    {
+      "command": "git diff --check",
+      "exit_code": 0,
+      "result": "No whitespace errors."
+    },
+    {
+      "command": ".\\.venv\\Scripts\\python.exe -m pytest tests\\unit\\verification\\test_loop7_locked_set_acceptance.py tests\\unit\\application\\template_studio\\test_formal_locked_set_release.py tests\\integration\\test_loop7_locked_set_authority.py tests\\unit\\tools\\test_loop7_locked_set_release_cli.py -q",
+      "exit_code": 0,
+      "result": "73 focused acceptance, formal-boundary, persistence-authority, invalidation, and CLI tests passed in 21.12 seconds."
+    },
+    {
+      "command": "Independent static review of locked-set release boundaries",
+      "exit_code": 0,
+      "result": "The reviewer confirmed that earlier replay, quality-attestation, composition-provenance, legacy locked-image, CLI output, and human-review persistence findings were closed. No new P0 or P1 was found; 114 focused tests, Ruff, format checks for eight files, and mypy for eight files passed."
+    }
+  ],
+  "intentionally_not_run": [
+    "Real CPU or GPU OCR execution",
+    "Real Chengfeng access or browser automation",
+    "Legacy program or legacy database access",
+    "Formal evaluation of the absent independent 50-waybill locked set",
+    "New browser UI validation because this subject commit changes no operator-console UI"
+  ],
+  "claim_limit": "This evidence verifies offline release tooling only. It does not establish real-image role accuracy, real OCR performance, or Loop 7 acceptance."
+}

@@ -1,0 +1,98 @@
+{
+  "schema_version": 1,
+  "loop_id": "loop-4",
+  "run_id": "20260725T160233+0800",
+  "cases": [
+    {
+      "case": "unknown or unmanaged formal database",
+      "expected": "Reject startup before WAL or migration can mutate the database",
+      "observed": "The preflight contract rejected unmanaged and unknown revisions without changing the database; a known 0001 database was backed up and upgraded through 0002.",
+      "status": "passed"
+    },
+    {
+      "case": "exception between immutable snapshot and decision writes",
+      "expected": "Commit all business evidence together or commit none of it",
+      "observed": "The injected exception rolled back snapshot, decision, and reference rows as one short transaction.",
+      "status": "passed"
+    },
+    {
+      "case": "process crash inside an evidence transaction",
+      "expected": "SQLite recovery must not expose a half-committed business revision",
+      "observed": "A child process terminated during the transaction; reopening the database showed no partial snapshot or decision.",
+      "status": "passed"
+    },
+    {
+      "case": "backup manifest omits active evidence",
+      "expected": "Reject restore, leave the target retryable, and remove staging",
+      "observed": "Restore rejected the incomplete manifest, the target remained empty or absent, staging was removed, and a corrected backup restored successfully to the same target.",
+      "status": "passed"
+    },
+    {
+      "case": "active hold without a business reference",
+      "expected": "Backup and cleanup must still protect the held evidence",
+      "observed": "The backup contained the hold-only blob and restore verified its identity and bytes.",
+      "status": "passed"
+    },
+    {
+      "case": "cleanup claim races with a new reference",
+      "expected": "A newly referenced blob must not be deleted",
+      "observed": "The short transaction rechecked protection before deletion and preserved the evidence after the competing reference committed.",
+      "status": "passed"
+    },
+    {
+      "case": "expired lease from a stopped or crashed instance",
+      "expected": "Recover only with matching data-root and operating-system ownership proof",
+      "observed": "The matching replacement reclaimed the expired lease and rotated the fencing token; active, unexpired, wrong-root, and current-instance cases were rejected.",
+      "status": "passed"
+    },
+    {
+      "case": "stale or expired scheduler result grant",
+      "expected": "Reject the result with zero database writes",
+      "observed": "Stale token, stale generation, wrong process identity, released lease, takeover, and expired lease all raised a fencing error without a result, checkpoint, or lease mutation.",
+      "status": "passed"
+    },
+    {
+      "case": "browser automatic-holder crash",
+      "expected": "Fence old navigation authority before automatic control resumes",
+      "observed": "Recovery required the full proof set and issued a new epoch and token; old, released, expired, and wrong-owner navigation tokens were rejected.",
+      "status": "passed"
+    },
+    {
+      "case": "human browser control held over time",
+      "expected": "Elapsed time must never authorize automated navigation",
+      "observed": "Human login and handoff modes remained protected until an explicit matching return; no TTL-based reclaim occurred.",
+      "status": "passed"
+    },
+    {
+      "case": "first shared evidence producer failure",
+      "expected": "Consume one global retry before failing consumers",
+      "observed": "One safe retry was created globally and later success was consumed once by each active consumer.",
+      "status": "passed"
+    },
+    {
+      "case": "concurrent shared-work retry requests",
+      "expected": "Create one replacement producer and never bypass the retry budget",
+      "observed": "Concurrent requests converged on one production attempt; new idempotency keys could not exceed the shared retry budget.",
+      "status": "passed"
+    },
+    {
+      "case": "shared-work retry budget exhausted",
+      "expected": "Propagate one technical cause once per consumer and never create finance review",
+      "observed": "Each active consumer received the same terminal technical failure exactly once, with no BusinessOutcome or human-review item.",
+      "status": "passed"
+    },
+    {
+      "case": "application shutdown during an atomic scheduler tick",
+      "expected": "Wait for the atomic tick, stop owned workers, then abandon only uncommitted attempts",
+      "observed": "Scheduler close waited without a timeout, owned workers stopped first, committed results remained, and only the current uncommitted attempt was requeued.",
+      "status": "passed"
+    },
+    {
+      "case": "supervisor process exits with an owned child",
+      "expected": "Stop only the registered child and never an unknown process",
+      "observed": "The Windows Job Object terminated the owned helper; identity mismatch and unknown-process tests did not terminate unrelated processes.",
+      "status": "passed"
+    }
+  ],
+  "status": "passed"
+}

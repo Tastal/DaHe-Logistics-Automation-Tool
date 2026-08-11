@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "tools": {
+    "cleanvision": {
+      "license": "Apache-2.0",
+      "package": "cleanvision",
+      "source": "https://pypi.org/project/cleanvision/0.3.7/",
+      "version": "0.3.7",
+      "wheel_sha256": "46ad8296a7750c354cef5ac39136f0d0e2c9bbdb88eda68c037877ed2702d74f"
+    },
+    "rapidocr": {
+      "license": "Apache-2.0",
+      "package": "rapidocr",
+      "runtime_backend": {
+        "license": "MIT",
+        "package": "onnxruntime",
+        "platform": "win_amd64_cp312",
+        "source": "https://pypi.org/project/onnxruntime/1.28.0/",
+        "version": "1.28.0",
+        "wheel_sha256": "c35064f9b3c43c81c5d5d282091401d0f1ff22796d93ccade4ea2ece5e137ab8"
+      },
+      "source": "https://pypi.org/project/rapidocr/3.9.2/",
+      "version": "3.9.2",
+      "wheel_sha256": "04d6b8d151f823d930bd91910555f57bea897c0c44fa6794267b94cf9c1ef9a0"
+    }
+  }
+}

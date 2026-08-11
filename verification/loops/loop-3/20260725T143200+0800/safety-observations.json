@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "loop_id": "loop-3",
+  "run_id": "20260725T143200+0800",
+  "observations": [
+    "Loop 3 used only deterministic fake platform, fake ticket-recognition, and protected scheduling fixtures.",
+    "No real Chengfeng host, account, credential, browser profile, request, production image, or platform write was used.",
+    "No legacy project, database, browser profile, launcher, runtime, port, or running legacy process was attached to, executed, reused, stopped, or changed.",
+    "The browser validation used an isolated temporary data root and the loopback target http://127.0.0.1:8877.",
+    "Every request observed during browser validation used 127.0.0.1; console errors and warnings were both zero.",
+    "No Windows DNS, proxy, VPN, routing, hosts file, or global browser setting was changed.",
+    "No real PaddleOCR, CPU OCR, GPU OCR, CUDA runtime, OCR model, or production document was loaded.",
+    "Protected Loop 3 exercises require an explicit enable-test-fixtures startup gate and an explicit data root.",
+    "Every protected exercise is classified as test_fixture and keeps business_outcome null.",
+    "The shared evidence identity includes both the image SHA-256 and pipeline fingerprint.",
+    "The existing OCR boundary test continued to verify that platform expected weights are not supplied to the recognition adapter.",
+    "A technical fake OCR failure remains a system failure and is not converted into a finance-review item.",
+    "The local API contains no settlement confirmation, payment, receipt cancellation, automatic ticket swap, or other Chengfeng write endpoint."
+  ],
+  "status": "passed"
+}

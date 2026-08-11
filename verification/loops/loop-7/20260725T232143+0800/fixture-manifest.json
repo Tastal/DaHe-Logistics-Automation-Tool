@@ -1,0 +1,304 @@
+{
+  "schema_version": 1,
+  "fixture_id": "loop7-synthetic-role-template-v1",
+  "kind": "generated_synthetic",
+  "production_data": false,
+  "contains_credentials": false,
+  "contains_personal_data": false,
+  "description": "Frozen synthetic OCR observations and template definitions for Loop 7 contract tests only.",
+  "template_families": [
+    {
+      "family_key": "synthetic_loading_scale",
+      "name": "Synthetic loading scale",
+      "role": "loading",
+      "reference_image_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+      "anchors": [
+        {
+          "anchor_key": "loading_title",
+          "label": "Loading title",
+          "match_kind": "literal",
+          "expected_text": "装车磅单",
+          "box": {
+            "x": "0.12",
+            "y": "0.06",
+            "width": "0.28",
+            "height": "0.07"
+          },
+          "required": true,
+          "weight": "3.0",
+          "max_text_distance": "0.10",
+          "role_evidence": {
+            "loading": "3.0",
+            "unloading": "-2.0"
+          }
+        },
+        {
+          "anchor_key": "loading_sender",
+          "label": "Sender label",
+          "match_kind": "literal",
+          "expected_text": "发货单位",
+          "box": {
+            "x": "0.08",
+            "y": "0.22",
+            "width": "0.18",
+            "height": "0.05"
+          },
+          "required": false,
+          "weight": "1.5",
+          "max_text_distance": "0.15",
+          "role_evidence": {
+            "loading": "1.5",
+            "unloading": "-0.5"
+          }
+        },
+        {
+          "anchor_key": "loading_net_label",
+          "label": "Net label",
+          "match_kind": "literal",
+          "expected_text": "净重",
+          "box": {
+            "x": "0.08",
+            "y": "0.68",
+            "width": "0.12",
+            "height": "0.05"
+          },
+          "required": true,
+          "weight": "1.0",
+          "max_text_distance": "0.10",
+          "role_evidence": {
+            "loading": "0.2",
+            "unloading": "0.2"
+          }
+        }
+      ],
+      "recognition_regions": [
+        {
+          "region_key": "loading_ordinary_net",
+          "label": "Ordinary net weight",
+          "field": "ordinary_net",
+          "box": {
+            "x": "0.55",
+            "y": "0.68",
+            "width": "0.24",
+            "height": "0.06"
+          },
+          "relative_to_anchor": "loading_net_label",
+          "unit": "t",
+          "format_pattern": "^[0-9]+\\.[0-9]{2}$",
+          "required": true,
+          "layout_tolerance": "0.08"
+        },
+        {
+          "region_key": "loading_factory_net",
+          "label": "Factory net weight",
+          "field": "factory_net",
+          "box": {
+            "x": "0.55",
+            "y": "0.78",
+            "width": "0.24",
+            "height": "0.06"
+          },
+          "relative_to_anchor": null,
+          "unit": "t",
+          "format_pattern": "^[0-9]+\\.[0-9]{2}$",
+          "required": false,
+          "layout_tolerance": "0.08"
+        }
+      ]
+    },
+    {
+      "family_key": "synthetic_unloading_scale",
+      "name": "Synthetic unloading scale",
+      "role": "unloading",
+      "reference_image_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+      "anchors": [
+        {
+          "anchor_key": "unloading_title",
+          "label": "Unloading title",
+          "match_kind": "literal",
+          "expected_text": "卸车磅单",
+          "box": {
+            "x": "0.12",
+            "y": "0.06",
+            "width": "0.28",
+            "height": "0.07"
+          },
+          "required": true,
+          "weight": "3.0",
+          "max_text_distance": "0.10",
+          "role_evidence": {
+            "loading": "-2.0",
+            "unloading": "3.0"
+          }
+        },
+        {
+          "anchor_key": "unloading_receiver",
+          "label": "Receiver label",
+          "match_kind": "literal",
+          "expected_text": "收货单位",
+          "box": {
+            "x": "0.08",
+            "y": "0.22",
+            "width": "0.18",
+            "height": "0.05"
+          },
+          "required": false,
+          "weight": "1.5",
+          "max_text_distance": "0.15",
+          "role_evidence": {
+            "loading": "-0.5",
+            "unloading": "1.5"
+          }
+        },
+        {
+          "anchor_key": "unloading_net_label",
+          "label": "Net label",
+          "match_kind": "literal",
+          "expected_text": "净重",
+          "box": {
+            "x": "0.08",
+            "y": "0.68",
+            "width": "0.12",
+            "height": "0.05"
+          },
+          "required": true,
+          "weight": "1.0",
+          "max_text_distance": "0.10",
+          "role_evidence": {
+            "loading": "0.2",
+            "unloading": "0.2"
+          }
+        }
+      ],
+      "recognition_regions": [
+        {
+          "region_key": "unloading_ordinary_net",
+          "label": "Ordinary net weight",
+          "field": "ordinary_net",
+          "box": {
+            "x": "0.55",
+            "y": "0.68",
+            "width": "0.24",
+            "height": "0.06"
+          },
+          "relative_to_anchor": "unloading_net_label",
+          "unit": "t",
+          "format_pattern": "^[0-9]+\\.[0-9]{2}$",
+          "required": true,
+          "layout_tolerance": "0.08"
+        },
+        {
+          "region_key": "unloading_print_time",
+          "label": "Print time",
+          "field": "print_time",
+          "box": {
+            "x": "0.50",
+            "y": "0.88",
+            "width": "0.36",
+            "height": "0.05"
+          },
+          "relative_to_anchor": null,
+          "unit": null,
+          "format_pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}",
+          "required": false,
+          "layout_tolerance": "0.10"
+        }
+      ]
+    }
+  ],
+  "observation_cases": [
+    {
+      "case_id": "loading-clear",
+      "base_role": "loading",
+      "rotations": [0, 90, 180, 270],
+      "quality_tags": ["printed"],
+      "expected_role": "loading"
+    },
+    {
+      "case_id": "unloading-clear",
+      "base_role": "unloading",
+      "rotations": [0, 90, 180, 270],
+      "quality_tags": ["screen"],
+      "expected_role": "unloading"
+    },
+    {
+      "case_id": "loading-blurred",
+      "base_role": "loading",
+      "rotations": [0],
+      "quality_tags": ["blur"],
+      "confidence_multiplier": "0.45",
+      "expected_role": "unknown"
+    },
+    {
+      "case_id": "unloading-glare",
+      "base_role": "unloading",
+      "rotations": [0],
+      "quality_tags": ["glare"],
+      "omit_anchors": ["unloading_title"],
+      "expected_role": "unknown"
+    },
+    {
+      "case_id": "loading-cropped",
+      "base_role": "loading",
+      "rotations": [0],
+      "quality_tags": ["crop"],
+      "omit_anchors": ["loading_title"],
+      "expected_role": "unknown"
+    },
+    {
+      "case_id": "conflicting-titles",
+      "base_role": "mixed",
+      "rotations": [0],
+      "quality_tags": ["printed"],
+      "expected_role": "unknown"
+    },
+    {
+      "case_id": "unknown-layout",
+      "base_role": "unknown",
+      "rotations": [0, 90],
+      "quality_tags": ["screen"],
+      "expected_role": "unknown"
+    },
+    {
+      "case_id": "non-ticket",
+      "base_role": "non_ticket",
+      "rotations": [0],
+      "quality_tags": ["other_document"],
+      "expected_role": "unknown"
+    }
+  ],
+  "pair_cases": [
+    {
+      "case_id": "normal-pair",
+      "loading_case": "loading-clear",
+      "unloading_case": "unloading-clear",
+      "expected_issue": null
+    },
+    {
+      "case_id": "suspected-swapped",
+      "loading_case": "unloading-clear",
+      "unloading_case": "loading-clear",
+      "expected_issue": "suspected_swapped"
+    },
+    {
+      "case_id": "duplicate-image",
+      "loading_case": "loading-clear",
+      "unloading_case": "loading-clear",
+      "same_image": true,
+      "expected_issue": "duplicate_image"
+    },
+    {
+      "case_id": "both-loading",
+      "loading_case": "loading-clear",
+      "unloading_case": "loading-clear",
+      "same_image": false,
+      "expected_issue": "both_loading"
+    },
+    {
+      "case_id": "unknown-role",
+      "loading_case": "loading-clear",
+      "unloading_case": "unknown-layout",
+      "expected_issue": "role_unknown"
+    }
+  ]
+}

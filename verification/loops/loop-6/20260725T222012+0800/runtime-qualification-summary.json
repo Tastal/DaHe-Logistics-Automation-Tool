@@ -1,0 +1,92 @@
+{
+  "schema_version": 1,
+  "loop_id": "loop-6",
+  "input_run_id": "20260725T191952+0800",
+  "qualification_run_id": "20260725T222012+0800",
+  "qualified_at": "2026-07-25T22:20:35+08:00",
+  "subject_git_commit": "4c792a79e60a70b8a0850bf9c587b2564310bfcd",
+  "active_composition": {
+    "generation_id": "ff95de6bc6e74893b6873fa881b4d2fb",
+    "active_pointer_sha256": "a3aea0a45fcd227b0a5b455b46c637a0b21d39550b48ec6da6a1c8e9a2928983",
+    "composition_manifest_sha256": "2a5346f8b8ee97ea24af22081dcb4bb3a9efa01e56ef1adfce843de8aaf99c58",
+    "active_qualification_sha256": "5a0230da4dbdd382ba3bd5613cd06530e61e2532bdd73c590375264ec64024ed",
+    "independent_qualification_raw_sha256": "748414e6d241f818ae3df9ee8c2ba9b71e192e771d68ec7cda513ef2b45ef566",
+    "independent_qualification_sanitized_sha256": "3a16fc5ab5a84bd03a23a93d18f16cce1f34edcf326c3c8ed6f9263498695d8d",
+    "independent_qualification_path": "verification/loops/loop-6/20260725T222012+0800/runtime-check/qualification.json",
+    "activation": "one atomically replaced active-composition.json pointer"
+  },
+  "fixture": {
+    "manifest": "verification/loops/loop-6/20260725T191952+0800/fixture-manifest.json",
+    "kind": "synthetic_sanitized",
+    "production_data": false,
+    "sample_count": 2,
+    "images": [
+      {
+        "fixture_key": "synthetic-loading",
+        "sha256": "ce7fca6b7adff6c8f072fd131ea254ec0bece42ed11cc83803f98e9224f19ba8"
+      },
+      {
+        "fixture_key": "synthetic-unloading",
+        "sha256": "daf02ca7e5877168f4ecc57c9ebccce0483b6add0b88109685a8a562a366af64"
+      }
+    ]
+  },
+  "shared_contract": {
+    "model_manifest_sha256": "a8bf25a40ad0f318400ee9240dbc78fb47311ff1555a7cc102609968a9ba8022",
+    "worker_source_sha256": "61a6d108e4ec77457f371a6126e8345030a840a7b1d37cc427d4f741a12585be",
+    "critical_match_count": 2,
+    "sample_count": 2,
+    "all_critical_fields_match": true
+  },
+  "cpu": {
+    "status": "qualified",
+    "profile_id": "cpu-portable-fp32-b1-w1",
+    "runtime_fingerprint": "11b4a12ebbf57462982813e7b54bc43b99e4dffeef541025edfbadf4f9295ee0",
+    "precision": "fp32",
+    "batch_size": 1,
+    "worker_count": 1,
+    "dependency_lock_sha256": "2ccade65bdfcc0da185d61fa1022f091d332fcff97c362f752efd1b31d7e92ba",
+    "package_inventory_sha256": "c562c684a9a4a7a844d9f0fe372244c100a5b3e8cbd87d313c602376b1482b95",
+    "p50_ms": 4894.767550000324,
+    "p95_ms": 6457.6635000012175,
+    "sample_count": 2
+  },
+  "gpu": {
+    "status": "qualified",
+    "profile_id": "gpu-c7fe21693329-fp16-b6-w1",
+    "stable_device_id_sha256": "c7fe2169332984ee64ed1fc59db6a5c2e7292147770fc7a7c3e14cc73a8d15de",
+    "runtime_fingerprint": "cf4b7597565a76a32196e858fd91b4c363e0971c2d3d4743ae40a8c9e2a58416",
+    "driver_version": "610.62",
+    "precision": "fp16",
+    "batch_size": 6,
+    "worker_count": 1,
+    "memory_mib": 8188,
+    "peak_memory_used_mib": 1428,
+    "memory_safety_ratio": "0.90",
+    "dependency_lock_sha256": "e26f07d92aa52a054d6d36655da5bcc7d54e190314835cd5138e1e654684da80",
+    "package_inventory_sha256": "d29028ab2bbd3a0edf45a35e8281506ba26a259c39e2156336bdc95d87e5b58a",
+    "p50_ms": 2185.942250001972,
+    "p95_ms": 4269.464100001642,
+    "sample_count": 2
+  },
+  "standard_factory": {
+    "auto_primary": "gpu",
+    "auto_cpu_fallback_present": true,
+    "cpu_only_primary": "cpu",
+    "cpu_only_gpu_started": false,
+    "owned_workers_after_auto_close": 0,
+    "owned_workers_after_cpu_only_close": 0
+  },
+  "environment_isolation": {
+    "main_environment_paddle_or_opencv_packages": 0,
+    "cpu_runtime_paddle_distribution": "paddlepaddle==3.3.1",
+    "gpu_runtime_paddle_distribution": "paddlepaddle-gpu==3.3.1",
+    "cpu_and_gpu_share_environment": false
+  },
+  "interpretation": [
+    "This is a real local CPU/GPU runtime smoke and portability-contract qualification.",
+    "The two generated images are not an OCR accuracy benchmark, a ticket-role release set, or a production speed claim.",
+    "A different computer must discover its own device, rebuild or validate its own runtime composition, and qualify its own local profile."
+  ],
+  "status": "passed"
+}

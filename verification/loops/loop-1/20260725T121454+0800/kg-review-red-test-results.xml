@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="1" failures="0" skipped="0" tests="1" time="0.494" timestamp="2026-07-25T12:46:02.545458+08:00" hostname="ProArtJH"><testcase classname="" name="tests.unit.domain.audit.test_ticket_roles_and_decisions" time="0.000"><error message="collection failure">tests\unit\domain\audit\test_ticket_roles_and_decisions.py:283: in &lt;module&gt;
+    DecisionReason.TICKET_WEIGHT_UNIT_REQUIRES_REVIEW,
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   AttributeError: type object 'DecisionReason' has no attribute 'TICKET_WEIGHT_UNIT_REQUIRES_REVIEW'</error></testcase></testsuite></testsuites>

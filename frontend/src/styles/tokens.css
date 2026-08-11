@@ -1,0 +1,36 @@
+:root {
+  color-scheme: light;
+  font-family:
+    "Segoe UI", "Microsoft YaHei UI", system-ui, -apple-system, sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+
+  --color-bg: oklch(0.975 0 0);
+  --color-surface: oklch(1 0 0);
+  --color-surface-muted: oklch(0.96 0 0);
+  --color-ink: oklch(0.205 0 0);
+  --color-muted: oklch(0.46 0 0);
+  --color-border: oklch(0.9 0 0);
+  --color-border-strong: oklch(0.72 0 0);
+  --color-primary: oklch(0.55 0.2 255);
+  --color-primary-hover: oklch(0.48 0.19 255);
+  --color-primary-soft: oklch(0.96 0.025 255);
+  --color-focus: oklch(0.62 0.2 255);
+  --color-danger: oklch(0.52 0.19 25);
+  --color-danger-soft: oklch(0.96 0.025 25);
+
+  --radius-small: 8px;
+  --radius-medium: 10px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+
+  --z-sticky: 20;
+  --z-dialog-backdrop: 40;
+  --z-dialog: 50;
+  --z-toast: 60;
+}

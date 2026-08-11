@@ -1,0 +1,92 @@
+{
+  "browser_viewport_acceptance": {
+    "maximized": {
+      "outer_height": 912,
+      "outer_width": 1536,
+      "viewport_height": 828,
+      "viewport_width": 1528
+    },
+    "normal": {
+      "outer_height": 700,
+      "outer_width": 900,
+      "viewport_height": 610,
+      "viewport_width": 880
+    },
+    "responsive_after_maximize": true
+  },
+  "build": {
+    "loop9_build_sha256": "803b2f8ae3dc2209bc508860d932bf5ecde413c46e66f13ef48bb11333669657",
+    "starting_git_commit": "79e77439da774e9117ad900d2f7fddbceb9b879a"
+  },
+  "candidate_read_contract": {
+    "contract_canonical_sha256": "7ba032ecd0a99c59722cdd72a153973b7308aaec242d1ee4df81285de4bbc00d",
+    "contract_file_sha256": "e299e8b584d730776b3e36270d1012d402cc6cc233c07a962752520cc1a766ab",
+    "excluded_observation_count": 46,
+    "freeze_evidence_sha256": "59786a25fea5f1224983e0f8fe85241a5d6685697af705f3f8c4c638f3afe950",
+    "potentially_mutating_observation_count": 5,
+    "selected_observation_count": 5,
+    "source_discovery_sha256": "59015c78cccd8af570b4d9c696a44165199e0d395598db48e607d3c3d95aa159"
+  },
+  "checks": [
+    {
+      "command": ".\\.venv\\Scripts\\python.exe -m ruff check .",
+      "result": "passed"
+    },
+    {
+      "command": ".\\.venv\\Scripts\\python.exe -m mypy src tools",
+      "result": "passed: 200 source files"
+    },
+    {
+      "command": ".\\.venv\\Scripts\\python.exe -m pytest -q",
+      "result": "passed: 1453; skipped: 4 Windows symlink privilege checks"
+    },
+    {
+      "command": "npm.cmd --prefix frontend run check",
+      "result": "passed: boundary; lint; typecheck; 106 tests; production build"
+    },
+    {
+      "command": ".\\.venv\\Scripts\\python.exe tools\\loop9_freeze_read_contract.py",
+      "result": "passed: deterministic idempotent output matched the recorded hashes"
+    },
+    {
+      "command": "isolated Edge local no-network resize acceptance",
+      "result": "passed: viewport followed the maximized operating-system window"
+    },
+    {
+      "command": "git diff --check",
+      "result": "passed"
+    }
+  ],
+  "completed_at": "2026-07-29T15:04:57.6166501+08:00",
+  "discovery_boundary": {
+    "classification": "development_only",
+    "credential_material_retained": false,
+    "explicit_platform_write_actions_triggered_by_dahe": 0,
+    "legacy_browser_profile_accessed": false,
+    "legacy_database_accessed": false,
+    "legacy_process_accessed": false,
+    "legacy_source_access": "read_only_static_source_only",
+    "observation_count": 51,
+    "request_values_retained": false,
+    "response_values_retained": false,
+    "zero_platform_write_established": false
+  },
+  "gate_id": "loop-9-contract-discovery-tooling",
+  "implemented_contracts": [
+    "the controlled headed browser uses the operating-system window viewport and responds to maximize and restore",
+    "sealed development discovery is reduced to one list shape, one detail shape, and response-derived ticket-image reads",
+    "all unrelated page observations remain outside the executable contract",
+    "request builders accept only the current pending-settlement scope, bounded pagination, fixed safe filters, and numeric detail identity",
+    "raw responses are converted to narrow domain records and signed image URLs are replaced by opaque ticket references",
+    "the executable read surface remains deny-by-default and contains no platform write operation",
+    "the candidate contract is not accepted as a real-request contract until a separately authorized isolated live validation passes"
+  ],
+  "runtime": {
+    "installation_manifest_sha256": "399037233ce4cad614a08772816d8ccd5035a7d6c5b23f8b7e82dc64a8f502d2",
+    "isolated_smoke_selected_browser": "msedge",
+    "playwright_version": "1.61.0",
+    "worker_source_sha256": "5144717e4f96638a9815c56d0cd4ad7f047f8bf537523c4eaf7110bfb3a1dbb4"
+  },
+  "schema_version": 1,
+  "status": "passed"
+}

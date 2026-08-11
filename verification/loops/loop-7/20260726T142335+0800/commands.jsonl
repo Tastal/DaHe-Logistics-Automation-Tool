@@ -1,0 +1,6 @@
+{"command":".\\.venv\\Scripts\\python.exe -m pytest tests\\unit\\verification\\test_loop7_locked_set_acceptance.py tests\\unit\\verification\\test_loop7_locked_set_runner.py tests\\unit\\application\\template_studio\\test_formal_locked_set_release.py tests\\unit\\tools\\test_loop7_locked_set_release_cli.py tests\\integration\\test_loop7_locked_set_authority.py -q","result":"121 passed in 26.30s","status":"passed"}
+{"command":".\\.venv\\Scripts\\python.exe -m ruff check src\\dahe\\verification\\locked_set_acceptance.py tests\\unit\\verification\\test_loop7_locked_set_acceptance.py","result":"All checks passed","status":"passed"}
+{"command":".\\.venv\\Scripts\\python.exe -m mypy src\\dahe\\verification\\locked_set_acceptance.py","result":"Success: no issues found in 1 source file","status":"passed"}
+{"command":"git diff --check","result":"no output","status":"passed"}
+{"command":".\\.venv\\Scripts\\python.exe tools\\check.py","result":"Ruff passed; Mypy 146 source files passed; backend 877 passed and 2 skipped; frontend 10 files and 89 tests passed; boundary, lint, typecheck, and build passed","status":"passed"}
+{"command":".\\.venv\\Scripts\\python.exe -m pytest tests\\unit\\verification\\test_ledger.py -q","result":"4 passed in 0.31s","status":"passed"}

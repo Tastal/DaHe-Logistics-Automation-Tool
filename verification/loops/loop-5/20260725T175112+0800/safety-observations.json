@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "loop_id": "loop-5",
+  "run_id": "20260725T175112+0800",
+  "observations": [
+    "All Loop 5 platform data, requests, responses, images, failures, browser authority, and credentials references were synthetic and processed offline.",
+    "No real Chengfeng host, account, credential, cookie, signed URL, browser profile, request, response, image, or platform write was used.",
+    "No legacy project, database, browser profile, launcher, runtime, port, process, log, cache, or application-data directory was read, executed, attached to, reused, stopped, or changed.",
+    "No Windows DNS, proxy, VPN, routing, hosts file, or global browser setting was changed.",
+    "No real PaddleOCR, CPU OCR, GPU OCR, CUDA runtime, model, cloud OCR, or production document was loaded.",
+    "Every project Python command used the repository .venv.",
+    "The connector exposes exactly three read operations and no generic request, settlement confirmation, payment, receipt cancellation, or platform mutation API.",
+    "The frozen transport uses an HTTPS .invalid origin and contains no socket, HTTP client, Playwright, or real browser implementation.",
+    "The connector runtime validates browser authority before each frozen read; the main process rechecks it around staged-file verification; SQLite checks it again inside the commit transaction.",
+    "Connector results contain only versioned metadata and command-scoped relative file references. Large payloads, credentials, tokens, signed URLs, and raw failures do not cross as inline result fields.",
+    "Command staging is cleaned after consumption. Safe orphan staging is recoverable, active commands are retained, and unknown, nested, symlink, reparse, reserved-name, cross-command, hash, size, and media mismatches are rejected.",
+    "Committed images use the existing content-addressed evidence store and SQLite evidence reference/checkpoint tables; raw fencing tokens and image bytes are absent from checkpoint JSON.",
+    "Technical connector and infrastructure failures remain technical failures and are not converted into finance-review business items.",
+    "The normal local console remains wired to deterministic fake business adapters and cannot enable real platform access."
+  ],
+  "environment_limit": "One symlink-path test was skipped because the current Windows account lacks symlink creation privilege. The implementation checks both symlink mode and Windows reparse attributes, and non-privileged path, traversal, reserved-name, cross-command, hash, size, media, and unsafe-staging cases passed.",
+  "status": "passed"
+}

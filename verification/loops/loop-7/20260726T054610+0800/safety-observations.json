@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "loop_id": "loop-7",
+  "run_id": "20260726T054610+0800",
+  "observed_at": "2026-07-26T05:46:10+08:00",
+  "status": "passed_with_locked_set_gate_pending",
+  "observations": [
+    "No Chengfeng host, login, credential, cookie, signed URL, browser profile, request, response, or platform write was used.",
+    "No cloud OCR call, production ticket image, personal business data, or paid service was used.",
+    "No legacy script, database, runtime, process, port, browser profile, cache, or application-data directory was executed, attached to, stopped, reused, read, or modified.",
+    "No Windows DNS, proxy, VPN, routing, hosts file, browser setting, GPU driver, or system Python installation was changed.",
+    "All project Python verification commands used the project .venv.",
+    "Formal preparation and review validation do not construct an OCR runtime; only the explicit evaluate command may request the existing local runtime factory.",
+    "The formal evaluator receives only a content hash and content-addressed relative path. Human truth, submitted slot, expected role, platform weight, and ordinary net weight are not exposed to OCR candidate selection.",
+    "The CLI refuses output outside JSON evidence files, refuses existing output, and protects the application data root and dataset root from output replacement.",
+    "Human quality attestations bind the exact dataset, manifest, scene condition, sample or image subjects, reviewer, timezone-aware review time, and notes through a recomputed canonical SHA-256.",
+    "Complete quality review records and decision records are stored immutably with their canonical hashes and survive SQLite backup and restore.",
+    "A formal result can be replayed only while the dataset remains formal_evaluated and uninfluenced. Permanent invalidation prevents a stale result from being returned by the application or repository.",
+    "The formal run context binds the complete code-owned OCR composition evidence hash in addition to runtime, template, matcher, and policy fingerprints.",
+    "Program and infrastructure failures remain technical failures and are never converted into finance-review business items."
+  ],
+  "environment_limit": "Two backend tests were skipped because this Windows account cannot create symbolic links; the remaining fail-closed path tests passed.",
+  "release_limit": "The independent human-confirmed locked set of 50 unseen waybills and 100 unique images has not been supplied. Real accuracy, real latency, and Loop 7 acceptance therefore remain pending."
+}

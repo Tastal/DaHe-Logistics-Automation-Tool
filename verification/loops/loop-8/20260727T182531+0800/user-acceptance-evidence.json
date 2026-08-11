@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "project_id": "DaHeLogistics",
+  "loop": "loop-8",
+  "run_id": "20260727T182531+0800",
+  "completed_at": "2026-07-27T20:43:05+08:00",
+  "implementation_commit": "fc9c5ea13d56c134ec766601e5638e717909f3f4",
+  "data_root": "%LOCALAPPDATA%\\DaHeLogisticsLoop8UserAcceptance20260727",
+  "manual_completion_confirmation": true,
+  "human_identity_collected": false,
+  "result_reconciliation": {
+    "input_work_items": 12,
+    "explicit_results": 12,
+    "silent_omissions": 0,
+    "waiting_for_review": 0,
+    "business_items_succeeded": 11,
+    "technical_items_failed": 1,
+    "normal_ready": 6,
+    "confirmed_problem": 5,
+    "technical_failure_without_business_outcome": 1
+  },
+  "manual_actions": {
+    "total": 9,
+    "corrections": 4,
+    "problem_confirmations": 5,
+    "revocations": 0,
+    "identity_fields_present": false
+  },
+  "layer_counts": {
+    "evidence_revisions": 12,
+    "ocr_observations": 24,
+    "audit_decision_revisions": 21,
+    "review_actions": 9,
+    "timeline_events": 21
+  },
+  "technical_failure": {
+    "waybill_number": "OFFLINE-012",
+    "diagnostic_code": "OCR-WORKER-OFFLINE-INJECTED",
+    "entered_finance_review_queue": false
+  },
+  "restart_recovery": {
+    "forced_application_exit_performed": true,
+    "application_restarted_from_same_data_root": true,
+    "database_integrity_check": "ok",
+    "core_records_sha256_before_restart": "18f39cac56afd76909dddbd1dccef36cbdf184c68df37026a8a0c4bc5ee09cbd",
+    "core_records_sha256_after_restart": "18f39cac56afd76909dddbd1dccef36cbdf184c68df37026a8a0c4bc5ee09cbd",
+    "duplicate_results_after_restart": 0,
+    "lost_results_after_restart": 0
+  },
+  "acceptance_result": {
+    "gate_passed": true,
+    "loop_status": "accepted",
+    "product_status": "offline_prototype",
+    "shadow_accepted": false
+  },
+  "limitations": [
+    "This acceptance uses deterministic offline OCR observations and does not establish a new formal OCR accuracy claim.",
+    "The Loop 7 natural locked-set gate remains failed and closed only by its recorded waiver.",
+    "One injected technical failure is intentional and demonstrates that infrastructure failures remain outside business review."
+  ]
+}

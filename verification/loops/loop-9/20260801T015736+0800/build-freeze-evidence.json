@@ -1,0 +1,75 @@
+{
+  "browser_runtime_installation_sha256": "4284d3f6372b00a25b29cb6a0e44ff2480a4000ff68b7444e306e1c350f55862",
+  "created_at": "2026-08-01T01:57:36.1774181+08:00",
+  "current_loop9_build_sha256": "af19bf28ecd7cc5218d2b983e368f09bc95d362e3e519380e77937d6fc17491f",
+  "frontend_assets": [
+    {
+      "path": "frontend/dist/assets/index-BUrpOk6C.css",
+      "sha256": "93a64e2e4f006d902d51facac9ca1985c18f39c9d64163e5f6ce0be84ed82601"
+    },
+    {
+      "path": "frontend/dist/assets/index-DXBtp0fu.js",
+      "sha256": "5fe6e5ac07e0fa6f22cb5ba85dbf6dc80368900d1059c5e1e4a28a0b305c42b8"
+    },
+    {
+      "path": "frontend/dist/index.html",
+      "sha256": "3f4f65f038166c1fa5ef17cd173e569dbaf1885c82126da91991526b6c8839c4"
+    }
+  ],
+  "git": {
+    "base_commit": "128c520",
+    "branch": "codex/loop9-completion",
+    "commit": "3fc561870a4ad60f8ce860665413c48eac64c25d"
+  },
+  "kind": "loop9_build_freeze",
+  "ledger_before_sha256": "39cadb100a30fb59cb15569b3e7691998e638a47864b1c6751438a64faacbb16",
+  "offline_query_twin": {
+    "approved_request_count": 1,
+    "blocked_request_count": 2,
+    "blocked_transition_total": 0,
+    "browser": "msedge",
+    "dynamic_total": 137,
+    "hidden_field_preserved": true,
+    "query_response_structure_sha256": "b4c75692a1e63c06c8afbb49a6267703cab5790c1fabf90e8c286892c544f569",
+    "schema_version": 2,
+    "transition_read_count": 5
+  },
+  "platform_access_performed": false,
+  "schema_version": 1,
+  "source_count": 314,
+  "verification": {
+    "contract_tests": {
+      "passed": 75,
+      "skipped": 0
+    },
+    "frontend_browser_e2e": {
+      "passed": 8,
+      "skipped": 0
+    },
+    "frontend_check": {
+      "passed": 117,
+      "skipped": 0
+    },
+    "git_diff_check": "passed",
+    "integration_tests": {
+      "passed": 456,
+      "skipped": 1,
+      "skip_reason": "Windows symbolic-link privilege unavailable"
+    },
+    "mypy": {
+      "source_files": 296,
+      "status": "passed"
+    },
+    "ruff": "passed",
+    "tools_check_entrypoint": {
+      "status": "runner_timeout",
+      "timeout_seconds": 600,
+      "verification_equivalence": "Every authoritative child command passed separately; pytest was split into the complete unit, integration, and contract directories because their combined wall time exceeded the command runner limit."
+    },
+    "unit_tests": {
+      "passed": 2013,
+      "skipped": 7,
+      "skip_reason": "Windows symbolic-link privilege unavailable"
+    }
+  }
+}

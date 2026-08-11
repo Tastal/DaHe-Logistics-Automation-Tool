@@ -1,0 +1,28 @@
+{
+  "baseline_commit": "194e0ebd46f769b4a4076f9ac5d4e4047c2ec074",
+  "discovery_batch_classification": "development_only",
+  "formal_locked_set": {
+    "image_count": 100,
+    "requires_explicit_human_confirmation": true,
+    "waybill_count": 50
+  },
+  "legacy_boundary": {
+    "legacy_application_stopped_for_each_window": true,
+    "legacy_browser_profile_access": "forbidden",
+    "same_account_session_invalidation_accepted": true
+  },
+  "loop_id": "loop-9",
+  "platform_access": {
+    "default_window_minutes": 60,
+    "maximum_window_minutes": 120,
+    "run_mode": "shadow",
+    "writes_allowed": false
+  },
+  "project_id": "DaHeLogistics",
+  "schema_version": 1,
+  "shadow_batch": {
+    "disjoint_from_locked_set": true,
+    "target_waybill_count": 30
+  },
+  "started_at": "2026-07-28T23:04:48.8782465+08:00"
+}

@@ -1,0 +1,8 @@
+# Historical test-only idempotency keys verified at the pinned commits.
+9847c9b74ac7bd753ee80327c43d509c79ab1419:tests/unit/api/test_loop9_review_workspace.py:generic-api-key:382
+dceb7c90c15d9cff67dc5e773d0b0a06b5f2e674:tests/integration/test_loop7_template_persistence.py:generic-api-key:263
+dceb7c90c15d9cff67dc5e773d0b0a06b5f2e674:tests/integration/test_loop7_template_persistence.py:generic-api-key:291
+d01c667c2936f9a16a77b917462c1e9782f81af5:tests/integration/test_loop4_scheduler_fencing.py:generic-api-key:40
+d01c667c2936f9a16a77b917462c1e9782f81af5:tests/integration/test_loop4_shared_and_restart.py:generic-api-key:509
+f42e667f8ac61d14261f92a4d97d8007ce3c7890:tests/integration/test_loop3_scheduler.py:generic-api-key:477
+f42e667f8ac61d14261f92a4d97d8007ce3c7890:tests/integration/test_loop3_scheduler.py:generic-api-key:511

@@ -1,0 +1,78 @@
+{
+  "schema_version": 1,
+  "loop_id": "loop-3",
+  "run_id": "20260725T143200+0800",
+  "reviewer": "codex:/root/loop2_final_audit",
+  "reviewed_at": "2026-07-25T15:44:00+08:00",
+  "blocking": [],
+  "passed": [
+    {
+      "id": "single_scheduler_and_fairness",
+      "result": "A single cooperative scheduler owns normal fake audit and protected fixture work. Fair rotation and bounded-aging tests passed without a global task lock or permanent starvation."
+    },
+    {
+      "id": "controls_conflicts_and_shared_work",
+      "result": "ConflictKey creation CAS, control CAS and idempotency, pause-resume-cancel boundaries, shared fake OCR single-producer behavior, cancellation isolation, and zero heavy-resource leases while waiting_user all passed."
+    },
+    {
+      "id": "work_item_versions_and_events",
+      "result": "The pause-boundary defect found during review was fixed. Every WorkItem whose status changed had a strictly newer record version and a matching work_item.changed event; resource projection changes also advanced the event cursor."
+    },
+    {
+      "id": "schema_and_fixture_safety",
+      "result": "Old and partial temporary schemas are rejected through the read-only pre-WAL gate. Protected test fixtures remain disabled by default, use only fake adapters when enabled, and keep BusinessOutcome empty."
+    },
+    {
+      "id": "operator_console",
+      "result": "The console displayed four tasks together with independent selection and controls. Problem items did not block normal work, and cancellation confirmation showed the task, scope, retained-result rule, and unprocessed-item rule."
+    },
+    {
+      "id": "scope_control",
+      "result": "Loop 4 production evidence transactions, process supervision, heartbeat, and production crash takeover were not implemented early."
+    }
+  ],
+  "verification": [
+    {
+      "command": ".\\.venv\\Scripts\\python.exe tools\\check.py",
+      "result": "exit 0; Ruff passed; mypy passed for 55 source files; 132 Python tests passed; frontend boundary, lint, and typecheck passed; 25 frontend tests passed; production build passed"
+    },
+    {
+      "command": "independent targeted regressions and pause-boundary probe",
+      "result": "Resource cursor, normal audit controls, restart ownership, and pause-boundary WorkItem version/event checks passed"
+    },
+    {
+      "command": "independent Playwright session on isolated port 8891",
+      "result": "Four task cards, waiting_user resource release, cancellation isolation, zero console errors or warnings, and loopback-only requests passed; the browser and server were stopped and port 8891 was released"
+    },
+    {
+      "command": "git diff --check and corrected fixture hash verification",
+      "result": "passed; corrected fixture SHA-256 was 8842b64a664e15fdc2f4928c81abd4b044a778f73a72154dd2b02c8739ca078b"
+    }
+  ],
+  "non_blocking": [
+    {
+      "priority": "P2",
+      "risk": "The independent four-task browser run produced about 180 dynamic requests, mostly repeated jobs and resources reads. Before a real 30-waybill shadow run, coalesce event-triggered refreshes and avoid rewriting waiting_resource rows when their visible state did not change."
+    },
+    {
+      "priority": "P2",
+      "risk": "The resource overview reports only a count of active task steps; a later diagnostic view should show the holder identity and held duration."
+    },
+    {
+      "priority": "P2",
+      "risk": "A successful loading probe still uses the generic phrase that shadow audit completed; use loading-probe-specific completion text in a later copy pass."
+    },
+    {
+      "priority": "Loop 4",
+      "risk": "Runner supervision, heartbeat, and takeover of leases left active by a process crash remain intentionally deferred to the Loop 4 evidence and recovery contract."
+    }
+  ],
+  "safety_scope": {
+    "legacy_program_touched": false,
+    "real_chengfeng_accessed": false,
+    "real_ocr_used": false,
+    "production_data_used": false,
+    "note": "The review used the project .venv, fake adapters, loopback connections, and isolated temporary data. No source file was changed by the reviewer. One approximately 1.8 MB fake-only temporary review directory may remain under the Windows temporary directory because the deletion call was rejected by tool policy; no process or browser remains active."
+  },
+  "status": "passed"
+}

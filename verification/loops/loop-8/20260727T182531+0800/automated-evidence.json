@@ -1,0 +1,118 @@
+{
+  "schema_version": 1,
+  "project_id": "DaHeLogistics",
+  "loop": "loop-8",
+  "run_id": "20260727T182531+0800",
+  "evidence_status": "automated_gates_passed_user_batch_pending",
+  "baseline_commit": "967ecd343e81e1cfed2fb6eb6d66c6012408a558",
+  "application_version": "0.7.0",
+  "application_build_sha256": "02bd54f22f9b0aef16f78b330a5caae358338fe41c2fdafe93cd3634f241c16e",
+  "offline_batch": {
+    "fixture_id": "loop8-offline-v1",
+    "manifest_path": "%LOCALAPPDATA%\\DaHeLogisticsLoop8Offline20260727\\offline-audit\\loop8-offline-v1.json",
+    "manifest_file_sha256": "59d7481660a214929ffb05873403209b4a31946dcd7d21cf3d11f324ac40196d",
+    "manifest_canonical_sha256": "3d72e9faa0ef0d3b4ba71966208d6fc060ed68d166d863cba6d46e654375353a",
+    "work_item_count": 12,
+    "unique_evidence_object_count": 8,
+    "formal_accuracy_claim": false
+  },
+  "automated_run": {
+    "data_root": "%LOCALAPPDATA%\\DaHeLogisticsLoop8Offline20260727",
+    "job_status_before_manual_actions": "waiting_user",
+    "work_item_status_counts": {
+      "succeeded": 2,
+      "waiting_user": 9,
+      "failed": 1
+    },
+    "business_outcome_counts": {
+      "normal_ready": 2,
+      "awaiting_review": 9,
+      "technical_failure_without_business_outcome": 1
+    },
+    "evidence_revision_count": 12,
+    "ocr_observation_count": 24,
+    "audit_decision_revision_count": 12,
+    "review_action_count_before_user_acceptance": 0,
+    "review_queue_count": 9,
+    "history_count": 12,
+    "technical_failure_diagnostic": "OCR-WORKER-OFFLINE-INJECTED",
+    "silent_omission_count": 0
+  },
+  "identity_contract": {
+    "active_manual_action_fields_checked": true,
+    "loop8_database_columns_checked": true,
+    "active_api_rejects_unknown_fields": true,
+    "active_frontend_identity_fields_found": 0,
+    "legacy_loop7_evidence_policy": "read_only_hash_compatibility_only"
+  },
+  "browser_qa": {
+    "browser": "Chromium-compatible local test browser",
+    "url": "http://127.0.0.1:8878/",
+    "keyboard_focus_order_checked": true,
+    "horizontal_clipping_observed": false,
+    "screenshots": [
+      {
+        "effective_scale_percent": 100,
+        "path": "output/playwright/loop8-final-100.png",
+        "sha256": "91b14f47d2ff0ee0425b52a31722a6fff12d8d33edc909f9b9a7126256551e79"
+      },
+      {
+        "effective_scale_percent": 125,
+        "path": "output/playwright/loop8-final-125.png",
+        "sha256": "227939a22803ad3d390d5d170e632fef24e4db255d1507943b50d1437297336b"
+      },
+      {
+        "effective_scale_percent": 150,
+        "path": "output/playwright/loop8-final-150.png",
+        "sha256": "5faf08f2242a470043ea2695d6784c6a31027428f53b5a1e03d7cdf881bbe4c3"
+      },
+      {
+        "effective_scale_percent": 200,
+        "path": "output/playwright/loop8-final-200.png",
+        "sha256": "62342c595a76316e8ea4418d38c52ed78387a0444933fd6d7baffd9ae636e29d"
+      }
+    ]
+  },
+  "checks": [
+    {
+      "command": ".\\.venv\\Scripts\\python.exe -m pytest tests/integration/test_loop8_audit_workflow_repository.py tests/integration/test_loop8_audit_api.py tests/contract/test_no_human_identity.py -q",
+      "result": "passed",
+      "summary": "8 passed"
+    },
+    {
+      "command": ".\\.venv\\Scripts\\python.exe tools\\check.py",
+      "result": "passed",
+      "summary": "ruff passed; mypy passed for 184 source files; pytest 1383 passed and 4 skipped; frontend 13 files and 95 tests passed; production build passed"
+    },
+    {
+      "command": "git diff --check",
+      "result": "passed"
+    },
+    {
+      "command": "Playwright keyboard and 100/125/150/200 percent viewport QA",
+      "result": "passed"
+    }
+  ],
+  "expected_skips": [
+    "Four tests requiring Windows symbolic-link creation were skipped because the current account lacks that privilege."
+  ],
+  "safety_observations": [
+    "No Chengfeng request was made.",
+    "No legacy project, database, browser profile, or process was accessed or changed.",
+    "Only DaHe development evidence and deterministic derivations were used.",
+    "The injected OCR worker failure stayed outside the finance review queue.",
+    "No platform write capability was added."
+  ],
+  "pending_gate": {
+    "id": "loop-8-recovery-count-and-ui",
+    "reason": "The business user has not yet completed one full 12-item batch in the fresh console.",
+    "user_data_root": "%LOCALAPPDATA%\\DaHeLogisticsLoop8UserAcceptance20260727",
+    "required_result": "All 12 items have explicit outcomes after the user completes the review queue, with no identity input and no silent omission."
+  },
+  "remaining_risks": [
+    "Loop 8 is not accepted until the user completes the fresh offline batch and the final counts are independently rechecked.",
+    "The offline batch uses deterministic OCR observations and does not make a new formal OCR accuracy claim.",
+    "The Loop 7 natural locked-set gate remains failed and closed only by its recorded waiver.",
+    "Symbolic-link rejection was not rerun on this Windows account because the required privilege is unavailable."
+  ]
+}

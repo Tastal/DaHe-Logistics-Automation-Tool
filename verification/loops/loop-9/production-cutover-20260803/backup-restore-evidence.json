@@ -1,0 +1,18 @@
+{
+  "backup_id": "20260802T163820699624Z-c82a31d5f00c",
+  "backup_manifest_sha256": "5a384afe3529a0886dfe8080e3d856704b946f4b28606b23a0533c980a19d09e",
+  "canonical_sha256": "bb43cdfae8b09f670c96cb68719ee22da9b5c4d2a3220897c654a1ff36b09448",
+  "created_at": "2026-08-02T16:38:20.762380+00:00",
+  "database_counts": {
+    "daily_reports": 0,
+    "evidence_references": 0,
+    "jobs": 4,
+    "production_read_only_guard_items": 0,
+    "work_items": 4
+  },
+  "evidence_count": 0,
+  "integrity_check": "ok",
+  "kind": "production_backup_restore_evidence",
+  "schema_version": 1,
+  "source_build_sha256": "45802b2eea3b623b34a4fdd92101ddce281b77700c7a23484fe2a8d28577c0f5"
+}

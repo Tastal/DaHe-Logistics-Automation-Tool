@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites name="vitest tests" tests="70" failures="0" errors="0" time="15.9432668">
+    <testsuite name="src/api/client.test.ts" timestamp="2026-07-25T19:12:04.741Z" hostname="local-windows-host" tests="10" failures="0" errors="0" skipped="0" time="0.0200262">
+        <testcase classname="src/api/client.test.ts" name="BrowserAppServices &gt; maps Loop 3 job projections and backend action versions" time="0.0104905">
+        </testcase>
+        <testcase classname="src/api/client.test.ts" name="BrowserAppServices &gt; loads the resource overview from its dedicated endpoint" time="0.0035578">
+        </testcase>
+        <testcase classname="src/api/client.test.ts" name="BrowserAppServices &gt; posts pause with its own expected version and idempotency key" time="0.0007788">
+        </testcase>
+        <testcase classname="src/api/client.test.ts" name="BrowserAppServices &gt; posts resume with its own expected version and idempotency key" time="0.0003239">
+        </testcase>
+        <testcase classname="src/api/client.test.ts" name="BrowserAppServices &gt; posts cancel with its own expected version and idempotency key" time="0.0002741">
+        </testcase>
+        <testcase classname="src/api/client.test.ts" name="BrowserAppServices &gt; reuses the same job-action idempotency key after an uncertain failure" time="0.0014886">
+        </testcase>
+        <testcase classname="src/api/client.test.ts" name="BrowserAppServices &gt; creates only a declared protected Loop 3 fixture" time="0.0004866">
+        </testcase>
+        <testcase classname="src/api/client.test.ts" name="BrowserAppServices &gt; maps a failed job diagnostic code from the backend snapshot" time="0.0002651">
+        </testcase>
+        <testcase classname="src/api/client.test.ts" name="BrowserAppServices &gt; maps the real job-items endpoint into finance-facing result data" time="0.0005036">
+        </testcase>
+        <testcase classname="src/api/client.test.ts" name="BrowserAppServices &gt; maps aggregate_id from a fake EventSource message and closes the stream" time="0.0007272">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/api/templateClient.test.ts" timestamp="2026-07-25T19:12:04.746Z" hostname="local-windows-host" tests="13" failures="0" errors="0" skipped="0" time="0.0218692">
+        <testcase classname="src/api/templateClient.test.ts" name="Loop 7 template client contract &gt; maps the maintenance summary and template family business labels" time="0.0100941">
+        </testcase>
+        <testcase classname="src/api/templateClient.test.ts" name="Loop 7 template client contract &gt; maps normalized boxes and preserves the backend lifecycle action matrix" time="0.0025796">
+        </testcase>
+        <testcase classname="src/api/templateClient.test.ts" name="Loop 7 template client contract &gt; uses the protected local write contract when entering maintenance mode" time="0.0011766">
+        </testcase>
+        <testcase classname="src/api/templateClient.test.ts" name="Loop 7 template client contract &gt; maps an expired maintenance session to the dedicated recovery error" time="0.0010988">
+        </testcase>
+        <testcase classname="src/api/templateClient.test.ts" name="Loop 7 template client contract &gt; uploads a raw reference image with protected file metadata" time="0.0009869">
+        </testcase>
+        <testcase classname="src/api/templateClient.test.ts" name="Loop 7 template client contract &gt; abandons a staged reference with its record version" time="0.0005961">
+        </testcase>
+        <testcase classname="src/api/templateClient.test.ts" name="Loop 7 template client contract &gt; creates a first draft from staged reference state without exposing hashes" time="0.0008731">
+        </testcase>
+        <testcase classname="src/api/templateClient.test.ts" name="Loop 7 template client contract &gt; maps the durable development scope and warning without implying locked-set acceptance" time="0.0003109">
+        </testcase>
+        <testcase classname="src/api/templateClient.test.ts" name="Loop 7 template client contract &gt; saves only normalized draft data with optimistic versioning and no local path" time="0.0005596">
+        </testcase>
+        <testcase classname="src/api/templateClient.test.ts" name="Loop 7 template client contract &gt; marks a checked draft through the backend development-tested contract" time="0.0004428">
+        </testcase>
+        <testcase classname="src/api/templateClient.test.ts" name="Loop 7 template client contract &gt; requests a version-bound developer token before shadow publication" time="0.0003981">
+        </testcase>
+        <testcase classname="src/api/templateClient.test.ts" name="Loop 7 template client contract &gt; loads rollback targets and submits an authorized family rollback" time="0.0006892">
+        </testcase>
+        <testcase classname="src/api/templateClient.test.ts" name="Loop 7 template client contract &gt; uses explicit checked lifecycle endpoints and rejects undeclared actions client-side" time="0.0009593">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/api/viteProxy.test.ts" timestamp="2026-07-25T19:12:04.749Z" hostname="local-windows-host" tests="1" failures="0" errors="0" skipped="0" time="0.0051329">
+        <testcase classname="src/api/viteProxy.test.ts" name="Vite local API proxy &gt; rewrites Origin to the fixed local backend origin" time="0.0035115">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/app/App.test.tsx" timestamp="2026-07-25T19:12:04.749Z" hostname="local-windows-host" tests="8" failures="0" errors="0" skipped="0" time="0.5696868">
+        <testcase classname="src/app/App.test.tsx" name="App &gt; uses business language and keeps future modules visibly disabled" time="0.1478082">
+        </testcase>
+        <testcase classname="src/app/App.test.tsx" name="App &gt; prevents rapid repeated starts while one create request is pending" time="0.1059925">
+        </testcase>
+        <testcase classname="src/app/App.test.tsx" name="App &gt; restores existing backend state and does not infer a pause action" time="0.0387198">
+        </testcase>
+        <testcase classname="src/app/App.test.tsx" name="App &gt; blocks the console when frontend and backend versions differ" time="0.0206231">
+        </testcase>
+        <testcase classname="src/app/App.test.tsx" name="App &gt; subscribes only after loading a fresh snapshot cursor" time="0.017501">
+        </testcase>
+        <testcase classname="src/app/App.test.tsx" name="App &gt; loads and renders the completed fake audit result" time="0.1399283">
+        </testcase>
+        <testcase classname="src/app/App.test.tsx" name="App &gt; shows protected-data guidance and the backend diagnostic code for a failed job" time="0.0211826">
+        </testcase>
+        <testcase classname="src/app/App.test.tsx" name="App &gt; coalesces delayed event refreshes and rejects an older snapshot cursor" time="0.0767309">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/app/Loop3.test.tsx" timestamp="2026-07-25T19:12:04.750Z" hostname="local-windows-host" tests="4" failures="0" errors="0" skipped="0" time="0.5751017">
+        <testcase classname="src/app/Loop3.test.tsx" name="Loop 3 operator console &gt; shows three jobs together and controls only the selected job" time="0.2776794">
+        </testcase>
+        <testcase classname="src/app/Loop3.test.tsx" name="Loop 3 operator console &gt; keeps each protected start action independent and labels the probe" time="0.082393">
+        </testcase>
+        <testcase classname="src/app/Loop3.test.tsx" name="Loop 3 operator console &gt; shows resource waits, stages, resource use, and the latest checkpoint" time="0.1780036">
+        </testcase>
+        <testcase classname="src/app/Loop3.test.tsx" name="Loop 3 operator console &gt; does not claim browser or OCR occupancy for a waiting-user job" time="0.0359539">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/app/Loop7Templates.test.tsx" timestamp="2026-07-25T19:12:04.751Z" hostname="local-windows-host" tests="31" failures="0" errors="0" skipped="0" time="14.532432">
+        <testcase classname="src/app/Loop7Templates.test.tsx" name="Loop 7 template maintenance workspace &gt; places the template entry under System maintenance and keeps editing locked" time="0.3931011">
+        </testcase>
+        <testcase classname="src/app/Loop7Templates.test.tsx" name="Loop 7 template maintenance workspace &gt; announces a failed maintenance verification as an alert" time="0.4827411">
+        </testcase>
+        <testcase classname="src/app/Loop7Templates.test.tsx" name="Loop 7 template maintenance workspace &gt; unlocks editing only after the protected maintenance action succeeds" time="0.5637931">
+        </testcase>
+        <testcase classname="src/app/Loop7Templates.test.tsx" name="Loop 7 template maintenance workspace &gt; shows an actionable first-template state for an authorized empty database" time="0.2404947">
+        </testcase>
+        <testcase classname="src/app/Loop7Templates.test.tsx" name="Loop 7 template maintenance workspace &gt; lists every family, switches the editor, and keeps add-template available" time="0.2767097">
+        </testcase>
+        <testcase classname="src/app/Loop7Templates.test.tsx" name="Loop 7 template maintenance workspace &gt; keeps the backend create action authoritative in the empty state" time="0.2303394">
+        </testcase>
+        <testcase classname="src/app/Loop7Templates.test.tsx" name="Loop 7 template maintenance workspace &gt; asks for a PNG or JPEG before uploading the first reference image" time="0.3143561">
+        </testcase>
+        <testcase classname="src/app/Loop7Templates.test.tsx" name="Loop 7 template maintenance workspace &gt; preserves first-template input when reference upload fails" time="0.6446997">
+        </testcase>
+        <testcase classname="src/app/Loop7Templates.test.tsx" name="Loop 7 template maintenance workspace &gt; restores an unsubmitted first-template draft after refresh and revalidation" time="1.1806578">
+        </testcase>
+        <testcase classname="src/app/Loop7Templates.test.tsx" name="Loop 7 template maintenance workspace &gt; abandons the staged reference and clears local draft recovery" time="0.5653488">
+        </testcase>
+        <testcase classname="src/app/Loop7Templates.test.tsx" name="Loop 7 template maintenance workspace &gt; does not create a draft before a real fixed-content anchor exists" time="0.6595801">
+        </testcase>
+        <testcase classname="src/app/Loop7Templates.test.tsx" name="Loop 7 template maintenance workspace &gt; creates the first draft from the staged reference and opens the existing editor" time="0.9204534">
+        </testcase>
+        <testcase classname="src/app/Loop7Templates.test.tsx" name="Loop 7 template maintenance workspace &gt; prevents duplicate reference uploads while the first request is pending" time="0.3116051">
+        </testcase>
+        <testcase classname="src/app/Loop7Templates.test.tsx" name="Loop 7 template maintenance workspace &gt; reloads the empty-state service contract after a page remount" time="0.441044">
+        </testcase>
+        <testcase classname="src/app/Loop7Templates.test.tsx" name="Loop 7 template maintenance workspace &gt; supports the two business-language marking steps and keyboard box adjustment" time="0.4734294">
+        </testcase>
+        <testcase classname="src/app/Loop7Templates.test.tsx" name="Loop 7 template maintenance workspace &gt; draws new fixed and reading boxes with normalized safe defaults" time="0.3339979">
+        </testcase>
+        <testcase classname="src/app/Loop7Templates.test.tsx" name="Loop 7 template maintenance workspace &gt; keeps a dragged box inside the image when the pointer leaves its edge" time="0.403414">
+        </testcase>
+        <testcase classname="src/app/Loop7Templates.test.tsx" name="Loop 7 template maintenance workspace &gt; blocks deleting a fixed-content box while reading regions depend on it" time="0.3360354">
+        </testcase>
+        <testcase classname="src/app/Loop7Templates.test.tsx" name="Loop 7 template maintenance workspace &gt; moves, resizes and deletes a selected reading box from the keyboard" time="0.5483538">
+        </testcase>
+        <testcase classname="src/app/Loop7Templates.test.tsx" name="Loop 7 template maintenance workspace &gt; keeps the three business time fields distinct when saving" time="0.3947624">
+        </testcase>
+        <testcase classname="src/app/Loop7Templates.test.tsx" name="Loop 7 template maintenance workspace &gt; saves a versioned draft and restores the saved values after reopening" time="0.6855055">
+        </testcase>
+        <testcase classname="src/app/Loop7Templates.test.tsx" name="Loop 7 template maintenance workspace &gt; returns to the maintenance gate when authorization expires" time="0.2811116">
+        </testcase>
+        <testcase classname="src/app/Loop7Templates.test.tsx" name="Loop 7 template maintenance workspace &gt; passes the server-declared evaluation id when confirming development checks" time="0.265738">
+        </testcase>
+        <testcase classname="src/app/Loop7Templates.test.tsx" name="Loop 7 template maintenance workspace &gt; does not confirm a development check when its evaluation id is missing" time="0.2788308">
+        </testcase>
+        <testcase classname="src/app/Loop7Templates.test.tsx" name="Loop 7 template maintenance workspace &gt; requires an inline second verification before publishing a shadow template" time="0.6789729">
+        </testcase>
+        <testcase classname="src/app/Loop7Templates.test.tsx" name="Loop 7 template maintenance workspace &gt; does not request shadow authorization when evaluation evidence is missing" time="0.562163">
+        </testcase>
+        <testcase classname="src/app/Loop7Templates.test.tsx" name="Loop 7 template maintenance workspace &gt; restores a reviewed earlier shadow version through a second verification" time="0.779207">
+        </testcase>
+        <testcase classname="src/app/Loop7Templates.test.tsx" name="Loop 7 template maintenance workspace &gt; keeps the current template when shadow revalidation fails" time="0.5664931">
+        </testcase>
+        <testcase classname="src/app/Loop7Templates.test.tsx" name="Loop 7 template maintenance workspace &gt; renders only server-declared lifecycle actions and never offers active publication" time="0.2191063">
+        </testcase>
+        <testcase classname="src/app/Loop7Templates.test.tsx" name="Loop 7 template maintenance workspace &gt; shows each template quality measure separately instead of a combined hit rate" time="0.2605688">
+        </testcase>
+        <testcase classname="src/app/Loop7Templates.test.tsx" name="Loop 7 template maintenance workspace &gt; keeps the editor landmarks and controls in a meaningful narrow-screen order" time="0.2367904">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/features/jobs/ActionBar.test.tsx" timestamp="2026-07-25T19:12:04.754Z" hostname="local-windows-host" tests="3" failures="0" errors="0" skipped="0" time="0.219018">
+        <testcase classname="src/features/jobs/ActionBar.test.tsx" name="ActionBar &gt; renders only actions that the backend marks visible" time="0.2081902">
+        </testcase>
+        <testcase classname="src/features/jobs/ActionBar.test.tsx" name="ActionBar &gt; places a backend-supplied reason beside every disabled action" time="0.0083963">
+        </testcase>
+        <testcase classname="src/features/jobs/ActionBar.test.tsx" name="ActionBar &gt; treats a disabled action without a reason as a contract error" time="0.0014215">
+        </testcase>
+    </testsuite>
+</testsuites>

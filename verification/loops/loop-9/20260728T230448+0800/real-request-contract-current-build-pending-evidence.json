@@ -1,0 +1,11 @@
+{
+  "current_build_sha256": "7ef06f92c77b204fd80d77495c8e3ba0b892deeaf91034494e6b89804e356548",
+  "detected_at": "2026-07-30T22:08:11.3610157+08:00",
+  "gate_id": "loop-9-real-request-contract",
+  "gate_status": "pending",
+  "previous_passed_build_sha256": "c7c12a46630a27e2f62fd7093ef22ea95ca78d6778f4b18b3569545fccd9645a",
+  "previous_validation_sha256": "95ffc1f793df13153cbf6b0931d3af6e933af544421284dd87c12add3b8534c0",
+  "reason": "A protected daily-contract source annotation changed after the successful validation. The previous evidence remains immutable but cannot pass the current-build gate.",
+  "required_next_action": "Finish all offline checks, freeze the build, then repeat the isolated read-contract validation under a new authorization window.",
+  "schema_version": 1
+}

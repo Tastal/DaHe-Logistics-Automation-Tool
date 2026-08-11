@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites name="vitest tests" tests="2" failures="2" errors="0" time="0">
+    <testsuite name="src/app/App.test.tsx" timestamp="2026-07-25T05:23:41.819Z" hostname="ProArtJH" tests="1" failures="1" errors="0" skipped="0" time="0">
+        <testcase classname="src/app/App.test.tsx" name="src/app/App.test.tsx" time="0">
+            <failure message="Failed to resolve import &quot;./App&quot; from &quot;src/app/App.test.tsx&quot;. Does the file exist?" type="Error">
+Error: Failed to resolve import &quot;./App&quot; from &quot;src/app/App.test.tsx&quot;. Does the file exist?
+  Plugin: vite:import-analysis
+  File: C:/Users/aya72/OneDrive/Desktop/AI开发/DaHe/frontend/src/app/App.test.tsx:10:7
+  2  |  import userEvent from &quot;@testing-library/user-event&quot;;
+  3  |  import { describe, expect, it, vi } from &quot;vitest&quot;;
+  4  |  import { App, ApiVersionMismatchError } from &quot;./App&quot;;
+     |                                                ^
+  5  |  var _jsxFileName = &quot;C:/Users/aya72/OneDrive/Desktop/AI开发/DaHe/frontend/src/app/App.test.tsx&quot;;
+  6  |  import { jsxDEV as _jsxDEV } from &quot;react/jsx-dev-runtime&quot;;
+ ❯ TransformPluginContext._formatLog ../../../AI%E5%BC%80%E5%8F%91/DaHe/frontend/node_modules/vite/dist/node/chunks/node.js:30416:39
+ ❯ TransformPluginContext.error ../../../AI%E5%BC%80%E5%8F%91/DaHe/frontend/node_modules/vite/dist/node/chunks/node.js:30413:14
+ ❯ normalizeUrl ../../../AI%E5%BC%80%E5%8F%91/DaHe/frontend/node_modules/vite/dist/node/chunks/node.js:27438:18
+ ❯ ../../../AI%E5%BC%80%E5%8F%91/DaHe/frontend/node_modules/vite/dist/node/chunks/node.js:27506:30
+ ❯ TransformPluginContext.transform ../../../AI%E5%BC%80%E5%8F%91/DaHe/frontend/node_modules/vite/dist/node/chunks/node.js:27474:4
+ ❯ EnvironmentPluginContainer.transform ../../../AI%E5%BC%80%E5%8F%91/DaHe/frontend/node_modules/vite/dist/node/chunks/node.js:30201:14
+ ❯ loadAndTransform ../../../AI%E5%BC%80%E5%8F%91/DaHe/frontend/node_modules/vite/dist/node/chunks/node.js:20124:26
+            </failure>
+        </testcase>
+    </testsuite>
+    <testsuite name="src/features/jobs/ActionBar.test.tsx" timestamp="2026-07-25T05:23:41.824Z" hostname="ProArtJH" tests="1" failures="1" errors="0" skipped="0" time="0">
+        <testcase classname="src/features/jobs/ActionBar.test.tsx" name="src/features/jobs/ActionBar.test.tsx" time="0">
+            <failure message="Failed to resolve import &quot;./ActionBar&quot; from &quot;src/features/jobs/ActionBar.test.tsx&quot;. Does the file exist?" type="Error">
+Error: Failed to resolve import &quot;./ActionBar&quot; from &quot;src/features/jobs/ActionBar.test.tsx&quot;. Does the file exist?
+  Plugin: vite:import-analysis
+  File: C:/Users/aya72/OneDrive/Desktop/AI开发/DaHe/frontend/src/features/jobs/ActionBar.test.tsx:5:45
+  2  |  import userEvent from &quot;@testing-library/user-event&quot;;
+  3  |  import { describe, expect, it, vi } from &quot;vitest&quot;;
+  4  |  import { ActionBar } from &quot;./ActionBar&quot;;
+     |                             ^
+  5  |  var _jsxFileName = &quot;C:/Users/aya72/OneDrive/Desktop/AI开发/DaHe/frontend/src/features/jobs/ActionBar.test.tsx&quot;;
+  6  |  import { jsxDEV as _jsxDEV } from &quot;react/jsx-dev-runtime&quot;;
+ ❯ TransformPluginContext._formatLog ../../../AI%E5%BC%80%E5%8F%91/DaHe/frontend/node_modules/vite/dist/node/chunks/node.js:30416:39
+ ❯ TransformPluginContext.error ../../../AI%E5%BC%80%E5%8F%91/DaHe/frontend/node_modules/vite/dist/node/chunks/node.js:30413:14
+ ❯ normalizeUrl ../../../AI%E5%BC%80%E5%8F%91/DaHe/frontend/node_modules/vite/dist/node/chunks/node.js:27438:18
+ ❯ ../../../AI%E5%BC%80%E5%8F%91/DaHe/frontend/node_modules/vite/dist/node/chunks/node.js:27506:30
+ ❯ TransformPluginContext.transform ../../../AI%E5%BC%80%E5%8F%91/DaHe/frontend/node_modules/vite/dist/node/chunks/node.js:27474:4
+ ❯ EnvironmentPluginContainer.transform ../../../AI%E5%BC%80%E5%8F%91/DaHe/frontend/node_modules/vite/dist/node/chunks/node.js:30201:14
+ ❯ loadAndTransform ../../../AI%E5%BC%80%E5%8F%91/DaHe/frontend/node_modules/vite/dist/node/chunks/node.js:20124:26
+            </failure>
+        </testcase>
+    </testsuite>
+</testsuites>

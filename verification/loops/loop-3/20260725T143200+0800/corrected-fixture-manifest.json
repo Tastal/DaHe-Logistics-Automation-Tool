@@ -1,0 +1,129 @@
+{
+  "schema_version": 1,
+  "loop_id": "loop-3",
+  "run_id": "20260725T143200+0800",
+  "correction_of_sha256": "1b0eeff9e30f08de1e429f7a064be40d188f510cadb23bb39a01a8f73942ae9a",
+  "fixture_namespace": "loop3-test-fixture",
+  "pipeline_fingerprint": "loop3-fake-ocr-v1",
+  "production_data_used": false,
+  "correction": {
+    "reason": "The frozen manifest marked fake audit exercises as business jobs, while DEVELOPMENT_GUIDE.md requires isolated Loop 3 exercises to use job_kind=test_fixture and forbids test fixtures from producing a BusinessOutcome.",
+    "preserved": [
+      "fixture identifiers",
+      "synthetic item identifiers",
+      "image hashes",
+      "review scenarios",
+      "resource capacities"
+    ],
+    "changed": [
+      "Both audit exercises use job_kind=test_fixture.",
+      "Expected simulation results are named fixture_result.",
+      "business_outcome remains null for every protected fixture item."
+    ]
+  },
+  "jobs": [
+    {
+      "fixture_id": "audit-batch-long-001",
+      "job_kind": "test_fixture",
+      "task_type": "audit",
+      "scope_label": "并行审核演练（长批次）",
+      "conflict_key": "audit:loop3-long-001",
+      "items": [
+        {
+          "item_key": "L3-LONG-001",
+          "fixture_result": "normal_ready",
+          "expected_status": "succeeded",
+          "business_outcome": null,
+          "loading_image_sha256": "1fb50147ce84e9978f1e1aae4ee0a6a3a4deeeb1a1b2d219b32640c6aa437b46",
+          "unloading_image_sha256": "01169e812fc3a3f179bfa23b41483bad959589959d69ba94070103b7cd6c8c91"
+        },
+        {
+          "item_key": "L3-LONG-002",
+          "fixture_result": "awaiting_review",
+          "expected_status": "waiting_user",
+          "review_reason": "suspected_swapped",
+          "business_outcome": null,
+          "loading_image_sha256": "0309c03cb5ad68a93c47255ba232cad6440408a640d16a9043b91d884a6d3dc7",
+          "unloading_image_sha256": "cc3ff89b47d00d7a82f5d0690de71e0b837542236b8c2e7eda7a07849ba1dabe"
+        },
+        {
+          "item_key": "L3-LONG-003",
+          "fixture_result": "awaiting_review",
+          "expected_status": "waiting_user",
+          "review_reason": "numeric_mismatch",
+          "business_outcome": null,
+          "loading_image_sha256": "ff290842f087c081774919a9bac24e54de6d13158e11393f3bb8693aa92c7623",
+          "unloading_image_sha256": "de667220697f731aa1c912f7fe49f3289a55cc764cdbd98532cedb0a66bbcb01"
+        },
+        {
+          "item_key": "L3-LONG-004",
+          "fixture_result": "normal_ready",
+          "expected_status": "succeeded",
+          "business_outcome": null,
+          "loading_image_sha256": "52f865758aaba0299633e826c412bc8d045a4678d2da31357f41759060e35e27",
+          "unloading_image_sha256": "5323d9dbc5396c5e8d155c8ae8d5cd22bdc24bc31a0212cf02ef3d0982103613"
+        },
+        {
+          "item_key": "L3-LONG-005",
+          "fixture_result": "normal_ready",
+          "expected_status": "succeeded",
+          "business_outcome": null,
+          "loading_image_sha256": "44b64207e985deefd44ef2bad7c6e94d3bf116dd5764269bc090fce55e1b612a",
+          "unloading_image_sha256": "944c8ef38d41c4f91a5a94709d27787f8f63ac02efd59320f183abf327cb1920"
+        },
+        {
+          "item_key": "L3-LONG-006",
+          "fixture_result": "normal_ready",
+          "expected_status": "succeeded",
+          "business_outcome": null,
+          "loading_image_sha256": "35bd0f4d43987b54439346614faae367040f53e60a7280a12c2f66f996876e5b",
+          "unloading_image_sha256": "dd38bed337a62882bc37813f78bdc1487871cbbd6645f975f1625daa85ea2b1d"
+        }
+      ]
+    },
+    {
+      "fixture_id": "audit-batch-short-002",
+      "job_kind": "test_fixture",
+      "task_type": "audit",
+      "scope_label": "并行审核演练（短批次）",
+      "conflict_key": "audit:loop3-short-002",
+      "items": [
+        {
+          "item_key": "L3-SHORT-101",
+          "fixture_result": "normal_ready",
+          "expected_status": "succeeded",
+          "business_outcome": null,
+          "loading_image_sha256": "52f865758aaba0299633e826c412bc8d045a4678d2da31357f41759060e35e27",
+          "unloading_image_sha256": "a68dea53c89b0efc17d4110c381f9c4abc2ad3a89ab1e0e336f4c654553fc300",
+          "shares_loading_image_with": "L3-LONG-004"
+        }
+      ]
+    },
+    {
+      "fixture_id": "loading-probe-001",
+      "job_kind": "test_fixture",
+      "task_type": "loading_probe",
+      "scope_label": "装卸车并行调度探针",
+      "conflict_key": "test_fixture:loading-probe-001",
+      "items": [
+        {
+          "item_key": "L3-PLATFORM-201",
+          "resource": "platform_browser",
+          "expected_status": "succeeded",
+          "business_outcome": null
+        },
+        {
+          "item_key": "L3-PLATFORM-202",
+          "resource": "platform_browser",
+          "expected_status": "succeeded",
+          "business_outcome": null
+        }
+      ]
+    }
+  ],
+  "notes": [
+    "All values and image hashes are synthetic and deterministic.",
+    "Fixture results drive only temporary exercise states and never become BusinessOutcome.",
+    "No fixture contains a Chengfeng host, credential, browser profile, production path, or real document."
+  ]
+}

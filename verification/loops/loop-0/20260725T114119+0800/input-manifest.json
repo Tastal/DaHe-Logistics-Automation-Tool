@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "loop": "loop-0",
+  "run_id": "20260725T114119+0800",
+  "run_mode": "shadow",
+  "baseline_git_commit": "9f84677a8b7b60e8dc56e8338d941c4b28bcd84e",
+  "inputs": [
+    {
+      "path": "AGENTS.md",
+      "sha256": "b064ed06e99c2ef8cc3e36e7afa3cab0c4941fbbdf9c2dcb52de10b1e916b113"
+    },
+    {
+      "path": "PRODUCT.md",
+      "sha256": "6bf0972b15db1b348e24340b8f2372a37929e49a657c4b2716e77fee2ae19bda"
+    },
+    {
+      "path": "DEVELOPMENT_GUIDE.md",
+      "sha256": "e3c02645d1c532308194cd7af45ea58ffb23ed7762818ea0e90a1e711c8db83e"
+    }
+  ],
+  "toolchain": {
+    "python": "3.12",
+    "node": "24.14.0",
+    "npm": "11.9.0"
+  },
+  "allowed_external_resources": [
+    "PyPI dependency resolution and download",
+    "npm lock verification with a project-local cache"
+  ],
+  "forbidden_external_resources": [
+    "Chengfeng platform",
+    "legacy project runtime",
+    "legacy database",
+    "legacy browser profile",
+    "VPN or system network configuration"
+  ],
+  "business_fixtures": []
+}

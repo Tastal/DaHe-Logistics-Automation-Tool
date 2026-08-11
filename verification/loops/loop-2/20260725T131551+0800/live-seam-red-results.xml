@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="1" failures="0" skipped="0" tests="1" time="0.557" timestamp="2026-07-25T13:40:00.503954+08:00" hostname="ProArtJH"><testcase classname="" name="tests.unit.api.test_sse" time="0.000"><error message="collection failure">ImportError while importing test module 'C:\Users\aya72\OneDrive\Desktop\AI开发\DaHe\tests\unit\api\test_sse.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+..\..\..\..\AppData\Local\Programs\Python\Python312\Lib\importlib\__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests\unit\api\test_sse.py:3: in &lt;module&gt;
+    from dahe.api.app import format_sse_message
+E   ImportError: cannot import name 'format_sse_message' from 'dahe.api.app' (C:\Users\aya72\OneDrive\Desktop\AI开发\DaHe\src\dahe\api\app.py)</error></testcase></testsuite></testsuites>

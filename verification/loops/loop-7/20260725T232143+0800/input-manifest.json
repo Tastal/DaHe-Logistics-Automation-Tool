@@ -1,0 +1,93 @@
+{
+  "schema_version": 1,
+  "project_id": "DaHeLogistics",
+  "loop_id": "loop-7",
+  "run_id": "20260725T232143+0800",
+  "frozen_at": "2026-07-25T23:21:43+08:00",
+  "git_baseline": {
+    "accepted_tag": "loop-6-accepted",
+    "attestation_commit": "0119db06f43d739bec6f8efc02b3962d0a1549e3",
+    "subject_commit": "4c792a79e60a70b8a0850bf9c587b2564310bfcd"
+  },
+  "sources": [
+    {
+      "path": "DEVELOPMENT_GUIDE.md",
+      "sha256": "b66afecd686101ff6a94c7461eab32bc028462f427ff294d751694f12612a207"
+    },
+    {
+      "path": "PRODUCT.md",
+      "sha256": "6bf0972b15db1b348e24340b8f2372a37929e49a657c4b2716e77fee2ae19bda"
+    },
+    {
+      "path": "AGENTS.md",
+      "sha256": "b064ed06e99c2ef8cc3e36e7afa3cab0c4941fbbdf9c2dcb52de10b1e916b113"
+    },
+    {
+      "path": "pyproject.toml",
+      "sha256": "ca1c39cf4441d686dc44906970f0e09685a0da04a8af2d04e85d1980a091ff9c"
+    },
+    {
+      "path": "requirements.lock",
+      "sha256": "af5be0963a67da4c7fd5263d865087a3e42722695f743df7281930b5dd132924"
+    },
+    {
+      "path": "docs/adr/ADR-004-separate-ocr-runtimes.md",
+      "sha256": "4c4e0721d8c3767bd8517795de42c4d4723e46a7d77d6410c678f9125184d527"
+    },
+    {
+      "path": "docs/adr/ADR-005-independent-ocr-extraction.md",
+      "sha256": "7f0d8182da8db11c91a21476ab63895f3ca3c31af3a7622ed51053673b93e867"
+    },
+    {
+      "path": "src/dahe/adapters/ocr/protocol.py",
+      "sha256": "876f1509212dc6c75ca902dc260518e38bb2a244ae00c7c2121035f909c9b4a6"
+    },
+    {
+      "path": "src/dahe/domain/audit/ticket_roles.py",
+      "sha256": "9918fabdf6c5fc850a6f555dd459cce40e2aa45b7b7570830a2b6a2aa50944a7"
+    }
+  ],
+  "fixture_manifest": {
+    "path": "verification/loops/loop-7/20260725T232143+0800/fixture-manifest.json",
+    "kind": "generated_synthetic",
+    "production_data": false
+  },
+  "authorized_scope": [
+    "One authoritative loading, unloading, and unknown role contract using the existing TicketRole enum",
+    "Immutable template versions with anchors, recognition regions, reference hashes, masks, alignment evidence, and canonical fingerprints",
+    "Draft, development_tested, and shadow lifecycle only, including append-only publication evidence and atomic shadow rollback",
+    "Low-cost role evidence from existing OCR text lines, fixed text, normalized geometry, and all shadow template families",
+    "Four-orientation matching that returns unknown for weak, ambiguous, conflicting, unknown-layout, and non-ticket evidence",
+    "A developer-protected template workbench under the System area with pointer and keyboard box editing",
+    "Synthetic development evaluation with separate metrics, confusion matrix, unknown rate, and P50/P95 incremental latency",
+    "Application version 0.7.0 while real_platform_access remains false"
+  ],
+  "forbidden_scope": [
+    "Real Chengfeng access, login, browser automation, credentials, production images, platform writes, or cloud OCR",
+    "Legacy project scripts, databases, runtimes, browser profiles, processes, ports, caches, or data mutation",
+    "Using platform weight, upload slot, file name, or expected role to select a template or rank role evidence",
+    "Changing the accepted OCR v1 worker protocol or rebuilding the Loop 6 runtime composition",
+    "Adding a second TicketRole, TicketSlot, scheduler, or frontend business state machine",
+    "Publishing an active or operational template, production switch, or Loop 8 audit integration",
+    "Treating synthetic fixtures, historical OCR samples, or old-program output as locked-set truth",
+    "Tuning code, templates, thresholds, mappings, rules, or labels after observing the locked acceptance set"
+  ],
+  "assumptions": [
+    "Existing OCR text lines and normalized boxes are sufficient to test the first low-cost role/template hypothesis without another full OCR pass.",
+    "The current exact OCR layout fingerprint is provenance only and is not a reusable layout similarity score.",
+    "The synthetic fixture proves contracts, safe unknown behavior, lifecycle, and metric calculation; it cannot prove real ticket accuracy.",
+    "A template shadow-pointer change affects only future jobs because running jobs freeze their template-set fingerprint.",
+    "The independent locked set is not yet available and its release gate must remain pending until the user supplies human-confirmed unseen samples."
+  ],
+  "gates": [
+    "loop-7-template-contract-and-versioning",
+    "loop-7-lifecycle-and-rollback",
+    "loop-7-role-evidence-independence",
+    "loop-7-rotation-and-unknown-safety",
+    "loop-7-waybill-role-conflict-routing",
+    "loop-7-workbench-api-and-accessibility",
+    "loop-7-development-evaluation-metrics",
+    "loop-7-offline-regression",
+    "loop-7-locked-set-release"
+  ]
+}

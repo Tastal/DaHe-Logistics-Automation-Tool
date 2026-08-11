@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "loop_id": "loop-7",
+  "run_id": "20260726T114209+0800",
+  "evaluated_at": "2026-07-26T11:42:09+08:00",
+  "subject_git_commit": "9abb53b2af0de72b60c6663ebc12cab4d6b5bb33",
+  "gates": [
+    {
+      "id": "loop-7-candidate-discovery-and-freeze",
+      "status": "passed",
+      "evidence": [
+        "verification/loops/loop-7/20260726T114209+0800/input-manifest.json",
+        "verification/loops/loop-7/20260726T114209+0800/candidate-review-package.json",
+        "verification/loops/loop-7/20260726T114209+0800/test-summary.json"
+      ],
+      "result": "Exactly 50 de-identified waybill identities and 100 unique image hashes were frozen from explicit immutable JSON and image sources. Known development and evaluation identities were excluded, conflicting duplicate sources were rejected, and every output command rejects the legacy root before writing."
+    },
+    {
+      "id": "loop-7-candidate-review-package-integrity",
+      "status": "passed",
+      "evidence": [
+        "verification/loops/loop-7/20260726T114209+0800/input-manifest.json",
+        "verification/loops/loop-7/20260726T114209+0800/candidate-review-package.json",
+        "verification/loops/loop-7/20260726T114209+0800/safety-observations.json"
+      ],
+      "result": "The sealed package passed the same fail-closed runtime loader used by the application. It binds the candidate index, source manifests, exclusion snapshots, 50 waybill identities, and all 100 rehashed local images without embedded truth."
+    },
+    {
+      "id": "loop-7-human-review-console-and-isolation",
+      "status": "passed",
+      "evidence": [
+        "verification/loops/loop-7/20260726T114209+0800/test-summary.json",
+        "verification/loops/loop-7/20260726T114209+0800/safety-observations.json",
+        "verification/loops/loop-7/20260726T114209+0800/independent-review.json"
+      ],
+      "result": "The local console shows 50 independent items, two original images, role, ordinary-net, orientation, quality, pair, replacement, and versioned save controls. Review mode starts no scheduler, template runtime, OCR runtime, platform adapter, or ordinary job write API."
+    },
+    {
+      "id": "loop-7-duplicate-upload-quality-contract",
+      "status": "passed",
+      "evidence": [
+        "verification/loops/loop-7/20260726T114209+0800/test-summary.json",
+        "verification/loops/loop-7/20260726T114209+0800/independent-review.json"
+      ],
+      "result": "Formal quality coverage now requires an independently reviewed duplicate-upload pair bound to one sample and its two distinct image hashes. Exact duplicate bytes remain covered by deterministic domain tests and are not duplicated inside the 100-unique-image base set."
+    },
+    {
+      "id": "loop-7-locked-set-release",
+      "status": "pending",
+      "evidence": [
+        "verification/loops/loop-7/20260726T114209+0800/input-manifest.json",
+        "verification/loops/loop-7/20260726T114209+0800/candidate-review-package.json",
+        "verification/loops/loop-7/20260726T114209+0800/safety-observations.json"
+      ],
+      "result": "All 50 records remain pending human review. Required real quality categories, replacements, the formal export and binding bridge, OCR evaluation, and independent evidence review have not passed. Loop 7 and real accuracy claims remain pending."
+    }
+  ],
+  "summary": {
+    "passed": 4,
+    "pending": 1,
+    "failed": 0,
+    "loop_status": "in_progress",
+    "release_claim": "candidate_review_ready_waiting_for_human_truth",
+    "loop_7_accepted": false
+  }
+}

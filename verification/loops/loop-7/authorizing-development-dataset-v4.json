@@ -1,0 +1,758 @@
+{
+    "schema_version": 1,
+    "kind": "authorizing_observation_dataset",
+    "dataset_id": "loop7-authorizing-development-v4",
+    "production_data": false,
+    "contains_credentials": false,
+    "contains_personal_data": false,
+    "description": "Code-authored synthetic OCR observations aligned with all four formal candidate seed anchor contracts and independent ticket markers; development lifecycle evidence only, never formal accuracy evidence.",
+    "observations": [
+        {
+            "case_id": "loading-clear",
+            "truth_role": "loading",
+            "truth_source": "code_authored_synthetic",
+            "quality_tags": [
+                "screen"
+            ],
+            "rotations": [
+                {
+                    "sample_id": "loading-clear@0",
+                    "orientation_degrees": 0,
+                    "observation_sha256": "0f02162e6be7753674997115b18bbae6657993127c11ea595b573524a3cb03d6",
+                    "ocr_lines": [
+                        {
+                            "text": "\u5ba2\u6237\u540d\u79f0",
+                            "confidence": "0.98",
+                            "box": {
+                                "x": "0.199",
+                                "y": "0.572666667",
+                                "width": "0.1105",
+                                "height": "0.046666666"
+                            }
+                        },
+                        {
+                            "text": "\u78c5\u5355",
+                            "confidence": "0.97",
+                            "box": {
+                                "x": "0.05",
+                                "y": "0.05",
+                                "width": "0.1",
+                                "height": "0.04"
+                            }
+                        },
+                        {
+                            "text": "\u51c0\u91cd",
+                            "confidence": "0.97",
+                            "box": {
+                                "x": "0.7",
+                                "y": "0.5",
+                                "width": "0.1",
+                                "height": "0.04"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "sample_id": "loading-clear@90",
+                    "orientation_degrees": 90,
+                    "observation_sha256": "f1cbef5590c03f84c6500d00bcfab011bc78f36548a0910c5c4e3a5043c6d013",
+                    "ocr_lines": [
+                        {
+                            "text": "\u5ba2\u6237\u540d\u79f0",
+                            "confidence": "0.98",
+                            "box": {
+                                "x": "0.380666667",
+                                "y": "0.199",
+                                "width": "0.046666666",
+                                "height": "0.1105"
+                            }
+                        },
+                        {
+                            "text": "\u78c5\u5355",
+                            "confidence": "0.97",
+                            "box": {
+                                "x": "0.91",
+                                "y": "0.05",
+                                "width": "0.04",
+                                "height": "0.1"
+                            }
+                        },
+                        {
+                            "text": "\u51c0\u91cd",
+                            "confidence": "0.97",
+                            "box": {
+                                "x": "0.46",
+                                "y": "0.7",
+                                "width": "0.04",
+                                "height": "0.1"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "sample_id": "loading-clear@180",
+                    "orientation_degrees": 180,
+                    "observation_sha256": "b350714434180c11aa3c62b846dd5ce1c47087b94cb0c4b77fc8baed6e5e097c",
+                    "ocr_lines": [
+                        {
+                            "text": "\u5ba2\u6237\u540d\u79f0",
+                            "confidence": "0.98",
+                            "box": {
+                                "x": "0.6905",
+                                "y": "0.380666667",
+                                "width": "0.1105",
+                                "height": "0.046666666"
+                            }
+                        },
+                        {
+                            "text": "\u78c5\u5355",
+                            "confidence": "0.97",
+                            "box": {
+                                "x": "0.85",
+                                "y": "0.91",
+                                "width": "0.1",
+                                "height": "0.04"
+                            }
+                        },
+                        {
+                            "text": "\u51c0\u91cd",
+                            "confidence": "0.97",
+                            "box": {
+                                "x": "0.2",
+                                "y": "0.46",
+                                "width": "0.1",
+                                "height": "0.04"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "sample_id": "loading-clear@270",
+                    "orientation_degrees": 270,
+                    "observation_sha256": "31be36da8b79bf778dffde2536fc55c6d83855c1ad93056665ed579134a7a6b9",
+                    "ocr_lines": [
+                        {
+                            "text": "\u5ba2\u6237\u540d\u79f0",
+                            "confidence": "0.98",
+                            "box": {
+                                "x": "0.572666667",
+                                "y": "0.6905",
+                                "width": "0.046666666",
+                                "height": "0.1105"
+                            }
+                        },
+                        {
+                            "text": "\u78c5\u5355",
+                            "confidence": "0.97",
+                            "box": {
+                                "x": "0.05",
+                                "y": "0.85",
+                                "width": "0.04",
+                                "height": "0.1"
+                            }
+                        },
+                        {
+                            "text": "\u51c0\u91cd",
+                            "confidence": "0.97",
+                            "box": {
+                                "x": "0.5",
+                                "y": "0.2",
+                                "width": "0.04",
+                                "height": "0.1"
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "case_id": "loading-save-success",
+            "truth_role": "loading",
+            "truth_source": "code_authored_synthetic",
+            "quality_tags": [
+                "screen"
+            ],
+            "rotations": [
+                {
+                    "sample_id": "loading-save-success@0",
+                    "orientation_degrees": 0,
+                    "observation_sha256": "1d39bf00611b580821380d70cc66aab7e84a567d46b5d217b3a2533f1e13541f",
+                    "ocr_lines": [
+                        {
+                            "text": "\u4fdd\u5b58\u6210\u529f",
+                            "confidence": "0.98",
+                            "box": {
+                                "x": "0.106481481",
+                                "y": "0.646875",
+                                "width": "0.195370371",
+                                "height": "0.036458333"
+                            }
+                        },
+                        {
+                            "text": "\u78c5\u5355",
+                            "confidence": "0.97",
+                            "box": {
+                                "x": "0.05",
+                                "y": "0.05",
+                                "width": "0.1",
+                                "height": "0.04"
+                            }
+                        },
+                        {
+                            "text": "\u51c0\u91cd",
+                            "confidence": "0.97",
+                            "box": {
+                                "x": "0.7",
+                                "y": "0.5",
+                                "width": "0.1",
+                                "height": "0.04"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "sample_id": "loading-save-success@90",
+                    "orientation_degrees": 90,
+                    "observation_sha256": "91a42ecfbc4510e90b60400b2ac1ba39f7707ff6bd3ce78a0f87d76860096c56",
+                    "ocr_lines": [
+                        {
+                            "text": "\u4fdd\u5b58\u6210\u529f",
+                            "confidence": "0.98",
+                            "box": {
+                                "x": "0.316666667",
+                                "y": "0.106481481",
+                                "width": "0.036458333",
+                                "height": "0.195370371"
+                            }
+                        },
+                        {
+                            "text": "\u78c5\u5355",
+                            "confidence": "0.97",
+                            "box": {
+                                "x": "0.91",
+                                "y": "0.05",
+                                "width": "0.04",
+                                "height": "0.1"
+                            }
+                        },
+                        {
+                            "text": "\u51c0\u91cd",
+                            "confidence": "0.97",
+                            "box": {
+                                "x": "0.46",
+                                "y": "0.7",
+                                "width": "0.04",
+                                "height": "0.1"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "sample_id": "loading-save-success@180",
+                    "orientation_degrees": 180,
+                    "observation_sha256": "6659e9e40a84bbe39f1023de87c5aab921d38ffb3b97def16be63455a636ce51",
+                    "ocr_lines": [
+                        {
+                            "text": "\u4fdd\u5b58\u6210\u529f",
+                            "confidence": "0.98",
+                            "box": {
+                                "x": "0.698148148",
+                                "y": "0.316666667",
+                                "width": "0.195370371",
+                                "height": "0.036458333"
+                            }
+                        },
+                        {
+                            "text": "\u78c5\u5355",
+                            "confidence": "0.97",
+                            "box": {
+                                "x": "0.85",
+                                "y": "0.91",
+                                "width": "0.1",
+                                "height": "0.04"
+                            }
+                        },
+                        {
+                            "text": "\u51c0\u91cd",
+                            "confidence": "0.97",
+                            "box": {
+                                "x": "0.2",
+                                "y": "0.46",
+                                "width": "0.1",
+                                "height": "0.04"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "sample_id": "loading-save-success@270",
+                    "orientation_degrees": 270,
+                    "observation_sha256": "b89280621674ae0fb77604e27987fc7f840d7db9c4a96c1eb7e70e269cc0b07f",
+                    "ocr_lines": [
+                        {
+                            "text": "\u4fdd\u5b58\u6210\u529f",
+                            "confidence": "0.98",
+                            "box": {
+                                "x": "0.646875",
+                                "y": "0.698148148",
+                                "width": "0.036458333",
+                                "height": "0.195370371"
+                            }
+                        },
+                        {
+                            "text": "\u78c5\u5355",
+                            "confidence": "0.97",
+                            "box": {
+                                "x": "0.05",
+                                "y": "0.85",
+                                "width": "0.04",
+                                "height": "0.1"
+                            }
+                        },
+                        {
+                            "text": "\u51c0\u91cd",
+                            "confidence": "0.97",
+                            "box": {
+                                "x": "0.5",
+                                "y": "0.2",
+                                "width": "0.04",
+                                "height": "0.1"
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "case_id": "loading-prompt-information",
+            "truth_role": "loading",
+            "truth_source": "code_authored_synthetic",
+            "quality_tags": [
+                "screen"
+            ],
+            "rotations": [
+                {
+                    "sample_id": "loading-prompt-information@0",
+                    "orientation_degrees": 0,
+                    "observation_sha256": "a58cef83d943bc1841322997c743b9011a5186b6bd4dd529d9a57b14fb069a52",
+                    "ocr_lines": [
+                        {
+                            "text": "\u63d0\u793a\u4fe1\u606f",
+                            "confidence": "0.98",
+                            "box": {
+                                "x": "0",
+                                "y": "0.564",
+                                "width": "0.141906874",
+                                "height": "0.026"
+                            }
+                        },
+                        {
+                            "text": "\u78c5\u5355",
+                            "confidence": "0.97",
+                            "box": {
+                                "x": "0.05",
+                                "y": "0.05",
+                                "width": "0.1",
+                                "height": "0.04"
+                            }
+                        },
+                        {
+                            "text": "\u51c0\u91cd",
+                            "confidence": "0.97",
+                            "box": {
+                                "x": "0.7",
+                                "y": "0.5",
+                                "width": "0.1",
+                                "height": "0.04"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "sample_id": "loading-prompt-information@90",
+                    "orientation_degrees": 90,
+                    "observation_sha256": "88c6f21dfb63f7e33d00ec02d352774e4eff89947d95e0cde6ed90216c3c0d2e",
+                    "ocr_lines": [
+                        {
+                            "text": "\u63d0\u793a\u4fe1\u606f",
+                            "confidence": "0.98",
+                            "box": {
+                                "x": "0.41",
+                                "y": "0",
+                                "width": "0.026",
+                                "height": "0.141906874"
+                            }
+                        },
+                        {
+                            "text": "\u78c5\u5355",
+                            "confidence": "0.97",
+                            "box": {
+                                "x": "0.91",
+                                "y": "0.05",
+                                "width": "0.04",
+                                "height": "0.1"
+                            }
+                        },
+                        {
+                            "text": "\u51c0\u91cd",
+                            "confidence": "0.97",
+                            "box": {
+                                "x": "0.46",
+                                "y": "0.7",
+                                "width": "0.04",
+                                "height": "0.1"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "sample_id": "loading-prompt-information@180",
+                    "orientation_degrees": 180,
+                    "observation_sha256": "71b84bcd58622cd95ee18deb76f4461ba9e9fc8582b0e9352cb153703e2265e4",
+                    "ocr_lines": [
+                        {
+                            "text": "\u63d0\u793a\u4fe1\u606f",
+                            "confidence": "0.98",
+                            "box": {
+                                "x": "0.858093126",
+                                "y": "0.41",
+                                "width": "0.141906874",
+                                "height": "0.026"
+                            }
+                        },
+                        {
+                            "text": "\u78c5\u5355",
+                            "confidence": "0.97",
+                            "box": {
+                                "x": "0.85",
+                                "y": "0.91",
+                                "width": "0.1",
+                                "height": "0.04"
+                            }
+                        },
+                        {
+                            "text": "\u51c0\u91cd",
+                            "confidence": "0.97",
+                            "box": {
+                                "x": "0.2",
+                                "y": "0.46",
+                                "width": "0.1",
+                                "height": "0.04"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "sample_id": "loading-prompt-information@270",
+                    "orientation_degrees": 270,
+                    "observation_sha256": "8ad586f91489667d50ca9224892d36a6d613c49603d461160d9932666d8ed638",
+                    "ocr_lines": [
+                        {
+                            "text": "\u63d0\u793a\u4fe1\u606f",
+                            "confidence": "0.98",
+                            "box": {
+                                "x": "0.564",
+                                "y": "0.858093126",
+                                "width": "0.026",
+                                "height": "0.141906874"
+                            }
+                        },
+                        {
+                            "text": "\u78c5\u5355",
+                            "confidence": "0.97",
+                            "box": {
+                                "x": "0.05",
+                                "y": "0.85",
+                                "width": "0.04",
+                                "height": "0.1"
+                            }
+                        },
+                        {
+                            "text": "\u51c0\u91cd",
+                            "confidence": "0.97",
+                            "box": {
+                                "x": "0.5",
+                                "y": "0.2",
+                                "width": "0.04",
+                                "height": "0.1"
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "case_id": "unloading-clear",
+            "truth_role": "unloading",
+            "truth_source": "code_authored_synthetic",
+            "quality_tags": [
+                "printed"
+            ],
+            "rotations": [
+                {
+                    "sample_id": "unloading-clear@0",
+                    "orientation_degrees": 0,
+                    "observation_sha256": "7e85e89898f9e2c79d05df956dbd4e488966502bfc3e25f8c155f4f3ae21aaf0",
+                    "ocr_lines": [
+                        {
+                            "text": "\u5de5\u5382\u51c0\u91cd",
+                            "confidence": "0.98",
+                            "box": {
+                                "x": "0.486",
+                                "y": "0.548666667",
+                                "width": "0.063",
+                                "height": "0.024"
+                            }
+                        },
+                        {
+                            "text": "\u78c5\u5355",
+                            "confidence": "0.97",
+                            "box": {
+                                "x": "0.05",
+                                "y": "0.05",
+                                "width": "0.1",
+                                "height": "0.04"
+                            }
+                        },
+                        {
+                            "text": "\u51c0\u91cd",
+                            "confidence": "0.97",
+                            "box": {
+                                "x": "0.7",
+                                "y": "0.5",
+                                "width": "0.1",
+                                "height": "0.04"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "sample_id": "unloading-clear@90",
+                    "orientation_degrees": 90,
+                    "observation_sha256": "fdf0f4925b8876d01d8652b39cc7c84892d90d97e1aa91ebb293210cef6e47e6",
+                    "ocr_lines": [
+                        {
+                            "text": "\u5de5\u5382\u51c0\u91cd",
+                            "confidence": "0.98",
+                            "box": {
+                                "x": "0.427333333",
+                                "y": "0.486",
+                                "width": "0.024",
+                                "height": "0.063"
+                            }
+                        },
+                        {
+                            "text": "\u78c5\u5355",
+                            "confidence": "0.97",
+                            "box": {
+                                "x": "0.91",
+                                "y": "0.05",
+                                "width": "0.04",
+                                "height": "0.1"
+                            }
+                        },
+                        {
+                            "text": "\u51c0\u91cd",
+                            "confidence": "0.97",
+                            "box": {
+                                "x": "0.46",
+                                "y": "0.7",
+                                "width": "0.04",
+                                "height": "0.1"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "sample_id": "unloading-clear@180",
+                    "orientation_degrees": 180,
+                    "observation_sha256": "21fc55fa12f3caa61755c7a0570e79f174721c1e8e92988f135e21ebc486914f",
+                    "ocr_lines": [
+                        {
+                            "text": "\u5de5\u5382\u51c0\u91cd",
+                            "confidence": "0.98",
+                            "box": {
+                                "x": "0.451",
+                                "y": "0.427333333",
+                                "width": "0.063",
+                                "height": "0.024"
+                            }
+                        },
+                        {
+                            "text": "\u78c5\u5355",
+                            "confidence": "0.97",
+                            "box": {
+                                "x": "0.85",
+                                "y": "0.91",
+                                "width": "0.1",
+                                "height": "0.04"
+                            }
+                        },
+                        {
+                            "text": "\u51c0\u91cd",
+                            "confidence": "0.97",
+                            "box": {
+                                "x": "0.2",
+                                "y": "0.46",
+                                "width": "0.1",
+                                "height": "0.04"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "sample_id": "unloading-clear@270",
+                    "orientation_degrees": 270,
+                    "observation_sha256": "a00d6534f5edfbeecf9eec430582b0ad26580457f363603751dc3c8043b2902e",
+                    "ocr_lines": [
+                        {
+                            "text": "\u5de5\u5382\u51c0\u91cd",
+                            "confidence": "0.98",
+                            "box": {
+                                "x": "0.548666667",
+                                "y": "0.451",
+                                "width": "0.024",
+                                "height": "0.063"
+                            }
+                        },
+                        {
+                            "text": "\u78c5\u5355",
+                            "confidence": "0.97",
+                            "box": {
+                                "x": "0.05",
+                                "y": "0.85",
+                                "width": "0.04",
+                                "height": "0.1"
+                            }
+                        },
+                        {
+                            "text": "\u51c0\u91cd",
+                            "confidence": "0.97",
+                            "box": {
+                                "x": "0.5",
+                                "y": "0.2",
+                                "width": "0.04",
+                                "height": "0.1"
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "case_id": "unknown-layout",
+            "truth_role": "unknown",
+            "truth_source": "code_authored_synthetic",
+            "quality_tags": [
+                "screen"
+            ],
+            "rotations": [
+                {
+                    "sample_id": "unknown-layout@0",
+                    "orientation_degrees": 0,
+                    "observation_sha256": "ebdc827ecbb0c7076e84e0dbceeb38c0e1a4cee76bebf548b27feea71e03b251",
+                    "ocr_lines": [
+                        {
+                            "text": "\u78c5\u5355",
+                            "confidence": "0.95",
+                            "box": {
+                                "x": "0.62",
+                                "y": "0.34",
+                                "width": "0.16",
+                                "height": "0.05"
+                            }
+                        },
+                        {
+                            "text": "\u51c0\u91cd",
+                            "confidence": "0.95",
+                            "box": {
+                                "x": "0.66",
+                                "y": "0.48",
+                                "width": "0.12",
+                                "height": "0.05"
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "case_id": "non-ticket",
+            "truth_role": "unknown",
+            "truth_source": "code_authored_synthetic",
+            "quality_tags": [
+                "other_document"
+            ],
+            "rotations": [
+                {
+                    "sample_id": "non-ticket@0",
+                    "orientation_degrees": 0,
+                    "observation_sha256": "d28962b457176ecbd567f77eab4bbbe964f609e238732ce69a62efccaab4088f",
+                    "ocr_lines": [
+                        {
+                            "text": "\u666e\u901a\u53d1\u7968",
+                            "confidence": "0.99",
+                            "box": {
+                                "x": "0.62",
+                                "y": "0.36",
+                                "width": "0.22",
+                                "height": "0.06"
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "case_id": "mixed-conflict",
+            "truth_role": "unknown",
+            "truth_source": "code_authored_synthetic",
+            "quality_tags": [
+                "printed"
+            ],
+            "rotations": [
+                {
+                    "sample_id": "mixed-conflict@0",
+                    "orientation_degrees": 0,
+                    "observation_sha256": "1d223d1895ebf6b043b475b1611a15fb1666c42805dd766e2afed34afc2b3b13",
+                    "ocr_lines": [
+                        {
+                            "text": "\u5ba2\u6237\u540d\u79f0",
+                            "confidence": "0.98",
+                            "box": {
+                                "x": "0.199",
+                                "y": "0.572666667",
+                                "width": "0.1105",
+                                "height": "0.046666666"
+                            }
+                        },
+                        {
+                            "text": "\u5de5\u5382\u51c0\u91cd",
+                            "confidence": "0.98",
+                            "box": {
+                                "x": "0.486",
+                                "y": "0.548666667",
+                                "width": "0.063",
+                                "height": "0.024"
+                            }
+                        }
+                    ]
+                }
+            ]
+        }
+    ],
+    "pair_cases": [
+        {
+            "case_id": "normal-pair",
+            "loading_sample_id": "loading-clear@0",
+            "unloading_sample_id": "unloading-clear@0",
+            "expected_issue": null
+        },
+        {
+            "case_id": "swapped-pair",
+            "loading_sample_id": "unloading-clear@0",
+            "unloading_sample_id": "loading-clear@0",
+            "expected_issue": "suspected_swapped"
+        }
+    ]
+}

@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=75", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dahe-browser-worker"
+version = "0.1.0"
+description = "Isolated read-only browser worker for DaHe Logistics"
+requires-python = ">=3.12,<3.13"
+dependencies = []
+
+[project.scripts]
+dahe-browser-worker = "dahe_browser_worker.__main__:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]

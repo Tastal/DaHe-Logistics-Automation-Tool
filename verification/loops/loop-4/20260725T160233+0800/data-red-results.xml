@@ -1,0 +1,421 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="12" skipped="0" tests="12" time="0.337" timestamp="2026-07-25T16:10:13.914583+08:00" hostname="ProArtJH"><testcase classname="tests.unit.data.test_content_addressed_store" name="test_put_bytes_is_content_addressed_and_deduplicated" time="0.019"><failure message="ModuleNotFoundError: No module named 'dahe.adapters.files'">tmp_path = WindowsPath('C:/Users/aya72/AppData/Local/Temp/pytest-of-aya72/pytest-367/test_put_bytes_is_content_addr0')
+
+    def test_put_bytes_is_content_addressed_and_deduplicated(tmp_path: Path) -&gt; None:
+&gt;       module = _module()
+                 ^^^^^^^^^
+
+tests\unit\data\test_content_addressed_store.py:22: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\unit\data\test_content_addressed_store.py:14: in _module
+    return importlib.import_module("dahe.adapters.files.content_addressed")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\AppData\Local\Programs\Python\Python312\Lib\importlib\__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+&lt;frozen importlib._bootstrap&gt;:1387: in _gcd_import
+    ???
+&lt;frozen importlib._bootstrap&gt;:1360: in _find_and_load
+    ???
+&lt;frozen importlib._bootstrap&gt;:1310: in _find_and_load_unlocked
+    ???
+&lt;frozen importlib._bootstrap&gt;:488: in _call_with_frames_removed
+    ???
+&lt;frozen importlib._bootstrap&gt;:1387: in _gcd_import
+    ???
+&lt;frozen importlib._bootstrap&gt;:1360: in _find_and_load
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+name = 'dahe.adapters.files'
+import_ = &lt;function _gcd_import at 0x00000251013EC0E0&gt;
+
+&gt;   ???
+E   ModuleNotFoundError: No module named 'dahe.adapters.files'
+
+&lt;frozen importlib._bootstrap&gt;:1324: ModuleNotFoundError</failure></testcase><testcase classname="tests.unit.data.test_content_addressed_store" name="test_read_bytes_rejects_a_corrupted_canonical_blob" time="0.002"><failure message="ModuleNotFoundError: No module named 'dahe.adapters.files'">tmp_path = WindowsPath('C:/Users/aya72/AppData/Local/Temp/pytest-of-aya72/pytest-367/test_read_bytes_rejects_a_corr0')
+
+    def test_read_bytes_rejects_a_corrupted_canonical_blob(tmp_path: Path) -&gt; None:
+&gt;       module = _module()
+                 ^^^^^^^^^
+
+tests\unit\data\test_content_addressed_store.py:44: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\unit\data\test_content_addressed_store.py:14: in _module
+    return importlib.import_module("dahe.adapters.files.content_addressed")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\AppData\Local\Programs\Python\Python312\Lib\importlib\__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+&lt;frozen importlib._bootstrap&gt;:1387: in _gcd_import
+    ???
+&lt;frozen importlib._bootstrap&gt;:1360: in _find_and_load
+    ???
+&lt;frozen importlib._bootstrap&gt;:1310: in _find_and_load_unlocked
+    ???
+&lt;frozen importlib._bootstrap&gt;:488: in _call_with_frames_removed
+    ???
+&lt;frozen importlib._bootstrap&gt;:1387: in _gcd_import
+    ???
+&lt;frozen importlib._bootstrap&gt;:1360: in _find_and_load
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+name = 'dahe.adapters.files'
+import_ = &lt;function _gcd_import at 0x00000251013EC0E0&gt;
+
+&gt;   ???
+E   ModuleNotFoundError: No module named 'dahe.adapters.files'
+
+&lt;frozen importlib._bootstrap&gt;:1324: ModuleNotFoundError</failure></testcase><testcase classname="tests.unit.data.test_content_addressed_store" name="test_recover_staging_removes_only_uncommitted_parts" time="0.002"><failure message="ModuleNotFoundError: No module named 'dahe.adapters.files'">tmp_path = WindowsPath('C:/Users/aya72/AppData/Local/Temp/pytest-of-aya72/pytest-367/test_recover_staging_removes_o0')
+
+    def test_recover_staging_removes_only_uncommitted_parts(tmp_path: Path) -&gt; None:
+&gt;       module = _module()
+                 ^^^^^^^^^
+
+tests\unit\data\test_content_addressed_store.py:55: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\unit\data\test_content_addressed_store.py:14: in _module
+    return importlib.import_module("dahe.adapters.files.content_addressed")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\AppData\Local\Programs\Python\Python312\Lib\importlib\__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+&lt;frozen importlib._bootstrap&gt;:1387: in _gcd_import
+    ???
+&lt;frozen importlib._bootstrap&gt;:1360: in _find_and_load
+    ???
+&lt;frozen importlib._bootstrap&gt;:1310: in _find_and_load_unlocked
+    ???
+&lt;frozen importlib._bootstrap&gt;:488: in _call_with_frames_removed
+    ???
+&lt;frozen importlib._bootstrap&gt;:1387: in _gcd_import
+    ???
+&lt;frozen importlib._bootstrap&gt;:1360: in _find_and_load
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+name = 'dahe.adapters.files'
+import_ = &lt;function _gcd_import at 0x00000251013EC0E0&gt;
+
+&gt;   ???
+E   ModuleNotFoundError: No module named 'dahe.adapters.files'
+
+&lt;frozen importlib._bootstrap&gt;:1324: ModuleNotFoundError</failure></testcase><testcase classname="tests.unit.data.test_content_addressed_store" name="test_read_bytes_rejects_unsafe_or_noncanonical_identity[../outside]" time="0.002"><failure message="ModuleNotFoundError: No module named 'dahe.adapters.files'">tmp_path = WindowsPath('C:/Users/aya72/AppData/Local/Temp/pytest-of-aya72/pytest-367/test_read_bytes_rejects_unsafe0')
+unsafe_identity = '../outside'
+
+    @pytest.mark.parametrize("unsafe_identity", ["../outside", "not-a-sha256", "A" * 64])
+    def test_read_bytes_rejects_unsafe_or_noncanonical_identity(
+        tmp_path: Path,
+        unsafe_identity: str,
+    ) -&gt; None:
+&gt;       module = _module()
+                 ^^^^^^^^^
+
+tests\unit\data\test_content_addressed_store.py:76: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\unit\data\test_content_addressed_store.py:14: in _module
+    return importlib.import_module("dahe.adapters.files.content_addressed")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\AppData\Local\Programs\Python\Python312\Lib\importlib\__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+&lt;frozen importlib._bootstrap&gt;:1387: in _gcd_import
+    ???
+&lt;frozen importlib._bootstrap&gt;:1360: in _find_and_load
+    ???
+&lt;frozen importlib._bootstrap&gt;:1310: in _find_and_load_unlocked
+    ???
+&lt;frozen importlib._bootstrap&gt;:488: in _call_with_frames_removed
+    ???
+&lt;frozen importlib._bootstrap&gt;:1387: in _gcd_import
+    ???
+&lt;frozen importlib._bootstrap&gt;:1360: in _find_and_load
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+name = 'dahe.adapters.files'
+import_ = &lt;function _gcd_import at 0x00000251013EC0E0&gt;
+
+&gt;   ???
+E   ModuleNotFoundError: No module named 'dahe.adapters.files'
+
+&lt;frozen importlib._bootstrap&gt;:1324: ModuleNotFoundError</failure></testcase><testcase classname="tests.unit.data.test_content_addressed_store" name="test_read_bytes_rejects_unsafe_or_noncanonical_identity[not-a-sha256]" time="0.003"><failure message="ModuleNotFoundError: No module named 'dahe.adapters.files'">tmp_path = WindowsPath('C:/Users/aya72/AppData/Local/Temp/pytest-of-aya72/pytest-367/test_read_bytes_rejects_unsafe1')
+unsafe_identity = 'not-a-sha256'
+
+    @pytest.mark.parametrize("unsafe_identity", ["../outside", "not-a-sha256", "A" * 64])
+    def test_read_bytes_rejects_unsafe_or_noncanonical_identity(
+        tmp_path: Path,
+        unsafe_identity: str,
+    ) -&gt; None:
+&gt;       module = _module()
+                 ^^^^^^^^^
+
+tests\unit\data\test_content_addressed_store.py:76: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\unit\data\test_content_addressed_store.py:14: in _module
+    return importlib.import_module("dahe.adapters.files.content_addressed")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\AppData\Local\Programs\Python\Python312\Lib\importlib\__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+&lt;frozen importlib._bootstrap&gt;:1387: in _gcd_import
+    ???
+&lt;frozen importlib._bootstrap&gt;:1360: in _find_and_load
+    ???
+&lt;frozen importlib._bootstrap&gt;:1310: in _find_and_load_unlocked
+    ???
+&lt;frozen importlib._bootstrap&gt;:488: in _call_with_frames_removed
+    ???
+&lt;frozen importlib._bootstrap&gt;:1387: in _gcd_import
+    ???
+&lt;frozen importlib._bootstrap&gt;:1360: in _find_and_load
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+name = 'dahe.adapters.files'
+import_ = &lt;function _gcd_import at 0x00000251013EC0E0&gt;
+
+&gt;   ???
+E   ModuleNotFoundError: No module named 'dahe.adapters.files'
+
+&lt;frozen importlib._bootstrap&gt;:1324: ModuleNotFoundError</failure></testcase><testcase classname="tests.unit.data.test_content_addressed_store" name="test_read_bytes_rejects_unsafe_or_noncanonical_identity[AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA]" time="0.003"><failure message="ModuleNotFoundError: No module named 'dahe.adapters.files'">tmp_path = WindowsPath('C:/Users/aya72/AppData/Local/Temp/pytest-of-aya72/pytest-367/test_read_bytes_rejects_unsafe2')
+unsafe_identity = 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
+
+    @pytest.mark.parametrize("unsafe_identity", ["../outside", "not-a-sha256", "A" * 64])
+    def test_read_bytes_rejects_unsafe_or_noncanonical_identity(
+        tmp_path: Path,
+        unsafe_identity: str,
+    ) -&gt; None:
+&gt;       module = _module()
+                 ^^^^^^^^^
+
+tests\unit\data\test_content_addressed_store.py:76: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\unit\data\test_content_addressed_store.py:14: in _module
+    return importlib.import_module("dahe.adapters.files.content_addressed")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\AppData\Local\Programs\Python\Python312\Lib\importlib\__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+&lt;frozen importlib._bootstrap&gt;:1387: in _gcd_import
+    ???
+&lt;frozen importlib._bootstrap&gt;:1360: in _find_and_load
+    ???
+&lt;frozen importlib._bootstrap&gt;:1310: in _find_and_load_unlocked
+    ???
+&lt;frozen importlib._bootstrap&gt;:488: in _call_with_frames_removed
+    ???
+&lt;frozen importlib._bootstrap&gt;:1387: in _gcd_import
+    ???
+&lt;frozen importlib._bootstrap&gt;:1360: in _find_and_load
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+name = 'dahe.adapters.files'
+import_ = &lt;function _gcd_import at 0x00000251013EC0E0&gt;
+
+&gt;   ???
+E   ModuleNotFoundError: No module named 'dahe.adapters.files'
+
+&lt;frozen importlib._bootstrap&gt;:1324: ModuleNotFoundError</failure></testcase><testcase classname="tests.integration.test_loop4_data_foundation" name="test_fresh_runtime_is_at_migration_head_with_required_sqlite_pragmas" time="0.004"><failure message="ModuleNotFoundError: No module named 'dahe.adapters.sqlite.runtime'">tmp_path = WindowsPath('C:/Users/aya72/AppData/Local/Temp/pytest-of-aya72/pytest-367/test_fresh_runtime_is_at_migra0')
+project_root = WindowsPath('C:/Users/aya72/OneDrive/Desktop/AI开发/DaHe')
+
+    def test_fresh_runtime_is_at_migration_head_with_required_sqlite_pragmas(
+        tmp_path: Path,
+        project_root: Path,
+    ) -&gt; None:
+&gt;       runtime = _runtime(tmp_path, project_root)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\integration\test_loop4_data_foundation.py:89: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\integration\test_loop4_data_foundation.py:31: in _runtime
+    runtime_module = _module("dahe.adapters.sqlite.runtime")
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests\integration\test_loop4_data_foundation.py:22: in _module
+    return importlib.import_module(name)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\AppData\Local\Programs\Python\Python312\Lib\importlib\__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+&lt;frozen importlib._bootstrap&gt;:1387: in _gcd_import
+    ???
+&lt;frozen importlib._bootstrap&gt;:1360: in _find_and_load
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+name = 'dahe.adapters.sqlite.runtime'
+import_ = &lt;function _gcd_import at 0x00000251013EC0E0&gt;
+
+&gt;   ???
+E   ModuleNotFoundError: No module named 'dahe.adapters.sqlite.runtime'
+
+&lt;frozen importlib._bootstrap&gt;:1324: ModuleNotFoundError</failure></testcase><testcase classname="tests.integration.test_loop4_data_foundation" name="test_import_bundle_is_atomic_idempotent_and_keeps_one_blob_per_hash" time="0.004"><failure message="ModuleNotFoundError: No module named 'dahe.adapters.sqlite.runtime'">tmp_path = WindowsPath('C:/Users/aya72/AppData/Local/Temp/pytest-of-aya72/pytest-367/test_import_bundle_is_atomic_i0')
+project_root = WindowsPath('C:/Users/aya72/OneDrive/Desktop/AI开发/DaHe')
+
+    def test_import_bundle_is_atomic_idempotent_and_keeps_one_blob_per_hash(
+        tmp_path: Path,
+        project_root: Path,
+    ) -&gt; None:
+&gt;       runtime = _runtime(tmp_path, project_root)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\integration\test_loop4_data_foundation.py:109: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\integration\test_loop4_data_foundation.py:31: in _runtime
+    runtime_module = _module("dahe.adapters.sqlite.runtime")
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests\integration\test_loop4_data_foundation.py:22: in _module
+    return importlib.import_module(name)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\AppData\Local\Programs\Python\Python312\Lib\importlib\__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+&lt;frozen importlib._bootstrap&gt;:1387: in _gcd_import
+    ???
+&lt;frozen importlib._bootstrap&gt;:1360: in _find_and_load
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+name = 'dahe.adapters.sqlite.runtime'
+import_ = &lt;function _gcd_import at 0x00000251013EC0E0&gt;
+
+&gt;   ???
+E   ModuleNotFoundError: No module named 'dahe.adapters.sqlite.runtime'
+
+&lt;frozen importlib._bootstrap&gt;:1324: ModuleNotFoundError</failure></testcase><testcase classname="tests.integration.test_loop4_data_foundation" name="test_failure_inside_snapshot_transaction_leaves_no_partial_business_rows" time="0.003"><failure message="ModuleNotFoundError: No module named 'dahe.adapters.sqlite.runtime'">tmp_path = WindowsPath('C:/Users/aya72/AppData/Local/Temp/pytest-of-aya72/pytest-367/test_failure_inside_snapshot_t0')
+project_root = WindowsPath('C:/Users/aya72/OneDrive/Desktop/AI开发/DaHe')
+
+    def test_failure_inside_snapshot_transaction_leaves_no_partial_business_rows(
+        tmp_path: Path,
+        project_root: Path,
+    ) -&gt; None:
+&gt;       runtime = _runtime(tmp_path, project_root)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\integration\test_loop4_data_foundation.py:132: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\integration\test_loop4_data_foundation.py:31: in _runtime
+    runtime_module = _module("dahe.adapters.sqlite.runtime")
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests\integration\test_loop4_data_foundation.py:22: in _module
+    return importlib.import_module(name)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\AppData\Local\Programs\Python\Python312\Lib\importlib\__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+&lt;frozen importlib._bootstrap&gt;:1387: in _gcd_import
+    ???
+&lt;frozen importlib._bootstrap&gt;:1360: in _find_and_load
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+name = 'dahe.adapters.sqlite.runtime'
+import_ = &lt;function _gcd_import at 0x00000251013EC0E0&gt;
+
+&gt;   ???
+E   ModuleNotFoundError: No module named 'dahe.adapters.sqlite.runtime'
+
+&lt;frozen importlib._bootstrap&gt;:1324: ModuleNotFoundError</failure></testcase><testcase classname="tests.integration.test_loop4_data_foundation" name="test_hold_blocks_cleanup_and_cleanup_claim_races_safely_with_new_reference" time="0.002"><failure message="ModuleNotFoundError: No module named 'dahe.adapters.sqlite.runtime'">tmp_path = WindowsPath('C:/Users/aya72/AppData/Local/Temp/pytest-of-aya72/pytest-367/test_hold_blocks_cleanup_and_c0')
+project_root = WindowsPath('C:/Users/aya72/OneDrive/Desktop/AI开发/DaHe')
+
+    def test_hold_blocks_cleanup_and_cleanup_claim_races_safely_with_new_reference(
+        tmp_path: Path,
+        project_root: Path,
+    ) -&gt; None:
+&gt;       runtime = _runtime(tmp_path, project_root)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\integration\test_loop4_data_foundation.py:167: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\integration\test_loop4_data_foundation.py:31: in _runtime
+    runtime_module = _module("dahe.adapters.sqlite.runtime")
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests\integration\test_loop4_data_foundation.py:22: in _module
+    return importlib.import_module(name)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\AppData\Local\Programs\Python\Python312\Lib\importlib\__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+&lt;frozen importlib._bootstrap&gt;:1387: in _gcd_import
+    ???
+&lt;frozen importlib._bootstrap&gt;:1360: in _find_and_load
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+name = 'dahe.adapters.sqlite.runtime'
+import_ = &lt;function _gcd_import at 0x00000251013EC0E0&gt;
+
+&gt;   ???
+E   ModuleNotFoundError: No module named 'dahe.adapters.sqlite.runtime'
+
+&lt;frozen importlib._bootstrap&gt;:1324: ModuleNotFoundError</failure></testcase><testcase classname="tests.integration.test_loop4_data_foundation" name="test_online_backup_restores_database_and_evidence_to_an_empty_temporary_root" time="0.002"><failure message="ModuleNotFoundError: No module named 'dahe.adapters.sqlite.runtime'">tmp_path = WindowsPath('C:/Users/aya72/AppData/Local/Temp/pytest-of-aya72/pytest-367/test_online_backup_restores_da0')
+project_root = WindowsPath('C:/Users/aya72/OneDrive/Desktop/AI开发/DaHe')
+
+    def test_online_backup_restores_database_and_evidence_to_an_empty_temporary_root(
+        tmp_path: Path,
+        project_root: Path,
+    ) -&gt; None:
+        source_root = tmp_path / "source"
+        restore_root = tmp_path / "restored"
+&gt;       runtime = _runtime(source_root, project_root, instance_id="backup-source")
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\integration\test_loop4_data_foundation.py:268: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\integration\test_loop4_data_foundation.py:31: in _runtime
+    runtime_module = _module("dahe.adapters.sqlite.runtime")
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests\integration\test_loop4_data_foundation.py:22: in _module
+    return importlib.import_module(name)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\AppData\Local\Programs\Python\Python312\Lib\importlib\__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+&lt;frozen importlib._bootstrap&gt;:1387: in _gcd_import
+    ???
+&lt;frozen importlib._bootstrap&gt;:1360: in _find_and_load
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+name = 'dahe.adapters.sqlite.runtime'
+import_ = &lt;function _gcd_import at 0x00000251013EC0E0&gt;
+
+&gt;   ???
+E   ModuleNotFoundError: No module named 'dahe.adapters.sqlite.runtime'
+
+&lt;frozen importlib._bootstrap&gt;:1324: ModuleNotFoundError</failure></testcase><testcase classname="tests.integration.test_loop4_data_foundation" name="test_restore_refuses_a_nonempty_target" time="0.002"><failure message="ModuleNotFoundError: No module named 'dahe.adapters.sqlite.runtime'">tmp_path = WindowsPath('C:/Users/aya72/AppData/Local/Temp/pytest-of-aya72/pytest-367/test_restore_refuses_a_nonempt0')
+project_root = WindowsPath('C:/Users/aya72/OneDrive/Desktop/AI开发/DaHe')
+
+    def test_restore_refuses_a_nonempty_target(
+        tmp_path: Path,
+        project_root: Path,
+    ) -&gt; None:
+        source_root = tmp_path / "source"
+&gt;       runtime = _runtime(source_root, project_root, instance_id="backup-source")
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\integration\test_loop4_data_foundation.py:306: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\integration\test_loop4_data_foundation.py:31: in _runtime
+    runtime_module = _module("dahe.adapters.sqlite.runtime")
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests\integration\test_loop4_data_foundation.py:22: in _module
+    return importlib.import_module(name)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\AppData\Local\Programs\Python\Python312\Lib\importlib\__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+&lt;frozen importlib._bootstrap&gt;:1387: in _gcd_import
+    ???
+&lt;frozen importlib._bootstrap&gt;:1360: in _find_and_load
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+name = 'dahe.adapters.sqlite.runtime'
+import_ = &lt;function _gcd_import at 0x00000251013EC0E0&gt;
+
+&gt;   ???
+E   ModuleNotFoundError: No module named 'dahe.adapters.sqlite.runtime'
+
+&lt;frozen importlib._bootstrap&gt;:1324: ModuleNotFoundError</failure></testcase></testsuite></testsuites>

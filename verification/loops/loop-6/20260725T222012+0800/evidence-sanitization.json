@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "loop_id": "loop-6",
+  "qualification_run_id": "20260725T222012+0800",
+  "junit": [
+    {
+      "path": "verification/loops/loop-6/20260725T222012+0800/test-results.xml",
+      "raw_sha256": "8ffa942e5fa552789e29310f628c176a12ec0b55958b3f5fe87aa80e054fb653",
+      "intermediate_sha256": "cdb942fcdab6a6fb0d07f47e3cb4f9c91d86fac22768da4c871fcd79ff50aed0",
+      "sanitized_sha256": "e874bd0006fa540873ba6d64c2aaff7a2049ab10edeb3991e21a69c1ec9da229"
+    },
+    {
+      "path": "verification/loops/loop-6/20260725T222012+0800/loop6-test-results.xml",
+      "raw_sha256": "060f55e9c3c4c32400cea4a9d20ba4d9bfe871d52061193f0f1a3206b13c8f82",
+      "intermediate_sha256": "628d0cee2ebbffaf8509073dae0f5a3bb252ce7805826711279d8b9363bfddf7",
+      "sanitized_sha256": "65a9c5e7b26a4bdb4a3e5715ff8214afeaf7cab0fc7ab16702b01c4d95b17969"
+    },
+    {
+      "path": "verification/loops/loop-6/20260725T222012+0800/frontend-test-results.xml",
+      "raw_sha256": "7646353b4f460f2c942678466cae1fb1353608c2127918bece15a7e72a523d9a",
+      "sanitized_sha256": "2b454591180df3ffd8da9f61296d3e5fbe4e17dbee9f86637ccc789026b2b114"
+    }
+  ],
+  "transformations": [
+    "The local Windows host name was replaced with local-windows-host.",
+    "The local user-profile prefix was replaced with %USERPROFILE%.",
+    "Escaped or synthetic doubled-backslash Windows user-profile paths were replaced with %SYNTHETIC_USERPROFILE%.",
+    "The local user name and pytest per-user temporary-directory label were replaced with neutral values.",
+    "No test count, case name, duration, failure, error, or skip outcome was changed.",
+    "Files were written as UTF-8 without BOM."
+  ],
+  "forbidden_value_scan": {
+    "raw_local_host_matches": 0,
+    "raw_user_profile_matches": 0,
+    "raw_user_name_matches": 0,
+    "pytest_user_directory_matches": 0,
+    "doubled_user_path_matches": 0,
+    "raw_gpu_uuid_matches": 0
+  },
+  "status": "passed"
+}

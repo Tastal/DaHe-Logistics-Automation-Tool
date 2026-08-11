@@ -1,0 +1,54 @@
+# Python environments and caches
+.venv/
+.runtime/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+.tmp/
+!verification/loops/**/coverage.xml
+
+# Build outputs
+build/
+dist/
+*.egg-info/
+
+# Frontend generated files
+node_modules/
+frontend/node_modules/
+frontend/.npm-cache/
+frontend/dist/
+frontend/*.tsbuildinfo
+output/
+.playwright-cli/
+.schemathesis/
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+*.local.json
+*.secret.*
+
+# Runtime data must stay outside the repository
+*.sqlite
+*.sqlite3
+*.db
+verification/.loop-ledger.json.lock
+logs/
+evidence/
+browser-profile/
+credentials/
+backups/
+quarantine/
+
+# Editor and operating-system files
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+Desktop.ini

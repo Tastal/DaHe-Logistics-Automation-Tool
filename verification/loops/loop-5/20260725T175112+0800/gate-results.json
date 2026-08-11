@@ -1,0 +1,96 @@
+{
+  "schema_version": 1,
+  "loop_id": "loop-5",
+  "run_id": "20260725T175112+0800",
+  "evaluated_at": "2026-07-25T19:03:44+08:00",
+  "subject_git_commit": "8c24828997d0f7781ba859ff559fa40b298ed9ca",
+  "gates": [
+    {
+      "id": "loop-5-frozen-adapter-contract",
+      "status": "passed",
+      "evidence": [
+        "verification/loops/loop-5/20260725T175112+0800/loop5-test-results.xml",
+        "verification/loops/loop-5/20260725T175112+0800/offline-replay-results.json",
+        "verification/loops/loop-5/20260725T175112+0800/commands.jsonl",
+        "verification/loops/loop-5/20260725T175112+0800/independent-review-final.json"
+      ],
+      "result": "A sanitized manifest with one HTTPS .invalid origin exposes exactly list, detail, and image reads. The transport verifies fixture identities and replays without sockets. Every durable happy, fault, and restart path now crosses the strict command/result NDJSON boundary before typed data can reach a checkpoint."
+    },
+    {
+      "id": "loop-5-deny-by-default-request-firewall",
+      "status": "passed",
+      "evidence": [
+        "verification/loops/loop-5/20260725T175112+0800/loop5-test-results.xml",
+        "verification/loops/loop-5/20260725T175112+0800/fault-injection.json",
+        "verification/loops/loop-5/20260725T175112+0800/safety-observations.json"
+      ],
+      "result": "Requests require an exact manifest match for origin, canonical path, method, parameter location, keys, values, and value types. Redirects, unknown operations, generic requests, writes, deceptive origins, and mutated manifest data are denied before transport execution."
+    },
+    {
+      "id": "loop-5-error-classification-and-dns-nonblocking",
+      "status": "passed",
+      "evidence": [
+        "verification/loops/loop-5/20260725T175112+0800/loop5-test-results.xml",
+        "verification/loops/loop-5/20260725T175112+0800/fault-injection.json",
+        "verification/loops/loop-5/20260725T175112+0800/safety-observations.json"
+      ],
+      "result": "Login required, page contract changed, image timeout, transient network, browser closed, and protocol failure remain distinct technical outcomes. DNS false and probe exceptions are safe non-blocking diagnostics, and impossible operation/diagnostic combinations are rejected."
+    },
+    {
+      "id": "loop-5-browser-checkpoint-rebuild",
+      "status": "passed",
+      "evidence": [
+        "verification/loops/loop-5/20260725T175112+0800/test-results.xml",
+        "verification/loops/loop-5/20260725T175112+0800/fault-injection.json",
+        "verification/loops/loop-5/20260725T175112+0800/offline-replay-results.json",
+        "verification/loops/loop-5/20260725T175112+0800/independent-review-final.json"
+      ],
+      "result": "The existing BrowserControlSession is the only navigation authority. Commands are fenced before the runtime read, around staged-result verification, and inside the SQLite commit transaction. Recovery preserves session, instance, and job ownership, rotates epoch and token, retries only the uncommitted atomic read, and process restart resumes from the last durable checkpoint."
+    },
+    {
+      "id": "loop-5-sensitive-data-redaction",
+      "status": "passed",
+      "evidence": [
+        "verification/loops/loop-5/20260725T175112+0800/loop5-test-results.xml",
+        "verification/loops/loop-5/20260725T175112+0800/safety-observations.json",
+        "verification/loops/loop-5/20260725T175112+0800/independent-review-final.json"
+      ],
+      "result": "Manifest loading mechanically rejects credential and personal-data patterns. Diagnostics contain only safe classifications and hashes. Raw browser tokens are excluded from object representations and checkpoint JSON, while protocol results carry only command-scoped relative references and verified metadata."
+    },
+    {
+      "id": "loop-5-no-platform-write-surface",
+      "status": "passed",
+      "evidence": [
+        "verification/loops/loop-5/20260725T175112+0800/loop5-test-results.xml",
+        "verification/loops/loop-5/20260725T175112+0800/commands.jsonl",
+        "verification/loops/loop-5/20260725T175112+0800/safety-observations.json",
+        "verification/loops/loop-5/20260725T175112+0800/independent-review-final.json"
+      ],
+      "result": "Source, protocol enums, metadata, and OpenAPI contain no settlement confirmation, payment, receipt cancellation, generic platform request, or other Chengfeng write operation. Static scans found no HTTP client, Playwright, or socket dependency in the connector surface."
+    },
+    {
+      "id": "loop-5-offline-regression",
+      "status": "passed",
+      "evidence": [
+        "verification/loops/loop-5/20260725T175112+0800/test-results.xml",
+        "verification/loops/loop-5/20260725T175112+0800/frontend-test-results.xml",
+        "verification/loops/loop-5/20260725T175112+0800/coverage.xml",
+        "verification/loops/loop-5/20260725T175112+0800/loop5-test-results.xml",
+        "verification/loops/loop-5/20260725T175112+0800/commands.jsonl",
+        "verification/loops/loop-5/20260725T175112+0800/offline-replay-results.json",
+        "verification/loops/loop-5/20260725T175112+0800/independent-review-final.json"
+      ],
+      "result": "The authoritative check passed Ruff, mypy, 375 Python tests with one environment-limited skip, 25 frontend tests, frontend lint and typecheck, and the production build. The 24-test recovery and failure subset passed ten consecutive runs, and completed replay performed zero platform reads."
+    }
+  ],
+  "unresolved_blockers": [],
+  "non_blocking_limits": [
+    "All validation used a synthetic .invalid contract. Real Chengfeng host, endpoint, redirect, login, payload, and response compatibility remain unknown and require a separately approved read-only capture window.",
+    "The frozen runtime executes the versioned NDJSON boundary in-process for offline contract proof. A real isolated browser subprocess and its production wiring are not implemented or authorized in Loop 5.",
+    "The normal operator console remains wired to deterministic fake business adapters. Loop 5 does not expose this connector through the local API or enable real platform access.",
+    "One symlink test was skipped because this Windows account lacks symlink creation privilege; the implementation and other tests still cover symlink mode, Windows reparse attributes, traversal, reserved names, cross-command paths, staging shapes, hashes, sizes, and media signatures.",
+    "The four synthetic image responses have identical bytes. This proves content deduplication and four retained business references but cannot detect ticket-to-image mapping swaps.",
+    "The synthetic login marker proves error routing only and does not establish compatibility with a real login page, status code, or redirect flow."
+  ],
+  "status": "passed"
+}

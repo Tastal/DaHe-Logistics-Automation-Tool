@@ -1,0 +1,55 @@
+{
+  "captured_at": "2026-07-28T22:19:52.8726904+08:00",
+  "baseline_git_commit": "0e9a78c381c3b1b9719871182690b7032b3f3d94",
+  "scope": "post-loop-8 operator-console density and redacted runtime diagnostics",
+  "external_access": {
+    "chengfeng": false,
+    "legacy_project": false,
+    "legacy_database": false,
+    "legacy_browser_profile": false
+  },
+  "fixture": {
+    "kind": "isolated local test fixture",
+    "origin": "http://127.0.0.1:8899",
+    "production_data": false
+  },
+  "checks": [
+    {
+      "command": ".\\.venv\\Scripts\\python.exe tools\\check.py",
+      "result": "passed",
+      "details": "ruff passed; mypy passed for 187 source files; pytest 1387 passed and 4 skipped; frontend boundary, lint, typecheck, 101 tests, and build passed"
+    },
+    {
+      "command": "npm.cmd --prefix frontend run test:e2e",
+      "result": "passed",
+      "details": "5 Edge-based Playwright checks passed at 1366x768, 1920x1080, and 125%, 150%, 200% equivalent viewports"
+    },
+    {
+      "command": "git diff --check",
+      "result": "passed"
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "freight-review-1366x768.png",
+      "sha256": "f9b4e38f8f6707b529541df66974aa0516fb79315793670b1b86d53549abd4a2"
+    },
+    {
+      "path": "runtime-diagnostics-1366x768.png",
+      "sha256": "96120592c927292601667678ebede761017638a629ca4725104a112289af4f9b"
+    },
+    {
+      "path": "../../../tests/unit/diagnostics/test_runtime_log.py",
+      "sha256": "03fb875a725b7cef6227de9bed2463cca3dc853c13e703454fd40b79026d5ae1"
+    },
+    {
+      "path": "../../../frontend/e2e/console.spec.ts",
+      "sha256": "7cf41447305e0434c68e31ffb3bd6e137ce133183a66d5fc1b674cc77d743c04"
+    },
+    {
+      "path": "../../loop-ledger.json",
+      "sha256": "4c727a688657804010357be0bc89899c5e7a9009f6ae1552a7ebabf7d33c607d"
+    }
+  ],
+  "loop_state_changed": false
+}

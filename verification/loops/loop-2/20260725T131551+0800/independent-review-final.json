@@ -1,0 +1,95 @@
+{
+  "reviewer": "codex:/root/loop2_final_audit",
+  "reviewed_at": "2026-07-25T14:28:02+08:00",
+  "blocking": [],
+  "passed": [
+    {
+      "id": "ocr_input_boundary",
+      "result": "OCR 端口只接收证据标识、图片哈希和相对路径；平台重量仅在 OCR 返回后由应用层组装。",
+      "evidence": [
+        "src/dahe/ports/ocr.py:9-34",
+        "src/dahe/application/audit/service.py:76-105",
+        "tests/integration/test_loop2_backend_blockers.py:137-176"
+      ]
+    },
+    {
+      "id": "sqlite_read_only_schema_gate",
+      "result": "现有数据库在创建 engine 和启用 WAL 前完成只读检查；精确核对表、列、类型、非空、主键、外键和唯一约束。残缺 v2 库会被拒绝且文件哈希不变、无 sidecar、可立即重命名和只读打开。",
+      "evidence": [
+        "src/dahe/adapters/sqlite/repository.py:130-135",
+        "src/dahe/adapters/sqlite/repository.py:149-235",
+        "src/dahe/adapters/sqlite/repository.py:306-344",
+        "src/dahe/adapters/sqlite/repository.py:347-444",
+        "tests/integration/test_loop2_backend_blockers.py:214-306"
+      ]
+    },
+    {
+      "id": "cli_safe_stop",
+      "result": "不兼容临时数据库被转换为清晰的启动错误，CLI 返回 code 2，不输出 traceback，并释放实例锁和端口。",
+      "evidence": [
+        "src/dahe/server.py:43-57",
+        "src/dahe/cli.py:57-68",
+        "tests/integration/test_cli_preflight.py:101-139"
+      ]
+    },
+    {
+      "id": "fake_ocr_independence",
+      "result": "假 OCR 使用固定独立票据值；修改平台期望重量不会改变识别结果。",
+      "evidence": [
+        "src/dahe/adapters/fake/audit.py:43-105",
+        "tests/unit/adapters/fake/test_fake_ocr_independence.py:13-54"
+      ]
+    },
+    {
+      "id": "results_and_sse",
+      "result": "审核结果从持久化项目接口读取并展示；SSE 正确续传游标并映射 aggregate_id。",
+      "evidence": [
+        "frontend/src/api/client.ts:185-190",
+        "frontend/src/api/client.ts:222-242",
+        "frontend/src/features/audit/AuditResults.tsx:22-98",
+        "src/dahe/api/app.py:330-376",
+        "frontend/src/app/App.test.tsx:212-294"
+      ]
+    },
+    {
+      "id": "out_of_order_refresh_protection",
+      "result": "事件刷新被合并串行处理，较旧游标快照不能覆盖较新状态，任务选择和焦点保持。",
+      "evidence": [
+        "frontend/src/app/App.tsx:132-179",
+        "frontend/src/app/App.tsx:195-208",
+        "frontend/src/app/App.test.tsx:349-442"
+      ]
+    },
+    {
+      "id": "diagnostic_persistence",
+      "result": "技术失败及诊断编号原子持久化；WorkItem 标记失败且不生成业务结果或人工复核原因；失败状态写入自身失败时不会被静默吞掉。",
+      "evidence": [
+        "src/dahe/adapters/sqlite/repository.py:754-804",
+        "src/dahe/application/audit/service.py:137-145",
+        "src/dahe/application/audit/projections.py:47-53",
+        "frontend/src/features/jobs/JobPanel.tsx:52-59",
+        "tests/integration/test_loop2_backend_blockers.py:83-134"
+      ]
+    }
+  ],
+  "verification": [
+    {
+      "command": ".\\.venv\\Scripts\\python.exe tools\\check.py",
+      "result": "exit 0; Ruff passed; mypy passed for 44 source files; 109 Python tests passed; frontend boundary, lint and typecheck passed; 14 frontend tests passed; production build passed"
+    },
+    {
+      "command": "independent partial-v2 SQLite adversarial probe",
+      "result": "rejected before engine; SHA-256 unchanged; no WAL/SHM sidecar; immediate rename and read-only reopen passed"
+    }
+  ],
+  "non_blocking": [
+    "Windows 100%、125%、150%、200% 仅使用等效 CSS viewport 验证，尚未实际切换 Windows DPI。",
+    "尚未完成正式财务用户独立验收和正式读屏器验收。"
+  ],
+  "safety_scope": {
+    "legacy_program_touched": false,
+    "real_chengfeng_accessed": false,
+    "real_ocr_used": false,
+    "note": "本次复审只检查当前仓库、确定性假适配器和独立临时目录。"
+  }
+}

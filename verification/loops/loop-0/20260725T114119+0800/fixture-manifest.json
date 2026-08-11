@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "loop": "loop-0",
+  "business_fixtures": [],
+  "synthetic_inputs": [
+    "temporary application data directories",
+    "temporary loopback port owners",
+    "temporary ledger documents",
+    "invalid configuration values"
+  ],
+  "production_data_used": false,
+  "legacy_data_used": false,
+  "credentials_used": false
+}

@@ -1,0 +1,108 @@
+{
+  "schema_version": 1,
+  "loop_id": "loop-6",
+  "input_run_id": "20260725T191952+0800",
+  "qualification_run_id": "20260725T222012+0800",
+  "evaluated_at": "2026-07-25T22:38:28+08:00",
+  "subject_git_commit": "4c792a79e60a70b8a0850bf9c587b2564310bfcd",
+  "gates": [
+    {
+      "id": "loop-6-environment-isolation",
+      "status": "passed",
+      "evidence": [
+        "verification/loops/loop-6/20260725T222012+0800/runtime-qualification-summary.json",
+        "verification/loops/loop-6/20260725T222012+0800/runtime-check/qualification.json",
+        "verification/loops/loop-6/20260725T222012+0800/runtime-check/provenance.json",
+        "verification/loops/loop-6/20260725T222012+0800/loop6-test-results.xml",
+        "verification/loops/loop-6/20260725T222012+0800/safety-observations.json"
+      ],
+      "result": "The main application, CPU OCR, and GPU OCR use three separate environments and exact inventories. CPU and GPU Paddle distributions are not installed over each other, and the main environment contains neither Paddle nor OpenCV."
+    },
+    {
+      "id": "loop-6-device-discovery-and-profile",
+      "status": "passed",
+      "evidence": [
+        "verification/loops/loop-6/20260725T222012+0800/runtime-qualification-summary.json",
+        "verification/loops/loop-6/20260725T222012+0800/runtime-check/qualification.json",
+        "verification/loops/loop-6/20260725T222012+0800/fault-injection.json",
+        "verification/loops/loop-6/20260725T222012+0800/independent-review-final.json"
+      ],
+      "result": "Durable GPU identity is stable and hashed in repository evidence; the current index is remapped at startup. Profile, driver, memory, precision, batch size, locks, packages, models, Python, and worker source are bound into the canonical fingerprint."
+    },
+    {
+      "id": "loop-6-independent-ndjson-protocol",
+      "status": "passed",
+      "evidence": [
+        "verification/loops/loop-6/20260725T222012+0800/loop6-test-results.xml",
+        "verification/loops/loop-6/20260725T222012+0800/safety-observations.json",
+        "verification/loops/loop-6/20260725T222012+0800/independent-review-final.json"
+      ],
+      "result": "Strict bounded NDJSON commands carry only hashes and data-root-relative paths. The worker reuses the exact bytes it hashed, supports Unicode paths, validates identity and correlation, denies runtime networking, and exits after inference corruption."
+    },
+    {
+      "id": "loop-6-waybill-boundary-fallback",
+      "status": "passed",
+      "evidence": [
+        "verification/loops/loop-6/20260725T222012+0800/fault-injection.json",
+        "verification/loops/loop-6/20260725T222012+0800/loop6-test-results.xml"
+      ],
+      "result": "A recoverable GPU failure discards the affected waybill generation and reruns both ticket images on CPU. Previously committed image work remains reusable for other jobs, and no mixed-runtime waybill result is accepted."
+    },
+    {
+      "id": "loop-6-runtime-difference-report",
+      "status": "passed",
+      "evidence": [
+        "verification/loops/loop-6/20260725T222012+0800/runtime-qualification-summary.json",
+        "verification/loops/loop-6/20260725T222012+0800/runtime-check/qualification.json",
+        "verification/loops/loop-6/20260725T222012+0800/runtime-check/provenance.json",
+        "verification/loops/loop-6/20260725T222012+0800/loop6-test-results.xml"
+      ],
+      "result": "The real qualification records per-image CPU/GPU roles, critical-field agreement, P50/P95, sample size, and runtime fingerprints. Both synthetic critical results matched; no accuracy or production-speed claim is made."
+    },
+    {
+      "id": "loop-6-owned-worker-cleanup",
+      "status": "passed",
+      "evidence": [
+        "verification/loops/loop-6/20260725T222012+0800/factory-smoke.json",
+        "verification/loops/loop-6/20260725T222012+0800/fault-injection.json",
+        "verification/loops/loop-6/20260725T222012+0800/loop6-test-results.xml"
+      ],
+      "result": "Normal AUTO and CPU_ONLY factory close left zero owned OCR Python processes. Parent-crash and partial-handshake tests stop only workers owned by the new application."
+    },
+    {
+      "id": "loop-6-real-cpu-gpu-smoke",
+      "status": "passed",
+      "evidence": [
+        "verification/loops/loop-6/20260725T222012+0800/runtime-qualification-summary.json",
+        "verification/loops/loop-6/20260725T222012+0800/runtime-check/qualification.json",
+        "verification/loops/loop-6/20260725T222012+0800/factory-smoke.json",
+        "verification/loops/loop-6/20260725T222012+0800/factory-smoke.py",
+        "verification/loops/loop-6/20260725T222012+0800/commands.jsonl"
+      ],
+      "result": "A fresh immutable CPU/GPU generation was built from exact locks, qualified with real local inference, independently rechecked, and atomically activated. The standard factory selected GPU with CPU fallback and also passed CPU_ONLY composition."
+    },
+    {
+      "id": "loop-6-offline-regression",
+      "status": "passed",
+      "evidence": [
+        "verification/loops/loop-6/20260725T222012+0800/test-results.xml",
+        "verification/loops/loop-6/20260725T222012+0800/frontend-test-results.xml",
+        "verification/loops/loop-6/20260725T222012+0800/loop6-test-results.xml",
+        "verification/loops/loop-6/20260725T222012+0800/fault-injection.json",
+        "verification/loops/loop-6/20260725T222012+0800/safety-observations.json",
+        "verification/loops/loop-6/20260725T222012+0800/evidence-sanitization.json",
+        "verification/loops/loop-6/20260725T222012+0800/evidence-check.py",
+        "verification/loops/loop-6/20260725T222012+0800/independent-review-final.json"
+      ],
+      "result": "The authoritative check passed Ruff, mypy, 524 backend tests with two environment-limited skips, 25 frontend tests, lint, typecheck, and build. The focused suite passed 149 with one environment-limited skip, and 20 fault cases passed five consecutive runs."
+    }
+  ],
+  "unresolved_blockers": [],
+  "non_blocking_limits": [
+    "The qualification fixture contains only two generated English smoke images. It proves runtime execution and critical agreement, not real Chinese weigh-ticket accuracy, role-classifier release quality, or a fixed cross-machine speed ratio.",
+    "The qualified GPU profile belongs only to the current device and driver evidence. Another computer must discover and qualify its own profile; source defaults do not persist gpu:0.",
+    "Two full-suite tests and one focused test were skipped because the current Windows account cannot create symbolic links. The implementation also rejects symbolic and reparse paths through non-privileged checks.",
+    "The package installer was not network-instrumented. Normal OCR workers are mechanically offline, and no Chengfeng, cloud OCR, production image, or credential access occurred."
+  ],
+  "status": "passed"
+}

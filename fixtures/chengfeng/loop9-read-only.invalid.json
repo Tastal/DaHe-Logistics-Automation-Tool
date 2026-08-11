@@ -1,0 +1,80 @@
+{
+  "contract_kind": "loop9_read_only",
+  "image_origins": [
+    "https://chengfeng-images.invalid"
+  ],
+  "origin": "https://chengfeng-shadow.invalid",
+  "requests": [
+    {
+      "method": "POST",
+      "operation": "list_waybills",
+      "parameters": {
+        "pageNumber": {
+          "constant": null,
+          "maximum": 100,
+          "type": "integer"
+        },
+        "pageSize": {
+          "constant": null,
+          "maximum": 200,
+          "type": "integer"
+        }
+      },
+      "parameters_location": "json",
+      "path": "/api/example/list",
+      "response_fields": [
+        {
+          "path": "$.data.items[].id",
+          "types": [
+            "string"
+          ]
+        },
+        {
+          "path": "$.data.total",
+          "types": [
+            "integer"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "operation": "get_waybill_detail",
+      "parameters": {
+        "id": {
+          "constant": null,
+          "maximum": null,
+          "type": "string"
+        }
+      },
+      "parameters_location": "json",
+      "path": "/api/example/detail",
+      "response_fields": [
+        {
+          "path": "$.data.id",
+          "types": [
+            "string"
+          ]
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "operation": "download_ticket_image",
+      "parameters": {
+        "evidenceId": {
+          "constant": null,
+          "maximum": null,
+          "type": "string"
+        }
+      },
+      "parameters_location": "query",
+      "path": "/api/example/ticket-image",
+      "response_fields": []
+    }
+  ],
+  "run_mode": "shadow",
+  "schema_version": 1,
+  "source_discovery_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "source_observation_count": 3
+}

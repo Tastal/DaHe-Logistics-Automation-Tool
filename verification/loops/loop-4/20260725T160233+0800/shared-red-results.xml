@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="3" skipped="0" tests="3" time="0.461" timestamp="2026-07-25T16:15:25.639148+08:00" hostname="ProArtJH"><testcase classname="tests.integration.test_loop4_shared_and_restart" name="test_new_instance_never_blesses_a_legacy_running_attempt" time="0.075"><failure message="AssertionError: Loop 4 repository contract requires recover_abandoned_attempts(...)&#10;assert False&#10; +  where False = callable(None)">tmp_path = WindowsPath('C:/Users/aya72/AppData/Local/Temp/pytest-of-aya72/pytest-373/test_new_instance_never_blesse0')
+
+    def test_new_instance_never_blesses_a_legacy_running_attempt(
+        tmp_path: Path,
+    ) -&gt; None:
+        data_root = tmp_path / "legacy-running"
+        first = TemporarySqliteJobRepository(data_root)
+        try:
+            _create_fixture(first, "audit-batch-short-002")
+            assert CooperativeScheduler(first).tick() is True
+            running = [
+                attempt for attempt in first.list_stage_attempts() if attempt["status"] == "running"
+            ]
+            assert len(running) == 1
+            legacy = running[0]
+            committed_before = _committed_checkpoint_count(
+                first,
+                owner_kind=str(legacy["owner_kind"]),
+                owner_id=str(legacy["owner_id"]),
+                stage=str(legacy["stage"]),
+            )
+        finally:
+            first.close()
+    
+        restarted = TemporarySqliteJobRepository(data_root)
+        try:
+&gt;           recover = _require_method(restarted, "recover_abandoned_attempts")
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\integration\test_loop4_shared_and_restart.py:152: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+repository = &lt;dahe.adapters.sqlite.repository.TemporarySqliteJobRepository object at 0x000002892F9D1D60&gt;
+name = 'recover_abandoned_attempts'
+
+    def _require_method(
+        repository: TemporarySqliteJobRepository,
+        name: str,
+    ) -&gt; Callable[..., Any]:
+        method = getattr(repository, name, None)
+&gt;       assert callable(method), f"Loop 4 repository contract requires {name}(...)"
+E       AssertionError: Loop 4 repository contract requires recover_abandoned_attempts(...)
+E       assert False
+E        +  where False = callable(None)
+
+tests\integration\test_loop4_shared_and_restart.py:51: AssertionError</failure></testcase><testcase classname="tests.integration.test_loop4_shared_and_restart" name="test_shared_failure_is_propagated_once_to_each_active_consumer" time="0.054"><failure message="AssertionError: Loop 4 repository contract requires propagate_shared_failure_once(...)&#10;assert False&#10; +  where False = callable(None)">tmp_path = WindowsPath('C:/Users/aya72/AppData/Local/Temp/pytest-of-aya72/pytest-373/test_shared_failure_is_propaga0')
+
+    def test_shared_failure_is_propagated_once_to_each_active_consumer(
+        tmp_path: Path,
+    ) -&gt; None:
+        repository = TemporarySqliteJobRepository(tmp_path / "failure-once")
+        try:
+            _create_fixture(repository, "audit-batch-long-001")
+            _create_fixture(repository, "audit-batch-short-002")
+            shared, before = _stage_shared_failure(repository)
+            assert len(before) == 2
+            assert {row["consumer_status"] for row in before} == {"waiting"}
+    
+&gt;           propagate = _require_method(
+                repository,
+                "propagate_shared_failure_once",
+            )
+
+tests\integration\test_loop4_shared_and_restart.py:184: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+repository = &lt;dahe.adapters.sqlite.repository.TemporarySqliteJobRepository object at 0x000002893033E7B0&gt;
+name = 'propagate_shared_failure_once'
+
+    def _require_method(
+        repository: TemporarySqliteJobRepository,
+        name: str,
+    ) -&gt; Callable[..., Any]:
+        method = getattr(repository, name, None)
+&gt;       assert callable(method), f"Loop 4 repository contract requires {name}(...)"
+E       AssertionError: Loop 4 repository contract requires propagate_shared_failure_once(...)
+E       assert False
+E        +  where False = callable(None)
+
+tests\integration\test_loop4_shared_and_restart.py:51: AssertionError</failure></testcase><testcase classname="tests.integration.test_loop4_shared_and_restart" name="test_two_concurrent_safe_retries_create_one_shared_production_attempt" time="0.047"><failure message="AssertionError: Loop 4 repository contract requires safe_retry_shared_work(...)&#10;assert False&#10; +  where False = callable(None)">tmp_path = WindowsPath('C:/Users/aya72/AppData/Local/Temp/pytest-of-aya72/pytest-373/test_two_concurrent_safe_retri0')
+
+    def test_two_concurrent_safe_retries_create_one_shared_production_attempt(
+        tmp_path: Path,
+    ) -&gt; None:
+        repository = TemporarySqliteJobRepository(tmp_path / "retry-race")
+        try:
+            _create_fixture(repository, "audit-batch-short-002")
+            shared, _ = _stage_shared_failure(repository)
+&gt;           safe_retry = _require_method(repository, "safe_retry_shared_work")
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\integration\test_loop4_shared_and_restart.py:239: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+repository = &lt;dahe.adapters.sqlite.repository.TemporarySqliteJobRepository object at 0x00000289303A6E70&gt;
+name = 'safe_retry_shared_work'
+
+    def _require_method(
+        repository: TemporarySqliteJobRepository,
+        name: str,
+    ) -&gt; Callable[..., Any]:
+        method = getattr(repository, name, None)
+&gt;       assert callable(method), f"Loop 4 repository contract requires {name}(...)"
+E       AssertionError: Loop 4 repository contract requires safe_retry_shared_work(...)
+E       assert False
+E        +  where False = callable(None)
+
+tests\integration\test_loop4_shared_and_restart.py:51: AssertionError</failure></testcase></testsuite></testsuites>

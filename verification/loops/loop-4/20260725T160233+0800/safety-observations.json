@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "loop_id": "loop-4",
+  "run_id": "20260725T160233+0800",
+  "observations": [
+    "All Loop 4 evidence, platform snapshots, images, tasks, and failures were synthetic and processed offline.",
+    "No real Chengfeng host, account, credential, browser profile, request, response, image, or platform write was used.",
+    "No legacy project, database, browser profile, launcher, runtime, port, process, or application-data directory was read, executed, attached to, reused, stopped, or changed.",
+    "No Windows DNS, proxy, VPN, routing, hosts file, or global browser setting was changed.",
+    "No real PaddleOCR, CPU OCR, GPU OCR, CUDA runtime, model, cloud OCR, or production document was loaded.",
+    "Every project Python command used the repository .venv.",
+    "The formal SQLite database is located only below an explicit DaHe data root and is opened through one managed runtime, engine, and short-transaction commit gate.",
+    "An unmanaged or unknown database revision is rejected before mutable SQLite pragmas or migration actions run.",
+    "Migration 0001 was not rewritten after it was committed; the lease foreign key and retry-request additions use migration 0002.",
+    "Backups and restores use temporary directories, verify SQLite integrity, foreign keys, migration revision, evidence identities, sizes, hashes, and exact active-evidence manifest membership.",
+    "Restore does not replace an active database and refuses a nonempty target.",
+    "Persistent recovery never treats an expired timestamp alone as authority; instance state, matching data-root identity, lease generation, raw process-local token, and operating-system ownership proof are required where applicable.",
+    "Human browser control cannot expire into automated control and requires an explicit matching return.",
+    "Scheduler results are fenced before any result or checkpoint write, and database state stores only a SHA-256 of the raw process-local grant token.",
+    "Technical failures remain technical failures and are not converted into finance-review business items.",
+    "The local API still provides no settlement confirmation, payment, receipt cancellation, automatic ticket exchange, or other Chengfeng write endpoint."
+  ],
+  "status": "passed"
+}

@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "loop_id": "loop-1",
+  "checked_at": "2026-07-25T12:49:01+08:00",
+  "scenarios": [
+    {
+      "id": "ticket-acquisition-system-failure",
+      "expected": "raise SystemEvidenceError",
+      "observed": "passed"
+    },
+    {
+      "id": "missing-ticket-business-evidence",
+      "expected": "return REVIEW without converting a system fault into finance work",
+      "observed": "passed"
+    },
+    {
+      "id": "ticket-kilogram-unit",
+      "expected": "retain exact derived tonnes and return REVIEW",
+      "observed": "passed"
+    },
+    {
+      "id": "extra-weight-precision",
+      "expected": "do not round or truncate; return REVIEW",
+      "observed": "passed"
+    },
+    {
+      "id": "large-decimal-context-pressure",
+      "expected": "preserve exact kg-derived tonnes and exact two-decimal differences without Decimal context rounding",
+      "observed": "passed"
+    },
+    {
+      "id": "stale-manual-action",
+      "expected": "reject the old action and create explicit invalidation evidence",
+      "observed": "passed"
+    },
+    {
+      "id": "suspected-ticket-swap",
+      "expected": "do not exchange tickets or auto-pass",
+      "observed": "passed"
+    },
+    {
+      "id": "shadow-platform-effect",
+      "expected": "reject every real settlement effect and every platform action",
+      "observed": "passed"
+    }
+  ],
+  "status": "passed"
+}

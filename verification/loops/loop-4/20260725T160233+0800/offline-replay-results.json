@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "loop_id": "loop-4",
+  "run_id": "20260725T160233+0800",
+  "fixture_manifest": {
+    "path": "verification/loops/loop-4/20260725T160233+0800/fixture-manifest.json",
+    "sha256": "e721a2cd650d4fb25a5a7f6f4d7c1f1df5b3bc685b47546617d0167d0a14bf80"
+  },
+  "results": [
+    {
+      "id": "repeat_import",
+      "expected": "Repeated import is idempotent and shared bytes are stored once",
+      "observed": "The same frozen bundle could be imported repeatedly without duplicate snapshots, decisions, references, or evidence blobs.",
+      "evidence": "tests/integration/test_loop4_data_foundation.py::test_import_bundle_is_atomic_idempotent_and_keeps_one_blob_per_hash",
+      "status": "passed"
+    },
+    {
+      "id": "restart_resume",
+      "expected": "Restart reclaims only eligible unfinished work and does not repeat committed items",
+      "observed": "A replacement application instance recovered an eligible expired attempt while committed work remained final and ineligible attempts stayed untouched.",
+      "evidence": "tests/integration/test_loop4_recovery_contract.py",
+      "status": "passed"
+    },
+    {
+      "id": "backup_restore_replay",
+      "expected": "An online backup restores the same managed database and every required evidence blob",
+      "observed": "Restore to an empty temporary root passed SQLite integrity, foreign keys, Alembic revision, exact manifest membership, and per-file hash checks.",
+      "evidence": "tests/integration/test_loop4_data_foundation.py::test_online_backup_restores_database_and_evidence_to_an_empty_temporary_root",
+      "status": "passed"
+    },
+    {
+      "id": "shared_result_replay",
+      "expected": "A successful shared result is consumed once per consumer after one globally bounded retry",
+      "observed": "Concurrent retry requests produced one replacement attempt and all active consumers consumed the final result once.",
+      "evidence": "tests/integration/test_loop4_shared_and_restart.py",
+      "status": "passed"
+    },
+    {
+      "id": "regression_repeat",
+      "expected": "Recovery and concurrency behavior is stable across repeated runs",
+      "observed": "The then-current 31 recovery, fencing, shared-work, and owned-process tests passed ten consecutive times, for 310 passing test executions.",
+      "evidence": "verification/loops/loop-4/20260725T160233+0800/commands.jsonl",
+      "status": "passed"
+    }
+  ],
+  "status": "passed"
+}

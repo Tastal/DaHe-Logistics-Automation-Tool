@@ -1,0 +1,5 @@
+{"command":".\\.venv\\Scripts\\python.exe tools\\check.py","exit_code":0,"result":"Ruff passed; mypy passed for 146 files; backend 841 passed and 2 skipped; frontend 10 files and 87 tests passed; production build passed."}
+{"command":"Project package loader against the isolated local locked-set-review data root","exit_code":0,"result":"Package 161deab72f190334509b2a7a40c32df9c831654b960204498f2b9590843e6671 loaded with 50 waybills, 100 images, and 50 unique waybill identities."}
+{"command":"FastAPI TestClient read-only smoke against the actual package with auto_run_jobs enabled","exit_code":0,"result":"Session, index, first item, and first image returned 200; ordinary jobs were empty; POST jobs was absent; scheduler state was absent; review rows remained zero."}
+{"command":"Playwright CLI local review workflow at 1366x768 and 683x384","exit_code":0,"result":"Both original images rendered; 50 items were present; dirty global navigation was blocked; console had zero errors and warnings; no POST was observed."}
+{"command":"git diff --check","exit_code":0,"result":"No whitespace errors before the subject commit."}

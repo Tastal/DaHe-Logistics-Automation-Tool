@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="3" skipped="0" tests="4" time="1.061" timestamp="2026-07-25T17:57:14.262732+08:00" hostname="ProArtJH"><testcase classname="tests.contract.test_loop5_no_platform_write_surface" name="test_public_connector_operation_enum_contains_only_frozen_read_operations" time="0.003"><failure message="ModuleNotFoundError: No module named 'dahe.ports.chengfeng'">def test_public_connector_operation_enum_contains_only_frozen_read_operations() -&gt; None:
+&gt;       ports = importlib.import_module("dahe.ports.chengfeng")
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\contract\test_loop5_no_platform_write_surface.py:25: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+..\..\..\..\AppData\Local\Programs\Python\Python312\Lib\importlib\__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+&lt;frozen importlib._bootstrap&gt;:1387: in _gcd_import
+    ???
+&lt;frozen importlib._bootstrap&gt;:1360: in _find_and_load
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+name = 'dahe.ports.chengfeng'
+import_ = &lt;function _gcd_import at 0x0000024E739FC0E0&gt;
+
+&gt;   ???
+E   ModuleNotFoundError: No module named 'dahe.ports.chengfeng'
+
+&lt;frozen importlib._bootstrap&gt;:1324: ModuleNotFoundError</failure></testcase><testcase classname="tests.contract.test_loop5_no_platform_write_surface" name="test_connector_command_rejects_unknown_and_financial_write_operations" time="0.001"><failure message="ModuleNotFoundError: No module named 'dahe.ports.chengfeng'">def test_connector_command_rejects_unknown_and_financial_write_operations() -&gt; None:
+&gt;       ports = importlib.import_module("dahe.ports.chengfeng")
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\contract\test_loop5_no_platform_write_surface.py:33: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+..\..\..\..\AppData\Local\Programs\Python\Python312\Lib\importlib\__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+&lt;frozen importlib._bootstrap&gt;:1387: in _gcd_import
+    ???
+&lt;frozen importlib._bootstrap&gt;:1360: in _find_and_load
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+name = 'dahe.ports.chengfeng'
+import_ = &lt;function _gcd_import at 0x0000024E739FC0E0&gt;
+
+&gt;   ???
+E   ModuleNotFoundError: No module named 'dahe.ports.chengfeng'
+
+&lt;frozen importlib._bootstrap&gt;:1324: ModuleNotFoundError</failure></testcase><testcase classname="tests.contract.test_loop5_no_platform_write_surface" name="test_openapi_has_no_financial_or_generic_platform_write_route" time="0.900" /><testcase classname="tests.contract.test_loop5_no_platform_write_surface" name="test_frozen_adapter_has_no_generic_request_or_platform_write_method" time="0.001"><failure message="ModuleNotFoundError: No module named 'dahe.adapters.chengfeng'">def test_frozen_adapter_has_no_generic_request_or_platform_write_method() -&gt; None:
+&gt;       frozen = importlib.import_module("dahe.adapters.chengfeng.frozen")
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\contract\test_loop5_no_platform_write_surface.py:81: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+..\..\..\..\AppData\Local\Programs\Python\Python312\Lib\importlib\__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+&lt;frozen importlib._bootstrap&gt;:1387: in _gcd_import
+    ???
+&lt;frozen importlib._bootstrap&gt;:1360: in _find_and_load
+    ???
+&lt;frozen importlib._bootstrap&gt;:1310: in _find_and_load_unlocked
+    ???
+&lt;frozen importlib._bootstrap&gt;:488: in _call_with_frames_removed
+    ???
+&lt;frozen importlib._bootstrap&gt;:1387: in _gcd_import
+    ???
+&lt;frozen importlib._bootstrap&gt;:1360: in _find_and_load
+    ???
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+name = 'dahe.adapters.chengfeng'
+import_ = &lt;function _gcd_import at 0x0000024E739FC0E0&gt;
+
+&gt;   ???
+E   ModuleNotFoundError: No module named 'dahe.adapters.chengfeng'
+
+&lt;frozen importlib._bootstrap&gt;:1324: ModuleNotFoundError</failure></testcase></testsuite></testsuites>

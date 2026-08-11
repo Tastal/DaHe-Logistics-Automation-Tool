@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "loop_id": "loop-1",
+  "recorded_at": "2026-07-25T12:49:01+08:00",
+  "source": "direct_user_confirmation",
+  "decision": {
+    "ticket_kilogram_unit": "human_review_required",
+    "exact_kilogram_to_tonne_conversion": "retain_as_derived_evidence_only",
+    "automatic_rounding": "forbidden",
+    "automatic_truncation": "forbidden",
+    "automatic_comparison": "original tonne values exactly representable to two decimal places only"
+  },
+  "user_statement": "If a ticket uses kilograms, place it into human review."
+}

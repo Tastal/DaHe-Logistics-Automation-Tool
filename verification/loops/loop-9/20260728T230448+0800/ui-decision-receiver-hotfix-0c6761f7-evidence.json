@@ -1,0 +1,61 @@
+{
+  "build": {
+    "current_loop9_build_sha256": "0c6761f7bac98a9ce2cd024d1beade211b953d9ea36e7658a81f1898aaf5b07c",
+    "previous_loop9_build_sha256": "0093e0072fcc34706035c3b97f5389f905b3fc20cab09dd73a496944987bbb40",
+    "starting_git_commit": "ceedbb364ac6ec0c0d2df62a0c8e65b62bc343c0"
+  },
+  "completed_at": "2026-07-31T00:47:51.5132131+08:00",
+  "defect": {
+    "affected_actions": [
+      "confirm_normal",
+      "confirm_problem"
+    ],
+    "error": "BrowserAppServices lost its receiver when an audit decision method was extracted before invocation.",
+    "failure_observed_by": "Playwright through the production BrowserAppServices client",
+    "fix": "Invoke each decision method directly through the services instance.",
+    "production_source": "frontend/src/features/audit/AuditReviewQueue.tsx"
+  },
+  "e2e_verification": {
+    "command": "npm.cmd --prefix frontend run test:e2e",
+    "idempotency_header_verified": true,
+    "platform_request_count": 0,
+    "record_version_body_verified": true,
+    "result": "passed: 8 tests",
+    "sensitive_or_person_identity_fields_absent": true,
+    "verified_actions": [
+      "confirm_normal",
+      "confirm_problem"
+    ],
+    "verified_accessibility": [
+      "keyboard focus visible",
+      "reduced motion honored",
+      "1366x768 layout",
+      "1920x1080 layout",
+      "125 percent scaling",
+      "150 percent scaling",
+      "200 percent scaling"
+    ]
+  },
+  "full_check": {
+    "backend": "passed: 2414 tests; 8 Windows symlink privilege skips",
+    "command": ".\\.venv\\Scripts\\python.exe tools\\check.py",
+    "frontend": "passed: boundary, lint, typecheck, 19 test files, 113 tests, production build",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stdout_sha256": "d97e99cc8ce3dedb3c7f6ac19489236deab269a46ecae1d6eb9996fbf1163f50"
+  },
+  "gate_effect": {
+    "current_locked_set_gate": "pending",
+    "daily_triplet": "must be repeated on the current build",
+    "real_request_contract_gate": "must be repeated on the current build",
+    "real_shadow_batch_gate": "pending",
+    "recovery_scheduling_and_ui_gate": "pending until the live concurrent probe and final user flow"
+  },
+  "kind": "loop9_ui_decision_receiver_hotfix_evidence",
+  "network_safety": {
+    "chengfeng_accessed": false,
+    "platform_write_request_count": 0,
+    "test_origin": "isolated loopback fixture"
+  },
+  "parent_partial_evidence": "verification/loops/loop-9/20260728T230448+0800/recovery-scheduling-0093e007-partial-evidence.json",
+  "schema_version": 1
+}

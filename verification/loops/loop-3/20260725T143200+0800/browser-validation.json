@@ -1,0 +1,87 @@
+{
+  "schema_version": 1,
+  "loop_id": "loop-3",
+  "run_id": "20260725T143200+0800",
+  "validated_at": "2026-07-25T15:34:32+08:00",
+  "tool": "Playwright CLI with an isolated local Chrome session",
+  "target": "http://127.0.0.1:8877/",
+  "production_data_used": false,
+  "checks": [
+    {
+      "id": "four-task-center",
+      "status": "passed",
+      "result": "A normal fake audit, long fake audit exercise, short fake audit exercise, and protected loading probe were visible together as four independently selectable task cards."
+    },
+    {
+      "id": "problem-isolation",
+      "status": "passed",
+      "result": "A suspected problem remained isolated in its own waiting state while other task cards retained their own progress and controls."
+    },
+    {
+      "id": "cancel-confirmation",
+      "status": "passed",
+      "result": "The cancel action required an explicit confirmation before the local request and affected only the selected task."
+    },
+    {
+      "id": "pause-release-resume",
+      "status": "passed",
+      "result": "The long exercise paused at 1/6 with no active resource, then resumed to 4/6 and waiting_user without restarting the task."
+    },
+    {
+      "id": "restart-recovery",
+      "status": "passed",
+      "result": "After the local application was restarted against the same isolated temporary data root, the console restored six persisted Jobs."
+    },
+    {
+      "id": "keyboard-skip-link",
+      "status": "passed",
+      "result": "Keyboard navigation focused the skip link first and Enter moved focus to the main content landmark."
+    },
+    {
+      "id": "reduced-motion",
+      "status": "passed",
+      "result": "With reduced motion emulated, the inspected primary button transition duration was 0.00001 seconds."
+    },
+    {
+      "id": "console-and-network",
+      "status": "passed",
+      "result": "The browser session recorded zero console errors, zero console warnings, and only requests to 127.0.0.1."
+    }
+  ],
+  "effective_viewports": [
+    {
+      "width": 1366,
+      "height": 768,
+      "windows_scaling_equivalent": "100%",
+      "screenshot": "screenshots/loop3-1366x768.png",
+      "sha256": "d8e85f148ec77647dd05e1d71bc89e40d62a2045451cf81bc1da5c61d9ceb877"
+    },
+    {
+      "width": 1093,
+      "height": 614,
+      "windows_scaling_equivalent": "125%",
+      "screenshot": "screenshots/loop3-1093x614.png",
+      "sha256": "86227cd4d893977ec5e8c844aa5a292b348be4b2fa3099e0620bb0b6603ffae7"
+    },
+    {
+      "width": 911,
+      "height": 512,
+      "windows_scaling_equivalent": "150%",
+      "screenshot": "screenshots/loop3-911x512.png",
+      "sha256": "46b3b5a2df637c26a46f281b6275039c8e27e986a053255c0daab22f5db1020b"
+    },
+    {
+      "width": 683,
+      "height": 384,
+      "windows_scaling_equivalent": "200%",
+      "screenshot": "screenshots/loop3-683x384.png",
+      "sha256": "ccc3edef2195e7f50318290f7ee723798ca4e9b30060d0b4fa36dab0365b683f"
+    }
+  ],
+  "limitations": [
+    "The four layouts used equivalent CSS viewports; Windows desktop DPI settings were not changed, so this is not native Windows DPI evidence.",
+    "No finance user performed this automated validation.",
+    "No formal screen-reader session was run; the result covers keyboard focus and semantic browser inspection only."
+  ],
+  "status": "passed"
+}

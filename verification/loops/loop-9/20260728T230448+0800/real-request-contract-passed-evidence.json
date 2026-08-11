@@ -1,0 +1,58 @@
+{
+  "build": {
+    "loop9_build_sha256": "c7c12a46630a27e2f62fd7093ef22ea95ca78d6778f4b18b3569545fccd9645a",
+    "starting_git_commit": "ceedbb364ac6ec0c0d2df62a0c8e65b62bc343c0"
+  },
+  "checks": [
+    {
+      "command": ".\\.venv\\Scripts\\python.exe -m pytest tests\\integration\\test_loop9_platform_api.py::test_daily_job_then_bound_shadow_window_creates_one_fixed_invocation -q",
+      "result": "red then green: the formal daily invocation now reuses the bounded five-row browser probe"
+    },
+    {
+      "command": ".\\.venv\\Scripts\\python.exe -m pytest tests\\integration\\test_loop9_platform_api.py tests\\integration\\test_loop9_daily_live_execution.py tests\\integration\\test_loop9_fault_injection.py tests\\integration\\test_loop9_scheduler_probe.py tests\\unit\\verification\\test_loop9_daily_snapshot_validation.py tests\\unit\\tools\\test_loop9_validate_daily_snapshots_cli.py -q",
+      "result": "passed: 148 focused API, daily, fault, scheduler, validation, and replay tests; 2 Windows symlink privilege skips"
+    },
+    {
+      "command": ".\\.venv\\Scripts\\python.exe -m ruff check src tests tools browser-runtime\\src",
+      "result": "passed"
+    }
+  ],
+  "completed_at": "2026-07-30T22:05:24.1854138+08:00",
+  "contract_authority": {
+    "contract_canonical_sha256": "7a6530acd7c0d8c6a8dc8a6926cb42ca0deb02bf9732817be1a4bd0642f4a901",
+    "contract_file_sha256": "6606699c4a8024bdea645e23e45aa8115a81263d8f1c66a0ed605e7146caa7ab",
+    "detail_encoding_rollover_evidence_sha256": "de5de3f00b068986206dcf226407db02de11828591845e012de6fbcf9f58e0fa",
+    "selection_sha256": "b3dcce7cfef749d0e3f789f46d63e642d34751734a95c387351235d742310604"
+  },
+  "gate_id": "loop-9-real-request-contract",
+  "gate_status": "passed",
+  "meaning": {
+    "current_locked_set_passed": false,
+    "daily_data_used_as_settlement_data": false,
+    "platform_read_contract_passed": true,
+    "real_shadow_batch_passed": false
+  },
+  "real_validation": {
+    "browser_closed_after_attempt": true,
+    "canonical_sha256": "95ffc1f793df13153cbf6b0931d3af6e933af544421284dd87c12add3b8534c0",
+    "classification": "development_only",
+    "daily_list_item_count": 5,
+    "detail_requests_sent": 1,
+    "forbidden_request_count": 0,
+    "image_requests_sent": 2,
+    "list_daily_requests_sent": 1,
+    "list_pending_requests_sent": 2,
+    "pending_list_item_count": 0,
+    "platform_write_request_count": 0,
+    "raw_request_values_retained": false,
+    "raw_response_values_retained": false,
+    "redirect_count": 0,
+    "validation_mode": "settlement_empty_daily_nonempty"
+  },
+  "remaining_gates": {
+    "current_build_locked_set": "pending until new pending-settlement inventory is available",
+    "real_shadow_batch": "pending and must not overlap the future locked set",
+    "shadow_accepted": false
+  },
+  "schema_version": 1
+}

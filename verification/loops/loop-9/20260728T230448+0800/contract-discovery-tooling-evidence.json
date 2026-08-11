@@ -1,0 +1,68 @@
+{
+  "browser_runtime": {
+    "installation_manifest_sha256": "2756d079ab9af7c28fc3c00b3f35c6b9cea3f75fafabfd61a8b7a294a16ded2e",
+    "playwright_version": "1.61.0",
+    "smoke_result": {
+      "network_navigation": false,
+      "ok": true,
+      "selected_browser": "msedge"
+    }
+  },
+  "build": {
+    "loop9_build_sha256": "916c35d8547271816235dedb9f025cfc262e9813bbc51d746e670893bf3ac569",
+    "starting_git_commit": "26f26ed724b4bd243d5d861a63163c43ef436f32"
+  },
+  "checks": [
+    {
+      "command": ".\\.venv\\Scripts\\python.exe -m pytest tests\\unit\\platform\\test_loop9_discovery_evidence.py tests\\contract\\test_loop9_browser_runtime_isolation.py tests\\integration\\test_loop9_platform_api.py -q",
+      "result": "passed: 13"
+    },
+    {
+      "command": ".\\.venv\\Scripts\\python.exe tools\\check.py",
+      "result": "passed: ruff; mypy 196 source files; pytest 1418 passed and 4 Windows-symlink skips; frontend boundary, lint, typecheck, 105 tests, and production build"
+    },
+    {
+      "command": "playwright-cli local 1366x768 and 200-percent-equivalent inspection",
+      "result": "passed: control region accessible; direct safety instructions present; zero browser console errors"
+    },
+    {
+      "command": "git diff --check",
+      "result": "passed"
+    }
+  ],
+  "completed_at": "2026-07-29T12:05:06+08:00",
+  "gate_id": "loop-9-contract-discovery-tooling",
+  "implemented_contracts": [
+    "network capture remains disabled during human login",
+    "capture can start only after login control is explicitly returned",
+    "human_handoff capture observes manual read-only views and never navigates",
+    "API observations retain only normalized origins, fixed paths, methods, parameter names, JSON field paths and types, and status codes",
+    "image observations retain only origin, method, parameter names, and a path SHA-256",
+    "headers, session material, credentials, values, raw responses, and complete signed image paths are excluded",
+    "development-only evidence is atomically sealed under the new application data root",
+    "stopping capture consumes the access window, closes the owned browser, and supports safe replay"
+  ],
+  "local_ui_evidence": {
+    "console_error_count": 0,
+    "network_origin": "http://127.0.0.1:8899",
+    "real_platform_accessed": false,
+    "screenshots": [
+      {
+        "path": "verification/loops/loop-9/20260728T230448+0800/ui/contract-discovery-1366x768.png",
+        "sha256": "8acaede94dafb7acd668d867d4aa9de311cae141f5ad708f25ce304d7ea6f12e"
+      },
+      {
+        "path": "verification/loops/loop-9/20260728T230448+0800/ui/contract-discovery-scale-200.png",
+        "sha256": "3f0584b8867c5332d5337fc7fd00c0b35bd327036b4943c0bbbf597bd0574d4d"
+      }
+    ]
+  },
+  "platform_requests": {
+    "forbidden": 0,
+    "real_total": 0,
+    "writes": 0
+  },
+  "remaining_gate": "The actual Chengfeng read contract is still pending a separately confirmed development-only discovery window.",
+  "schema_version": 1,
+  "status": "passed"
+}

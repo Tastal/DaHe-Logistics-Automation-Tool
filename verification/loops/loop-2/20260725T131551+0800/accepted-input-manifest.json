@@ -1,0 +1,110 @@
+{
+  "schema_version": 1,
+  "project_id": "DaHeLogistics",
+  "loop_id": "loop-2",
+  "run_id": "20260725T131551+0800",
+  "frozen_at": "2026-07-25T13:50:00+08:00",
+  "previous_input_manifest": {
+    "path": "verification/loops/loop-2/20260725T131551+0800/input-manifest.json",
+    "sha256": "88454b4da60b29e1619da00660c9cf91743466db7c71278f82b5fad4e343f2e8"
+  },
+  "corrected_input_manifest": {
+    "path": "verification/loops/loop-2/20260725T131551+0800/corrected-input-manifest.json",
+    "sha256": "87267965f807207dfaf711544093c83c94fbcaaad870b421e09c9811ec37a36c"
+  },
+  "git_baseline": {
+    "commit": "63e01fa598bd2e56313b2586c34c75edb7d95447",
+    "tag": "loop-1-accepted"
+  },
+  "source_contracts": [
+    {
+      "path": "AGENTS.md",
+      "sha256": "b064ed06e99c2ef8cc3e36e7afa3cab0c4941fbbdf9c2dcb52de10b1e916b113"
+    },
+    {
+      "path": "PRODUCT.md",
+      "sha256": "6bf0972b15db1b348e24340b8f2372a37929e49a657c4b2716e77fee2ae19bda"
+    },
+    {
+      "path": "DEVELOPMENT_GUIDE.md",
+      "sha256": "b66afecd686101ff6a94c7461eab32bc028462f427ff294d751694f12612a207"
+    },
+    {
+      "path": "pyproject.toml",
+      "sha256": "670a388241fd0289d151924c744183544c8cbb6c10e0e353bbfd081cf4ee942e"
+    },
+    {
+      "path": "requirements.lock",
+      "sha256": "7f053172856978c0b53d7a069deabe0ab9b47b32b746f2441e777578af96e133"
+    },
+    {
+      "path": "frontend/package-lock.json",
+      "sha256": "c240743c0e4ad9e917be63c2dfd672baddc9f8617fee4856dad3147a025adf2f"
+    },
+    {
+      "path": "version-manifest.json",
+      "sha256": "53e792944c25dd1cfa56af743f4174f2e359ca0222ab33a03e5a4f87cd5fd71d"
+    }
+  ],
+  "resolved_dependency_input": {
+    "path": "verification/loops/loop-2/20260725T131551+0800/dependency-decision.json",
+    "sha256": "76f397d5dd20d2f45026ae19d1181c72a94aa1a0c9d5fc59f70a189a6949f3ca"
+  },
+  "fixture": {
+    "path": "verification/loops/loop-2/20260725T131551+0800/corrected-fixture-manifest.json",
+    "sha256": "5d475429f65347be20d3a96544882ba248c726ae329985fe375b50b96e45739f",
+    "original_path": "verification/loops/loop-2/20260725T131551+0800/fixture-manifest.json",
+    "original_sha256": "29de12c7e8dd402b2fab638d58f5d37a37494146a92d99ef82a64f0df00ecd66"
+  },
+  "authorized_scope": [
+    "FastAPI local API and server-authoritative action matrix",
+    "File-backed temporary SQLite state and event outbox",
+    "React and TypeScript operator-console shell",
+    "Deterministic fake platform and fake image-recognition adapters",
+    "One normal shadow-audit work item from start through completion",
+    "Server-sent change events with snapshot recovery after refresh",
+    "Local request idempotency, session and origin protection, and build-version checks",
+    "System-default browser startup on the canonical loopback endpoint"
+  ],
+  "forbidden_scope": [
+    "Real Chengfeng access, login, requests, credentials, or browser profiles",
+    "Legacy project, database, process, port, browser profile, or runtime access",
+    "Real PaddleOCR, CPU OCR, GPU OCR, CUDA, or model installation",
+    "Operational mode or any platform write capability",
+    "Production database migrations, historical import, cleanup, settlement, dispatch, or daily business implementation",
+    "Loop 3 scheduling behavior before Loop 2 is accepted"
+  ],
+  "runtime_dependencies": {
+    "python": {
+      "fastapi": "0.140.0",
+      "sqlalchemy": "2.0.51",
+      "uvicorn": "0.51.0"
+    },
+    "python_development": {
+      "httpx2": "2.9.1"
+    },
+    "frontend": {
+      "react": "19.2.8",
+      "react-dom": "19.2.8",
+      "vite": "8.1.5",
+      "typescript": "6.0.3",
+      "vitest": "4.1.10"
+    }
+  },
+  "external_resources": [
+    "Python Package Index for approved dependency installation",
+    "npm registry for approved frontend dependency installation",
+    "Official FastAPI, Vite, and SQLAlchemy documentation",
+    "Playwright CLI package and an isolated local Chrome session"
+  ],
+  "visual_contract": {
+    "palette": "black, white, gray, and blue",
+    "register": "product",
+    "required_effective_viewports": [
+      "1366x768",
+      "1093x614",
+      "911x512",
+      "683x384"
+    ]
+  }
+}

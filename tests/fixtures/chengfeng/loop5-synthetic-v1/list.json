@@ -1,0 +1,23 @@
+{
+  "ok": true,
+  "data": {
+    "page_number": 1,
+    "page_size": 50,
+    "total": 2,
+    "items": [
+      {
+        "platform_waybill_id": "synthetic-waybill-001",
+        "waybill_number": "SYN-WB-001",
+        "vehicle_number": "SYN-A001",
+        "display_label": "ignored synthetic label"
+      },
+      {
+        "platform_waybill_id": "synthetic-waybill-002",
+        "waybill_number": "SYN-WB-002",
+        "vehicle_number": null
+      }
+    ],
+    "server_note": "synthetic fixture only"
+  },
+  "correlation_id": "synthetic-list-001"
+}

@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "application_id": "DaHeLogistics",
+  "default_endpoint": "127.0.0.1:8877",
+  "default_data_root_template": "%LOCALAPPDATA%\\DaHeLogistics",
+  "real_platform_access": false,
+  "chengfeng_requests": 0,
+  "legacy_project_reads": 0,
+  "legacy_process_actions": 0,
+  "network_configuration_changes": 0,
+  "unknown_process_terminations": 0,
+  "allowed_write_locations": [
+    "repository source and verification files",
+    "project .venv",
+    "project-local frontend npm cache",
+    "controlled temporary test directories",
+    "%LOCALAPPDATA%\\DaHeLogistics when explicitly running the default profile"
+  ],
+  "production_database_created": false,
+  "production_images_created": false,
+  "credentials_created": false
+}
