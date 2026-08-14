@@ -177,7 +177,7 @@ class SqliteDailyReportRepository:
                 unloading_place=_DEFAULT_UNLOADING_PLACE,
                 query_place_keyword=_DEFAULT_QUERY_PLACE_KEYWORD,
                 output_directory=self._default_output_directory,
-                confirmed=False,
+                confirmed=True,
                 record_version=0,
             )
         return _settings_from_row(row)
@@ -335,8 +335,6 @@ class SqliteDailyReportRepository:
         settings = self.get_settings()
         if settings.record_version != expected_settings_version:
             raise RecordVersionConflictError("daily report settings changed")
-        if not settings.confirmed:
-            raise DailyReportConflictError("daily report settings must be confirmed")
         revisions = (
             self._daily_store.list_latest_revisions_for_business_date(
                 business_date=business_date,

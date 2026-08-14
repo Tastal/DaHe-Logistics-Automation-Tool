@@ -327,7 +327,23 @@ export function DailyWorkspace({ services, jobs, productionReadOnly = false, wor
     if (!reportSettings || !services.createDailyReport) return;
     setBusy(true); setMessage(null);
     try {
-      setReport(await services.createDailyReport(businessDate, reportSettings.recordVersion, contractSubjectCode));
+      let effectiveSettings = reportSettings;
+      if (effectiveSettings.recordVersion === 0) {
+        if (!services.saveDailyReportSettings) {
+          throw new Error("报表默认设置尚未初始化，请到系统设置保存一次。");
+        }
+        effectiveSettings = await services.saveDailyReportSettings({
+          shippingMine: effectiveSettings.shippingMine,
+          coalType: effectiveSettings.coalType,
+          unloadingPlace: effectiveSettings.unloadingPlace,
+          queryPlaceKeyword: effectiveSettings.queryPlaceKeyword,
+          outputDirectory: effectiveSettings.outputDirectory,
+          confirmed: true,
+          expectedRecordVersion: 0,
+        });
+        setReportSettings(effectiveSettings);
+      }
+      setReport(await services.createDailyReport(businessDate, effectiveSettings.recordVersion, contractSubjectCode));
       showToast("报表已生成。", "success");
     }
     catch (error) { setMessage(error instanceof Error ? error.message : "报表生成失败。"); }
@@ -355,7 +371,7 @@ export function DailyWorkspace({ services, jobs, productionReadOnly = false, wor
         pauseDisabled={!progress?.onlineCaptureComplete}
         pauseDisabledReason="下载完成后可暂停离线审核"
         moduleActions={<>
-          <button className="button excel-action" type="button" disabled={busy || !reportSettings?.confirmed || !itemsResult?.items.length} onClick={() => void createReport()}><FileSpreadsheet aria-hidden="true" size={17} />生成报表</button>
+          <button className="button excel-action" type="button" disabled={busy || !reportSettings || (reportSettings.recordVersion === 0 && !services.saveDailyReportSettings) || !itemsResult?.items.length || itemsResult.counts.needsReview > 0} onClick={() => void createReport()}><FileSpreadsheet aria-hidden="true" size={17} />生成报表</button>
           {report ? <button className="button" type="button" disabled={!services.openDailyReportFolder} onClick={() => void openReportFolder()}><FolderOpen aria-hidden="true" size={17} />打开所在文件夹</button> : null}
         </>}
         trailing={<div className="business-date-control">

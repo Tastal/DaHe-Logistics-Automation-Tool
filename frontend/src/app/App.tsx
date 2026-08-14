@@ -494,9 +494,9 @@ export function App({ services }: AppProps) {
     }
   }, [services, shuttingDown]);
 
-  const checkOnlineUpdate = useCallback(async () => {
-    if (updating) return;
-    if (!services.checkForUpdates) return;
+  const checkOnlineUpdate = useCallback(async (): Promise<UpdateStatus | null> => {
+    if (updating) return null;
+    if (!services.checkForUpdates) return null;
     setUpdating(true);
     setMessage(null);
     try {
@@ -509,8 +509,21 @@ export function App({ services }: AppProps) {
             ? "当前已是最新版本。"
             : "暂时无法检查更新，不影响继续使用。",
       );
+      return status;
     } catch (error) {
+      setUpdateStatus((current) =>
+        current
+          ? {
+              ...current,
+              state: "failed",
+              availableVersion: null,
+              updateAvailable: false,
+              errorCode: "update_check_failed",
+            }
+          : current,
+      );
       setMessage(error instanceof Error ? error.message : "暂时无法检查更新。");
+      return null;
     } finally {
       setUpdating(false);
     }
@@ -518,16 +531,24 @@ export function App({ services }: AppProps) {
 
   const handleUpdateClick = useCallback(() => {
     if (updating) return;
-    if (services.importUpdatePackage) {
-      setShowUpdateConfirm(true);
+    if (services.checkForUpdates) {
+      void checkOnlineUpdate().then((status) => {
+        if (services.importUpdatePackage || status?.updateAvailable) {
+          setShowUpdateConfirm(true);
+        }
+      });
       return;
     }
-    if (updateStatus?.updateAvailable) {
+    if (services.importUpdatePackage || updateStatus?.updateAvailable) {
       setShowUpdateConfirm(true);
-      return;
     }
-    void checkOnlineUpdate();
-  }, [checkOnlineUpdate, services.importUpdatePackage, updateStatus, updating]);
+  }, [
+    checkOnlineUpdate,
+    services.checkForUpdates,
+    services.importUpdatePackage,
+    updateStatus,
+    updating,
+  ]);
 
   const installUpdate = useCallback(async () => {
     if (!services.installUpdate || updating) return;

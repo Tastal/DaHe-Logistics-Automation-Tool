@@ -129,6 +129,57 @@ export function ChineseDateTimeInput({
     if (moveNext) inputs.current[index + 1]?.focus();
   };
 
+  const renderPart = (spec: PartSpec, index: number) => {
+    const separator = index === 0 || index === 3 ? null : index <= 2 ? "/" : ":";
+    return (
+      <div className="segmented-datetime-part" key={spec.name}>
+        {separator ? <span className="segmented-datetime-separator" aria-hidden="true">{separator}</span> : null}
+        <label htmlFor={`${id}-${spec.name}`}>
+          <span className="sr-only">{spec.label}</span>
+          <input
+            ref={(node) => { inputs.current[index] = node; }}
+            id={`${id}-${spec.name}`}
+            data-part={spec.name}
+            inputMode="numeric"
+            aria-label={spec.label}
+            aria-invalid={partInvalid(parts, spec)}
+            value={parts[spec.name]}
+            maxLength={spec.length}
+            placeholder={spec.name === "year" ? "年" : spec.label}
+            onBlur={(event) => completeField(spec, index, false, event.currentTarget.value)}
+            onChange={(event) => {
+              const digits = event.target.value.replace(/\D/g, "").slice(0, spec.length);
+              commit({ ...parts, [spec.name]: digits });
+              if (digits.length === spec.length || shouldCompleteSingleDigit(spec, digits)) {
+                const completed = digits.length === 1 ? digits.padStart(2, "0") : digits;
+                commit({ ...parts, [spec.name]: completed });
+                inputs.current[index + 1]?.focus();
+              }
+            }}
+            onKeyDown={(event) => {
+              if (event.key === "Backspace" && parts[spec.name] === "" && index > 0) {
+                event.preventDefault();
+                inputs.current[index - 1]?.focus();
+                return;
+              }
+              if (event.key === "Enter" || event.key === "/" || event.key === ":") {
+                event.preventDefault();
+                completeField(spec, index, true, event.currentTarget.value);
+                return;
+              }
+              if (event.key !== "ArrowUp" && event.key !== "ArrowDown") return;
+              event.preventDefault();
+              const current = Number(parts[spec.name] || spec.min);
+              const delta = event.key === "ArrowUp" ? 1 : -1;
+              const nextValue = Math.min(spec.max, Math.max(spec.min, current + delta));
+              commit({ ...parts, [spec.name]: String(nextValue).padStart(spec.length, "0") });
+            }}
+          />
+        </label>
+      </div>
+    );
+  };
+
   return (
     <div
       className="segmented-datetime"
@@ -142,56 +193,12 @@ export function ChineseDateTimeInput({
         inputs.current[visibleSpecs.length - 1]?.focus();
       }}
     >
-      {visibleSpecs.map((spec, index) => {
-        const separator = index === 0 ? null : index <= 2 ? "/" : index === 3 ? null : ":";
-        return (
-          <div className="segmented-datetime-part" key={spec.name}>
-            {separator ? <span className="segmented-datetime-separator" aria-hidden="true">{separator}</span> : null}
-            <label htmlFor={`${id}-${spec.name}`}>
-              <span className="sr-only">{spec.label}</span>
-              <input
-                ref={(node) => { inputs.current[index] = node; }}
-                id={`${id}-${spec.name}`}
-                data-part={spec.name}
-                inputMode="numeric"
-                aria-label={spec.label}
-                aria-invalid={partInvalid(parts, spec)}
-                value={parts[spec.name]}
-                maxLength={spec.length}
-                placeholder={spec.name === "year" ? "年" : spec.label}
-                onBlur={(event) => completeField(spec, index, false, event.currentTarget.value)}
-                onChange={(event) => {
-                  const digits = event.target.value.replace(/\D/g, "").slice(0, spec.length);
-                  commit({ ...parts, [spec.name]: digits });
-                  if (digits.length === spec.length || shouldCompleteSingleDigit(spec, digits)) {
-                    const completed = digits.length === 1 ? digits.padStart(2, "0") : digits;
-                    commit({ ...parts, [spec.name]: completed });
-                    inputs.current[index + 1]?.focus();
-                  }
-                }}
-                onKeyDown={(event) => {
-                  if (event.key === "Backspace" && parts[spec.name] === "" && index > 0) {
-                    event.preventDefault();
-                    inputs.current[index - 1]?.focus();
-                    return;
-                  }
-                  if (event.key === "Enter" || event.key === "/" || event.key === ":") {
-                    event.preventDefault();
-                    completeField(spec, index, true, event.currentTarget.value);
-                    return;
-                  }
-                  if (event.key !== "ArrowUp" && event.key !== "ArrowDown") return;
-                  event.preventDefault();
-                  const current = Number(parts[spec.name] || spec.min);
-                  const delta = event.key === "ArrowUp" ? 1 : -1;
-                  const nextValue = Math.min(spec.max, Math.max(spec.min, current + delta));
-                  commit({ ...parts, [spec.name]: String(nextValue).padStart(spec.length, "0") });
-                }}
-              />
-            </label>
-          </div>
-        );
-      })}
+      <div className="segmented-datetime-row segmented-datetime-date">
+        {visibleSpecs.slice(0, 3).map((spec, index) => renderPart(spec, index))}
+      </div>
+      <div className="segmented-datetime-row segmented-datetime-time">
+        {visibleSpecs.slice(3).map((spec, offset) => renderPart(spec, offset + 3))}
+      </div>
     </div>
   );
 }

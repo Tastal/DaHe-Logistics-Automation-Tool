@@ -8,8 +8,10 @@ from pathlib import Path
 import pytest
 
 from dahe.adapters.ocr.runtime_layout import (
+    activate_composition,
     activate_flat_composition,
     resolve_active_composition,
+    write_composition_manifest,
     write_flat_composition_manifest,
 )
 from dahe.release.gpu_addon import (
@@ -20,7 +22,7 @@ from dahe.release.gpu_addon import (
 )
 from dahe.release.launcher import VersionPointer, write_version_pointer_atomic
 
-VERSION = "1.1.2"
+VERSION = "1.1.3"
 GENERATION_ID = "a" * 32
 
 
@@ -36,9 +38,18 @@ def _sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def _cpu_composition(install_root: Path) -> Path:
+def _cpu_composition(
+    install_root: Path,
+    *,
+    generation_layout: bool = False,
+) -> Path:
     runtime = install_root / "runtimes" / "ocr-cpu"
-    cpu = runtime / "c"
+    composition_root = (
+        runtime / "generations" / GENERATION_ID
+        if generation_layout
+        else runtime
+    )
+    cpu = composition_root / ("ocr-cpu" if generation_layout else "c")
     cpu.mkdir(parents=True)
     (cpu / "runtime-installation.json").write_text(
         json.dumps(
@@ -49,26 +60,41 @@ def _cpu_composition(install_root: Path) -> Path:
         ),
         encoding="utf-8",
     )
-    models = runtime / "m" / "official_models"
+    models = composition_root / (
+        "model-cache" if generation_layout else "m"
+    ) / "official_models"
     models.mkdir(parents=True)
     (models / "model-manifest.json").write_text(
         json.dumps({"model_set_id": "formal-models"}),
         encoding="utf-8",
     )
-    qualification = runtime / "q" / "qualification.json"
+    qualification = composition_root / (
+        "qualification" if generation_layout else "q"
+    ) / "qualification.json"
     qualification.parent.mkdir(parents=True)
     qualification.write_text(
         json.dumps({"schema_version": 2, "reports": [{"runtime_kind": "cpu"}]}),
         encoding="utf-8",
     )
-    write_flat_composition_manifest(
-        runtime_root=runtime,
-        generation_id=GENERATION_ID,
-    )
-    activate_flat_composition(
-        runtime_root=runtime,
-        generation_id=GENERATION_ID,
-    )
+    if generation_layout:
+        write_composition_manifest(
+            generation_dir=composition_root,
+            generation_id=GENERATION_ID,
+            gpu_present=False,
+        )
+        activate_composition(
+            runtime_root=runtime,
+            generation_id=GENERATION_ID,
+        )
+    else:
+        write_flat_composition_manifest(
+            runtime_root=runtime,
+            generation_id=GENERATION_ID,
+        )
+        activate_flat_composition(
+            runtime_root=runtime,
+            generation_id=GENERATION_ID,
+        )
     write_version_pointer_atomic(
         install_root,
         VersionPointer(
@@ -121,7 +147,7 @@ def _gpu_package(tmp_path: Path, cpu_root: Path) -> tuple[Path, Path]:
         encoding="utf-8",
     )
     package = tmp_path / (
-        "DaHe-Logistics-Automation-Tool-1.1.2-gpu-addon-win-x64.zip"
+        "DaHe-Logistics-Automation-Tool-1.1.3-gpu-addon-win-x64.zip"
     )
     with zipfile.ZipFile(package, "w", compression=zipfile.ZIP_DEFLATED) as bundle:
         for path in sorted(package_root.rglob("*")):
@@ -134,16 +160,16 @@ def _gpu_package(tmp_path: Path, cpu_root: Path) -> tuple[Path, Path]:
                 "schema_version": 1,
                 "repository": "Tastal/DaHe-Logistics-Automation-Tool",
                 "version": VERSION,
-                "release_tag": "v1.1.2",
+                "release_tag": "v1.1.3",
                 "build_git_commit": "c" * 40,
                 "application": {
-                    "file_name": "DaHe-Logistics-Automation-Tool-1.1.2-win-x64.zip",
+                    "file_name": "DaHe-Logistics-Automation-Tool-1.1.3-win-x64.zip",
                     "sha256": "e" * 64,
                     "size": 1,
                     "url": (
                         "https://github.com/Tastal/DaHe-Logistics-Automation-Tool/"
-                        "releases/download/v1.1.2/"
-                        "DaHe-Logistics-Automation-Tool-1.1.2-win-x64.zip"
+                        "releases/download/v1.1.3/"
+                        "DaHe-Logistics-Automation-Tool-1.1.3-win-x64.zip"
                     ),
                 },
                 "gpu_addon": {
@@ -152,7 +178,7 @@ def _gpu_package(tmp_path: Path, cpu_root: Path) -> tuple[Path, Path]:
                     "size": package.stat().st_size,
                     "url": (
                         "https://github.com/Tastal/DaHe-Logistics-Automation-Tool/"
-                        f"releases/download/v1.1.2/{package.name}"
+                        f"releases/download/v1.1.3/{package.name}"
                     ),
                 },
                 "minimum_schema_revision": "0039_network_batch_default",
@@ -175,10 +201,12 @@ def _qualify(
     **_kwargs: object,
 ) -> None:
     assert gpu_runtime.name == "g"
+    cpu_composition = resolve_active_composition(
+        cpu_runtime_root,
+        allow_legacy=False,
+    )
     cpu_qualification = json.loads(
-        (
-            cpu_runtime_root / "q" / "qualification.json"
-        ).read_text(encoding="utf-8")
+        cpu_composition.qualification_path.read_text(encoding="utf-8")
     )
     qualification_path.parent.mkdir(parents=True)
     qualification_path.write_text(
@@ -228,6 +256,28 @@ def test_gpu_addon_installs_qualifies_and_activates_atomically(tmp_path: Path) -
     assert combined.qualification_path == (
         install_root / "runtimes" / "gq" / "qualification.json"
     ).resolve()
+
+
+def test_gpu_addon_activates_over_existing_generation_layout(
+    tmp_path: Path,
+) -> None:
+    install_root = tmp_path / "install"
+    install_root.mkdir()
+    cpu_root = _cpu_composition(install_root, generation_layout=True)
+    package, manifest = _gpu_package(tmp_path, cpu_root)
+
+    result = install_gpu_addon(
+        manifest_path=manifest,
+        package_path=package,
+        install_root=install_root,
+        qualifier=_qualify,
+    )
+
+    assert result.state == "active"
+    assert gpu_addon_status(install_root).state == "active"
+    combined = resolve_gpu_overlay_composition(cpu_root)
+    assert combined.generation_id == GENERATION_ID
+    assert combined.gpu_runtime == (install_root / "runtimes" / "g").resolve()
 
 
 def test_gpu_addon_rejects_release_hash_without_leaving_partial_runtime(
@@ -325,10 +375,27 @@ def test_gpu_addon_same_package_install_is_idempotent(tmp_path: Path) -> None:
     package, manifest = _gpu_package(tmp_path, cpu_root)
     calls = 0
 
-    def qualify(**kwargs: object) -> None:
+    def qualify(
+        *,
+        cpu_runtime_root: Path,
+        gpu_runtime: Path,
+        qualification_path: Path,
+        source_root: Path,
+        precision: str,
+        batch_size: int,
+        memory_safety_ratio: str,
+    ) -> None:
         nonlocal calls
         calls += 1
-        _qualify(**kwargs)
+        _qualify(
+            cpu_runtime_root=cpu_runtime_root,
+            gpu_runtime=gpu_runtime,
+            qualification_path=qualification_path,
+            source_root=source_root,
+            precision=precision,
+            batch_size=batch_size,
+            memory_safety_ratio=memory_safety_ratio,
+        )
 
     install_gpu_addon(
         manifest_path=manifest,

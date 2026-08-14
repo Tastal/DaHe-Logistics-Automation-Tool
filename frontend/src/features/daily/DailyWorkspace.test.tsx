@@ -2,7 +2,12 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
-import type { AppServices, DailyItem, DailyItemsResult } from "../../app/contracts";
+import type {
+  AppServices,
+  DailyItem,
+  DailyItemsResult,
+  DailyReportRecord,
+} from "../../app/contracts";
 import { ToastProvider } from "../../components/Toast";
 import { DailyWorkspace } from "./DailyWorkspace";
 import {
@@ -75,6 +80,33 @@ describe("Daily workspace", () => {
     };
   }
 
+  const reportSettings = {
+    shippingMine: "金鸡滩煤矿",
+    coalType: "兖矿陕动四号（5600）",
+    unloadingPlace: "象道货22",
+    queryPlaceKeyword: "榆林",
+    outputDirectory: "C:\\reports",
+    confirmed: false,
+    recordVersion: 0,
+  };
+
+  const reportRecord: DailyReportRecord = {
+    contractSubjectCode: "shanxi_guienbo",
+    reportId: "report-1",
+    businessDate: "2026-08-05",
+    status: "confirmed",
+    fileName: "装卸车明细-山西贵恩博-2026-08-05.xlsx",
+    fileSha256: "c".repeat(64),
+    dataSnapshotSha256: "d".repeat(64),
+    outputDirectory: "C:\\reports",
+    rowCount: 1,
+    loadingNetTotal: "33.08",
+    recordVersion: 1,
+    createdAt: "2026-08-05T20:10:00+08:00",
+    confirmedAt: "2026-08-05T20:10:00+08:00",
+    stale: false,
+  };
+
   it("uses the 14:00 Shanghai business boundary for the default date", () => {
     expect(businessDateForShanghaiClock(new Date("2026-08-11T05:59:00Z"))).toBe("2026-08-10");
     expect(businessDateForShanghaiClock(new Date("2026-08-11T06:00:00Z"))).toBe("2026-08-11");
@@ -112,6 +144,90 @@ describe("Daily workspace", () => {
   it("does not render a fake export action", () => {
     render(<DailyWorkspace services={{} as AppServices} jobs={[]} />);
     expect(screen.queryByRole("button", { name: /导出/ })).not.toBeInTheDocument();
+  });
+
+  it("enables direct report generation after all records are reviewed with stored unconfirmed settings", async () => {
+    const createReport = vi.fn(async () => reportRecord);
+    const services = {
+      loadDailyItems: vi.fn(async () => result("2026-08-05", [item])),
+      loadDailyReportSettings: vi.fn(async () => ({ ...reportSettings, recordVersion: 1 })),
+      findDailyReport: vi.fn(async () => null),
+      createDailyReport: createReport,
+    } as unknown as AppServices;
+    localStorage.setItem("dahe:last-daily-business-date", "2026-08-05");
+    render(
+      <ToastProvider>
+        <DailyWorkspace services={services} jobs={[]} productionReadOnly />
+      </ToastProvider>,
+    );
+    const user = userEvent.setup();
+
+    const button = await screen.findByRole("button", { name: "生成报表" });
+    await waitFor(() => expect(button).toBeEnabled());
+    await user.click(button);
+
+    await waitFor(() => expect(createReport).toHaveBeenCalledWith(
+      "2026-08-05",
+      1,
+      "shanxi_guienbo",
+    ));
+  });
+
+  it("materializes built-in default report settings within the first generate click", async () => {
+    const createReport = vi.fn(async () => reportRecord);
+    const saveSettings = vi.fn(async () => ({
+      ...reportSettings,
+      confirmed: true,
+      recordVersion: 1,
+    }));
+    const services = {
+      loadDailyItems: vi.fn(async () => result("2026-08-05", [item])),
+      loadDailyReportSettings: vi.fn(async () => reportSettings),
+      findDailyReport: vi.fn(async () => null),
+      createDailyReport: createReport,
+      saveDailyReportSettings: saveSettings,
+    } as unknown as AppServices;
+    localStorage.setItem("dahe:last-daily-business-date", "2026-08-05");
+    render(
+      <ToastProvider>
+        <DailyWorkspace services={services} jobs={[]} productionReadOnly />
+      </ToastProvider>,
+    );
+    const user = userEvent.setup();
+
+    const button = await screen.findByRole("button", { name: "生成报表" });
+    await waitFor(() => expect(button).toBeEnabled());
+    await user.click(button);
+
+    await waitFor(() => expect(saveSettings).toHaveBeenCalledWith({
+      shippingMine: reportSettings.shippingMine,
+      coalType: reportSettings.coalType,
+      unloadingPlace: reportSettings.unloadingPlace,
+      queryPlaceKeyword: reportSettings.queryPlaceKeyword,
+      outputDirectory: reportSettings.outputDirectory,
+      confirmed: true,
+      expectedRecordVersion: 0,
+    }));
+    expect(createReport).toHaveBeenCalledWith("2026-08-05", 1, "shanxi_guienbo");
+  });
+
+  it("keeps report generation disabled while the current business day still needs review", async () => {
+    const unresolved = { ...item, reviewState: "needs_review" as const };
+    const services = {
+      loadDailyItems: vi.fn(async () => result("2026-08-05", [unresolved])),
+      loadDailyReportSettings: vi.fn(async () => ({ ...reportSettings, recordVersion: 1 })),
+      findDailyReport: vi.fn(async () => null),
+      createDailyReport: vi.fn(async () => reportRecord),
+    } as unknown as AppServices;
+    localStorage.setItem("dahe:last-daily-business-date", "2026-08-05");
+    render(
+      <ToastProvider>
+        <DailyWorkspace services={services} jobs={[]} productionReadOnly />
+      </ToastProvider>,
+    );
+
+    const button = await screen.findByRole("button", { name: "生成报表" });
+    await waitFor(() => expect(button).toBeDisabled());
   });
 
   it("does not disguise a failed daily load as a genuinely empty business day", async () => {

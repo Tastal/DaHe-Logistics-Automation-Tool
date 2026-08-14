@@ -330,17 +330,24 @@ def _pointer_payload(
     *,
     internal: dict[str, object],
     package_sha256: str,
-    cpu_root: Path,
+    cpu_composition: ActiveOcrComposition,
     gpu_runtime: Path,
     qualification_path: Path,
 ) -> dict[str, object]:
+    generation_dir = cpu_composition.generation_dir
+    if generation_dir is None:
+        raise GpuAddonError(
+            "CPU fallback composition manifest is unavailable",
+            error_code="gpu_cpu_composition_mismatch",
+            stage="cpu_binding",
+        )
     return {
         "schema_version": GPU_OVERLAY_SCHEMA_VERSION,
         "application_version": internal["application_version"],
         "generation_id": internal["generation_id"],
         "package_sha256": package_sha256,
         "cpu_composition_manifest_sha256": _sha256_file(
-            cpu_root / "composition-manifest.json"
+            generation_dir / "composition-manifest.json"
         ),
         "gpu_runtime": GPU_RUNTIME_DIRECTORY,
         "gpu_runtime_installation_sha256": _sha256_file(
@@ -541,7 +548,10 @@ def install_gpu_addon(
                 error_code="gpu_runtime_invalid",
                 stage="runtime_verify",
             )
-        _verify_cpu_binding(cpu_root=cpu_root, internal=internal)
+        cpu_composition = _verify_cpu_binding(
+            cpu_root=cpu_root,
+            internal=internal,
+        )
         stage = "qualification"
         qualification = staging / GPU_QUALIFICATION_DIRECTORY / "qualification.json"
         source_root = _source_root_for_install(root, release.version)
@@ -580,7 +590,7 @@ def install_gpu_addon(
         pointer_payload = _pointer_payload(
             internal=internal,
             package_sha256=package_sha256,
-            cpu_root=cpu_root,
+            cpu_composition=cpu_composition,
             gpu_runtime=final_gpu,
             qualification_path=final_qualification_dir / "qualification.json",
         )
@@ -675,6 +685,13 @@ def _validated_pointer(cpu_root: Path) -> tuple[dict[str, object], Path, Path]:
     qualification = (
         runtimes / GPU_QUALIFICATION_DIRECTORY / "qualification.json"
     ).resolve(strict=True)
+    generation_dir = cpu.generation_dir
+    if generation_dir is None:
+        raise GpuAddonError(
+            "active CPU fallback composition manifest is unavailable",
+            error_code="gpu_overlay_invalid",
+            stage="status",
+        )
     if (
         gpu_runtime.parent != runtimes
         or qualification.parent.parent != runtimes
@@ -682,7 +699,7 @@ def _validated_pointer(cpu_root: Path) -> tuple[dict[str, object], Path, Path]:
         or _sha256_file(gpu_runtime / "runtime-installation.json")
         != pointer["gpu_runtime_installation_sha256"]
         or _sha256_file(qualification) != pointer["qualification_sha256"]
-        or _sha256_file(cpu_root / "composition-manifest.json")
+        or _sha256_file(generation_dir / "composition-manifest.json")
         != pointer["cpu_composition_manifest_sha256"]
         or _sha256_file(cpu.models_dir / "model-manifest.json")
         != pointer["model_manifest_sha256"]

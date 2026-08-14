@@ -34,7 +34,7 @@ describe("BrowserAppServices", () => {
       .mockResolvedValueOnce(
         new Response(
           JSON.stringify({
-            application_version: "1.1.2",
+            application_version: "1.1.3",
             csrf_token: "csrf-production",
           }),
           { status: 200, headers: { "Content-Type": "application/json" } },
@@ -73,7 +73,7 @@ describe("BrowserAppServices", () => {
       .mockResolvedValueOnce(
         new Response(
           JSON.stringify({
-            application_version: "1.1.2",
+            application_version: "1.1.3",
             csrf_token: "csrf-loop9",
           }),
           { status: 200, headers: { "Content-Type": "application/json" } },
@@ -338,7 +338,7 @@ describe("BrowserAppServices", () => {
       .mockResolvedValueOnce(
         new Response(
           JSON.stringify({
-            application_version: "1.1.2",
+            application_version: "1.1.3",
             csrf_token: "csrf-loop3",
           }),
           {
@@ -380,7 +380,7 @@ describe("BrowserAppServices", () => {
       .mockResolvedValueOnce(
         new Response(
           JSON.stringify({
-            application_version: "1.1.2",
+            application_version: "1.1.3",
             csrf_token: "csrf-loop3",
           }),
           {
@@ -456,7 +456,7 @@ describe("BrowserAppServices", () => {
       .mockResolvedValueOnce(
         new Response(
           JSON.stringify({
-            application_version: "1.1.2",
+            application_version: "1.1.3",
             csrf_token: "csrf-loop3",
           }),
           {

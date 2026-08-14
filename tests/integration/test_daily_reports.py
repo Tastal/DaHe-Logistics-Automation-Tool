@@ -11,7 +11,6 @@ import pytest
 
 from dahe.adapters.sqlite.contract_subjects import SqliteContractSubjectStore
 from dahe.adapters.sqlite.daily_reports import (
-    DailyReportConflictError,
     SqliteDailyReportRepository,
 )
 from dahe.adapters.sqlite.daily_store import SqliteDailyStore
@@ -156,24 +155,37 @@ def _seed_subject(
 
 
 @pytest.mark.integration
-def test_settings_must_be_confirmed_before_first_report(tmp_path: Path) -> None:
+def test_unconfirmed_legacy_settings_allow_direct_report(tmp_path: Path) -> None:
     runtime = _runtime(tmp_path)
     try:
+        daily = SqliteDailyStore(runtime)
+        _seed(daily)
         repository = SqliteDailyReportRepository(
             runtime=runtime,
-            daily_store=SqliteDailyStore(runtime),
+            daily_store=daily,
             default_output_directory=(tmp_path / "reports").resolve(),
         )
-        settings = repository.get_settings()
+        settings = repository.save_settings(
+            shipping_mine="金鸡滩煤矿",
+            coal_type="兖矿陕动四号（5600）",
+            unloading_place="象道货22",
+            query_place_keyword="榆林",
+            output_directory=(tmp_path / "reports").resolve(),
+            confirmed=False,
+            expected_record_version=0,
+        )
         assert settings.confirmed is False
-        assert settings.record_version == 0
-        with pytest.raises(DailyReportConflictError, match="confirmed"):
-            repository.create_report(
-                business_date=date(2026, 8, 1),
-                expected_settings_version=0,
-                idempotency_key="report-before-confirmation",
-                request_hash=HASH,
-            )
+        assert settings.record_version == 1
+        report, replayed = repository.create_report(
+            business_date=date(2026, 8, 1),
+            expected_settings_version=1,
+            idempotency_key="report-with-legacy-settings",
+            request_hash=HASH,
+        )
+        assert replayed is False
+        assert report.status == "confirmed"
+        assert report.row_count == 1
+        assert report.path.is_file()
     finally:
         runtime.close()
 

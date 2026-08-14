@@ -1,0 +1,125 @@
+{
+  "accepted_at": "2026-08-14T20:27:43.2125780+08:00",
+  "application_version": "1.1.2",
+  "chengfeng_platform_accessed": false,
+  "cleanup": {
+    "deployment_staging_removed": true,
+    "database_backup_preserved": true,
+    "local_private_key_removed": true,
+    "remote_authorized_key_lines_removed": 2,
+    "remote_authorized_key_lines_remaining": 0,
+    "temporary_interactive_task_removed": true,
+    "temporary_key_authentication_rejected_after_cleanup": true
+  },
+  "company_computer": {
+    "disk_free_bytes_before_install": 884219486208,
+    "host_name": "DESKTOP-0D9G483",
+    "windows_edition": "Windows 11 Pro",
+    "windows_version": "10.0.26200"
+  },
+  "data_reconciliation": {
+    "active_jobs_after": 0,
+    "active_jobs_before": 0,
+    "business_table_counts_after": {
+      "daily_candidate_snapshots": 0,
+      "daily_capture_invocations": 0,
+      "daily_capture_start_requests": 0,
+      "daily_manual_revision_idempotency": 0,
+      "daily_manual_revisions": 0,
+      "daily_observations": 0,
+      "daily_operational_ocr_batches": 0,
+      "daily_record_revisions": 0,
+      "daily_report_idempotency": 0,
+      "daily_report_settings": 0,
+      "daily_reports": 0,
+      "jobs": 0,
+      "operational_capture_runs": 0,
+      "platform_job_subjects": 0,
+      "settlement_capture_identities": 0,
+      "settlement_capture_invocations": 0,
+      "settlement_capture_strategies": 0,
+      "work_items": 0
+    },
+    "business_table_counts_unchanged": true,
+    "database_backup_relative_path": "backups/loop16-20260814-451a4126-pre-1.1.2.sqlite3",
+    "database_backup_sha256": "f6e6c472b0774ee2c9476f8a1ec4e937a01eeba46b0088818ccba126b687d94b",
+    "database_integrity_after": "ok",
+    "database_integrity_before": "ok",
+    "source_database_sha256_before": "54209e7ddae9a988984475c3d12358262adc4faec051d43f29c5b5dda8f22a06",
+    "target_schema_revision": "0041_contract_subject_scope"
+  },
+  "deployment": {
+    "application_build_git_commit": "18069c012ed11eed8f2233214d8161765c1cf2fb",
+    "application_resource_sha256": "3692f97aaa3a733094bce4722f96b4ff428e115531c05236a86a79caa854acbd",
+    "previous_installed_version": "1.1.0",
+    "setup_elapsed_seconds": 68.06,
+    "setup_exit_code": 0,
+    "single_desktop_shortcut": true,
+    "shortcut_target": "DaHeLauncher.exe",
+    "transferred_assets": {
+      "DaHe-Logistics-Automation-Tool-1.1.2-Setup.exe": {
+        "remote_sha256": "d9cdf4a48bd882e96edff99054c05a022e6ee591e9d8996a1d1a9c4bd8f95ff1",
+        "size": 424646002
+      },
+      "DaHe-Logistics-Automation-Tool-1.1.2-gpu-addon-win-x64.zip": {
+        "remote_sha256": "fb7a5d4f8b6b48bd4bbaea9b25fff0ec8dcd7f0a2e59c563c1f0cb4de707bf4c",
+        "size": 2018833304
+      },
+      "SHA256SUMS.txt": {
+        "remote_sha256": "6b8eef64ea7234e14fb628f21937d58954f325e9e4e209dad0033be6513c7afa",
+        "size": 440
+      },
+      "update-manifest.json": {
+        "remote_sha256": "eb1b4ed7f7032c694551adfb68e9430379a63e473a09adcebec8c58ebb47a740",
+        "size": 1222
+      }
+    }
+  },
+  "final_runtime": {
+    "cold_start_readiness_http_statuses": [
+      200,
+      200
+    ],
+    "cold_start_seconds": [
+      4.8,
+      6.49
+    ],
+    "cpu_fallback_available": true,
+    "diagnostic_code": null,
+    "gpu_addon_state": "active",
+    "gpu_package_version": "1.1.2",
+    "gpu_qualified": true,
+    "primary_runtime": "gpu",
+    "readiness_after_cleanup": true,
+    "running_in_interactive_session": true
+  },
+  "gpu_qualification": {
+    "critical_fixture_parity": true,
+    "driver_version": "610.88",
+    "gpu_memory_mib": 16380,
+    "gpu_model": "NVIDIA GeForce RTX 4060 Ti",
+    "gpu_worker_process_observed": true,
+    "package_sha256": "fb7a5d4f8b6b48bd4bbaea9b25fff0ec8dcd7f0a2e59c563c1f0cb4de707bf4c",
+    "peak_memory_used_mib": 4894,
+    "qualified_fixture_count": 2,
+    "stable_device_id": "GPU-71c9bf21-c536-6e71-d9e2-5555df1bde28",
+    "status": "qualified",
+    "updater_gpu_status_exit_code": 0,
+    "updater_gpu_status_state": "active"
+  },
+  "platform_safety": {
+    "business_write_request_count": 0,
+    "platform_request_audit_files_after": 0,
+    "platform_request_audit_files_before": 0,
+    "real_chengfeng_read_performed": false
+  },
+  "result": "passed",
+  "secret_scan": {
+    "command": ".venv\\Scripts\\python.exe tools\\run_dev_quality.py secrets",
+    "finding_count": 0,
+    "passed": true,
+    "raw_report_sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+  },
+  "schema_revision": "0041_contract_subject_scope",
+  "schema_version": 1
+}

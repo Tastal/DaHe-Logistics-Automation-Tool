@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import { describe, expect, it } from "vitest";
@@ -18,6 +18,24 @@ function ControlledInput({ includeSeconds = false }: { includeSeconds?: boolean 
 }
 
 describe("Chinese segmented date time input", () => {
+  it("keeps the date and time segments on separate rows", () => {
+    render(<ControlledInput includeSeconds />);
+
+    const group = screen.getByRole("group", { name: "年月日时分秒" });
+    const dateRow = group.querySelector(".segmented-datetime-date");
+    const timeRow = group.querySelector(".segmented-datetime-time");
+
+    expect(dateRow).not.toBeNull();
+    expect(timeRow).not.toBeNull();
+    expect(within(dateRow as HTMLElement).getByLabelText("年")).toBeVisible();
+    expect(within(dateRow as HTMLElement).getByLabelText("月")).toBeVisible();
+    expect(within(dateRow as HTMLElement).getByLabelText("日")).toBeVisible();
+    expect(within(dateRow as HTMLElement).queryByLabelText("时")).toBeNull();
+    expect(within(timeRow as HTMLElement).getByLabelText("时")).toBeVisible();
+    expect(within(timeRow as HTMLElement).getByLabelText("分")).toBeVisible();
+    expect(within(timeRow as HTMLElement).getByLabelText("秒")).toBeVisible();
+  });
+
   it("uses compact Chinese placeholders and prefills only the date", () => {
     render(<ControlledInput />);
 

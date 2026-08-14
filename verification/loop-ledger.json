@@ -10,36 +10,34 @@
     {
       "evidence": "verification/loops/loop-16/20260814T170856+0800/gate-b-formal-build-and-release.json",
       "id": "loop-16-gate-b-formal-build-and-release",
-      "status": "pending"
+      "status": "passed"
     },
     {
       "evidence": "verification/loops/loop-16/20260814T170856+0800/gate-c-company-gpu-deployment.json",
       "id": "loop-16-gate-c-company-gpu-deployment",
-      "status": "pending"
+      "status": "passed"
     }
   ],
   "input_manifest": {
     "path": "verification/loops/loop-16/20260814T170856+0800/input-manifest.json",
     "sha256": "6968cc468aa63d7acc0b6703c06ad9b9ad58e61636aad992ec8de6192a483125"
   },
-  "last_accepted_git_commit": "38bfa0094925bfaaf467765f93f741cd13a0d610",
+  "last_accepted_git_commit": "5bb18c35bfc26cc1f3a7c26655d307cb7ed9bca9",
   "next_inputs": [
-    "Complete the v1.1.2 formal build and public release from one clean source identity.",
-    "Bootstrap a temporary SSH key without placing the password in commands or files.",
-    "Stop remote deployment if any DaHe business or OCR task is active.",
-    "Accept the deployment only after GPU qualification, two cold starts, readiness and data-count reconciliation pass."
+    "Use v1.1.2 as the company-computer production baseline and keep GPU packages bound to the matching application release.",
+    "Change the Windows password that was disclosed in chat before the next remote-maintenance session.",
+    "Keep every Chengfeng business write disabled."
   ],
   "operational_acceptance": null,
   "project_id": "DaHeLogistics",
-  "revision": 58,
+  "revision": 60,
   "run_id": "20260814T170856+0800",
   "schema_version": 4,
-  "status": "in_progress",
+  "status": "accepted",
   "unresolved_risks": [
-    "Company-computer GPU model and driver compatibility remain unverified until remote read-only preflight.",
-    "v1.1.2 formal build and GitHub release remain pending.",
     "The unsigned installer may still show an unknown-publisher SmartScreen warning.",
-    "Nine symlink-only automated checks remain skipped because the current Windows account cannot create symbolic links."
+    "Nine symlink-only automated checks remain skipped because the current Windows account cannot create symbolic links.",
+    "Another installed application can also use the company GPU; concurrent GPU workloads may reduce OCR throughput."
   ],
   "waiver": null
 }

@@ -5149,8 +5149,15 @@ a.button {
 
 .segmented-datetime {
   display: inline-flex;
+  flex-direction: column;
   width: max-content;
   max-width: 100%;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.segmented-datetime-row {
+  display: inline-flex;
   min-height: 44px;
   align-items: center;
   gap: 4px;

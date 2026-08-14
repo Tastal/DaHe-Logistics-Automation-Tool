@@ -1,0 +1,103 @@
+{
+  "accepted_at": "2026-08-14T19:40:37.2592243+08:00",
+  "application_version": "1.1.2",
+  "automated_checks": {
+    "authoritative_command": ".venv\\Scripts\\python.exe tools\\check.py",
+    "authoritative_elapsed_seconds": 875.5,
+    "frontend_tests_passed": 144,
+    "mypy_source_files": 363,
+    "python_tests_passed": 3027,
+    "python_tests_skipped": 9,
+    "ruff_status": "passed",
+    "skip_reason": "The current Windows account cannot create symbolic links; non-link path-safety coverage passed.",
+    "targeted_gpu_and_build_tests_passed": 44,
+    "targeted_migration_tests_passed": 23
+  },
+  "chengfeng_platform_accessed": false,
+  "defender": {
+    "antivirus_signature_version": "1.457.159.0",
+    "formal_release_directory": "no threats",
+    "installed_cpu_and_gpu_tree": "no threats",
+    "real_time_protection_enabled": true
+  },
+  "formal_assets": {
+    "DaHe-Logistics-Automation-Tool-1.1.2-Setup.exe": {
+      "sha256": "d9cdf4a48bd882e96edff99054c05a022e6ee591e9d8996a1d1a9c4bd8f95ff1",
+      "size": 424646002
+    },
+    "DaHe-Logistics-Automation-Tool-1.1.2-gpu-addon-win-x64.zip": {
+      "sha256": "fb7a5d4f8b6b48bd4bbaea9b25fff0ec8dcd7f0a2e59c563c1f0cb4de707bf4c",
+      "size": 2018833304
+    },
+    "DaHe-Logistics-Automation-Tool-1.1.2-win-x64.zip": {
+      "sha256": "ac6ecb1e32485194f417da260e94580215631b7e7b37c46753a1cf3f257c320e",
+      "size": 61859811
+    },
+    "SHA256SUMS.txt": {
+      "sha256": "6b8eef64ea7234e14fb628f21937d58954f325e9e4e209dad0033be6513c7afa",
+      "size": 440
+    },
+    "update-manifest.json": {
+      "sha256": "eb1b4ed7f7032c694551adfb68e9430379a63e473a09adcebec8c58ebb47a740",
+      "size": 1222
+    }
+  },
+  "formal_build": {
+    "asset_count": 5,
+    "build_git_commit": "18069c012ed11eed8f2233214d8161765c1cf2fb",
+    "minimum_schema_revision": "0039_network_batch_default",
+    "minimum_updater_version": "1.0.0",
+    "resource_sha256": "3692f97aaa3a733094bce4722f96b4ff428e115531c05236a86a79caa854acbd",
+    "target_schema_revision": "0041_contract_subject_scope"
+  },
+  "github": {
+    "asset_count": 5,
+    "asset_digests_match_local": true,
+    "is_draft": false,
+    "is_latest": true,
+    "main_commit": "18069c012ed11eed8f2233214d8161765c1cf2fb",
+    "published_at": "2026-08-14T11:39:42Z",
+    "release_url": "https://github.com/Tastal/DaHe-Logistics-Automation-Tool/releases/tag/v1.1.2",
+    "tag_commit": "18069c012ed11eed8f2233214d8161765c1cf2fb"
+  },
+  "gpu_qualification": {
+    "cpu_fallback_available": true,
+    "critical_fixture_parity": true,
+    "driver_version": "610.62",
+    "gpu_memory_mib": 8188,
+    "gpu_package_version": "1.1.2",
+    "peak_memory_used_mib": 1927,
+    "primary_runtime": "gpu",
+    "profile_id": "gpu-c7fe21693329-fp16-b6-w1",
+    "stable_device_id": "GPU-9ad6d7aa-8649-b2bb-ac5f-0235712d2eaf",
+    "status": "active"
+  },
+  "isolated_installation": {
+    "cold_start_readiness_http_statuses": [
+      200,
+      200
+    ],
+    "cold_start_seconds": [
+      4.81,
+      4.26
+    ],
+    "existing_1_1_0_service_preserved": true,
+    "installed_build_git_commit": "18069c012ed11eed8f2233214d8161765c1cf2fb",
+    "installed_schema_revision": "0041_contract_subject_scope",
+    "installed_version": "1.1.2",
+    "setup_exit_code": 0
+  },
+  "rejected_candidates": [
+    {
+      "diagnostic_code": "gpu_cpu_composition_mismatch",
+      "reason": "GPU add-on was bound to the development CPU manifest instead of the flattened CPU manifest installed by Setup."
+    },
+    {
+      "reason": "The first packaged updater used the windowed subsystem and could not return JSON over SSH."
+    }
+  ],
+  "result": "passed",
+  "schema_revision": "0041_contract_subject_scope",
+  "schema_version": 1,
+  "source_export_manifest": "verification/loops/loop-16/20260814T170856+0800/source-export-manifest.json"
+}

@@ -113,13 +113,13 @@ def _client(
 
 
 @pytest.mark.integration
-def test_report_api_requires_confirmed_settings_and_idempotency(tmp_path: Path) -> None:
+def test_report_api_saves_settings_and_creates_idempotently(tmp_path: Path) -> None:
     opened_directories: list[Path] = []
     client, runtime = _client(tmp_path, opened_directories)
     try:
         initial = client.get("/api/v1/daily/report-settings")
         assert initial.status_code == 200
-        assert initial.json()["confirmed"] is False
+        assert initial.json()["confirmed"] is True
 
         payload = {
             "shipping_mine": "金鸡滩煤矿",
@@ -166,6 +166,44 @@ def test_report_api_requires_confirmed_settings_and_idempotency(tmp_path: Path) 
         assert opened.status_code == 200
         assert opened.json() == {"opened": True}
         assert opened_directories == [(tmp_path / "reports").resolve()]
+    finally:
+        runtime.close()
+
+
+@pytest.mark.integration
+def test_report_api_creates_directly_with_unconfirmed_legacy_settings(
+    tmp_path: Path,
+) -> None:
+    client, runtime = _client(tmp_path)
+    try:
+        settings = client.put(
+            "/api/v1/daily/report-settings",
+            headers={"Idempotency-Key": "legacy-unconfirmed-settings"},
+            json={
+                "shipping_mine": "金鸡滩煤矿",
+                "coal_type": "兖矿陕动四号（5600）",
+                "unloading_place": "象道货22",
+                "query_place_keyword": "榆林",
+                "output_directory": str((tmp_path / "reports").resolve()),
+                "confirmed": False,
+                "expected_record_version": 0,
+            },
+        )
+        assert settings.status_code == 200
+        assert settings.json()["confirmed"] is False
+        assert settings.json()["record_version"] == 1
+
+        created = client.post(
+            "/api/v1/daily/reports",
+            headers={"Idempotency-Key": "report-default-settings"},
+            json={
+                "business_date": "2026-08-01",
+                "expected_settings_version": 1,
+            },
+        )
+        assert created.status_code == 200
+        assert created.json()["report"]["row_count"] == 1
+        assert created.json()["report"]["status"] == "confirmed"
     finally:
         runtime.close()
 

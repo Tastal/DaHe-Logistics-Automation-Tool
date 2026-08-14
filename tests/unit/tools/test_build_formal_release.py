@@ -14,6 +14,7 @@ from tools.build_formal_release import (
     MINIMUM_SCHEMA_REVISION,
     _copy_browser_runtime,
     _copy_formal_pipeline_sources,
+    _copy_operational_seed,
     _copy_source_tree,
     _copy_updater_binaries,
     _cpu_only_qualification,
@@ -74,6 +75,47 @@ def test_updater_is_carried_by_stable_and_versioned_locations(tmp_path: Path) ->
 
     assert (payload / "DaHeUpdater.exe").read_bytes() == b"versioned updater"
     assert (version_root / "DaHeUpdater.exe").read_bytes() == b"versioned updater"
+
+
+def test_formal_payload_contains_every_declared_operational_contract(
+    tmp_path: Path,
+) -> None:
+    seed_root = tmp_path / "seed-source"
+    target_root = tmp_path / "payload" / "seed"
+    relative_path = Path("platform-read-contract") / "active-candidate.json"
+    contract = seed_root / relative_path
+    contract.parent.mkdir(parents=True)
+    content = b'{"kind":"active-candidate"}\n'
+    contract.write_bytes(content)
+    (seed_root / "operational-template-bundle.json").write_text(
+        "{}\n",
+        encoding="utf-8",
+    )
+    (seed_root / "operational-contract-install.json").write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "kind": "chengfeng_operational_read_contract_install",
+                "classification": "operational_only",
+                "credential_material_retained": False,
+                "request_values_retained": False,
+                "response_values_retained": False,
+                "platform_write_authorization": False,
+                "copied_files": [
+                    {
+                        "relative_path": relative_path.as_posix(),
+                        "sha256": hashlib.sha256(content).hexdigest(),
+                        "size": len(content),
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    _copy_operational_seed(seed_root, target_root)
+
+    assert (target_root / relative_path).read_bytes() == content
 
 
 def test_formal_release_requires_the_exact_version_tag(

@@ -39,7 +39,7 @@ from dahe.release.updater import (
 
 PROJECT_ROOT = Path(__file__).parents[3]
 REVISION = "0041_contract_subject_scope"
-NEW_VERSION = "1.1.3"
+NEW_VERSION = "1.1.4"
 
 
 class _DownloadResponse(io.BytesIO):
@@ -544,7 +544,7 @@ def test_flat_cpu_runtime_bootstrap_installs_atomically_with_short_staging(
     assert not tuple(target.parent.glob(".c-*"))
 
 
-def test_cpu_runtime_bootstrap_is_idempotent_only_for_the_same_runtime(
+def test_cpu_runtime_bootstrap_reuses_any_valid_existing_composition(
     tmp_path: Path,
 ) -> None:
     archive, manifest = _flat_cpu_archive(tmp_path)
@@ -555,6 +555,23 @@ def test_cpu_runtime_bootstrap_is_idempotent_only_for_the_same_runtime(
 
     pointer = target / "active-composition.json"
     pointer.write_text(pointer.read_text(encoding="utf-8") + " ", encoding="utf-8")
+    bootstrap_cpu_runtime(
+        archive=archive,
+        manifest_path=manifest,
+        target=target,
+    )
+
+
+def test_cpu_runtime_bootstrap_rejects_invalid_existing_composition(
+    tmp_path: Path,
+) -> None:
+    archive, manifest = _flat_cpu_archive(tmp_path)
+    target = tmp_path / "runtimes" / "ocr-cpu"
+
+    bootstrap_cpu_runtime(archive=archive, manifest_path=manifest, target=target)
+
+    pointer = target / "active-composition.json"
+    pointer.write_text("{", encoding="utf-8")
     with pytest.raises(CpuRuntimeBootstrapError) as failure:
         bootstrap_cpu_runtime(
             archive=archive,
@@ -652,7 +669,7 @@ def test_gpu_status_cli_returns_authoritative_json(
             gpu_qualified=True,
             primary_runtime="gpu",
             cpu_fallback_available=True,
-            package_version="1.1.2",
+            package_version="1.1.3",
             diagnostic_code=None,
         ),
     )
@@ -685,7 +702,7 @@ def test_gpu_install_cli_calls_addon_installer_and_returns_json(
         calls.append((manifest_path, package_path, install_root))
         return GpuAddonInstallResult(
             state="active",
-            package_version="1.1.2",
+            package_version="1.1.3",
             primary_runtime="gpu",
             gpu_qualified=True,
             cpu_fallback_available=True,

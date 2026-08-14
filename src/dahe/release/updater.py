@@ -21,7 +21,10 @@ from urllib.request import HTTPRedirectHandler, Request, build_opener
 from uuid import uuid4
 
 from dahe import __version__
-from dahe.adapters.ocr.runtime_layout import resolve_active_composition
+from dahe.adapters.ocr.runtime_layout import (
+    OcrRuntimeLayoutError,
+    resolve_active_composition,
+)
 from dahe.release.database_upgrade import (
     DatabaseUpgradeResult,
     ReleaseDatabaseUpgrade,
@@ -409,11 +412,16 @@ def bootstrap_cpu_runtime(
         ):
             resolve_active_composition(destination, allow_legacy=False)
             return
-        raise CpuRuntimeBootstrapError(
-            "a different CPU runtime already exists",
-            error_code="cpu_runtime_target_conflict",
-            stage="target",
-        )
+        try:
+            resolve_active_composition(destination, allow_legacy=False)
+        except (OcrRuntimeLayoutError, OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+            raise CpuRuntimeBootstrapError(
+                "a different or invalid CPU runtime already exists",
+                error_code="cpu_runtime_target_conflict",
+                stage="target",
+                winerror=getattr(exc, "winerror", None),
+            ) from exc
+        return
     staging = destination.with_name(f".c-{uuid4().hex[:8]}")
     stage = "disk_preflight"
     try:

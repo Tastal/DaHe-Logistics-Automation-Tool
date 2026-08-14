@@ -282,8 +282,6 @@ class DailyReportWorkbook:
         contract_subject_code: str = "shanxi_guienbo",
         contract_subject_label: str = "山西贵恩博",
     ) -> DailyReportWorkbookResult:
-        if not settings.confirmed:
-            raise DailyReportWorkbookError("report settings are not confirmed")
         output_directory = settings.output_directory.resolve()
         output_directory.mkdir(parents=True, exist_ok=True)
         final = output_directory / (

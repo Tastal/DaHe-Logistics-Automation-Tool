@@ -337,6 +337,10 @@ def install_seed_data(*, install_root: Path, data_root: Path) -> None:
         target = target_root / name
         if source.is_file() and not target.exists():
             shutil.copy2(source, target)
+    _copy_declared_operational_contracts(
+        source=seed_root,
+        target=target_root,
+    )
 
 
 def readiness(

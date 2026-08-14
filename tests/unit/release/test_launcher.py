@@ -13,6 +13,7 @@ from dahe.release.launcher import (
     LauncherError,
     VersionPointer,
     compute_resource_sha256,
+    install_seed_data,
     migrate_existing_user_data,
     read_version_pointer,
     run_launcher,
@@ -170,3 +171,47 @@ def test_existing_data_repairs_missing_declared_operational_contract_files(
 
     assert (target / relative_path).read_bytes() == payload
     assert contract.read_bytes() == payload
+
+
+def test_fresh_install_copies_declared_operational_contract_files(
+    tmp_path: Path,
+) -> None:
+    install_root = tmp_path / "install"
+    seed_root = install_root / "seed"
+    data_root = tmp_path / "data"
+    relative_path = Path("platform-read-contract") / "active-candidate.json"
+    contract = seed_root / relative_path
+    contract.parent.mkdir(parents=True)
+    payload = b'{"kind":"active-candidate"}\n'
+    contract.write_bytes(payload)
+    (seed_root / "operational-template-bundle.json").write_text(
+        "{}\n",
+        encoding="utf-8",
+    )
+    (seed_root / "operational-contract-install.json").write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "kind": "chengfeng_operational_read_contract_install",
+                "classification": "operational_only",
+                "credential_material_retained": False,
+                "request_values_retained": False,
+                "response_values_retained": False,
+                "platform_write_authorization": False,
+                "copied_files": [
+                    {
+                        "relative_path": relative_path.as_posix(),
+                        "sha256": hashlib.sha256(payload).hexdigest(),
+                        "size": len(payload),
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    install_seed_data(install_root=install_root, data_root=data_root)
+    install_seed_data(install_root=install_root, data_root=data_root)
+
+    assert (data_root / relative_path).read_bytes() == payload
+    assert (data_root / "operational-contract-install.json").is_file()

@@ -361,6 +361,14 @@ describe("B version application shell", () => {
 
   it("shows one update icon before exit and installs only after confirmation", async () => {
     const user = userEvent.setup();
+    const checkForUpdates = vi.fn().mockResolvedValue({
+      state: "available",
+      currentVersion: "1.0.0",
+      availableVersion: "1.1.3",
+      updateAvailable: true,
+      checkedAt: "2026-08-14T12:00:00+00:00",
+      errorCode: null,
+    });
     const installUpdate = vi.fn().mockResolvedValue({
       state: "installing",
       currentVersion: "1.0.0",
@@ -381,7 +389,7 @@ describe("B version application shell", () => {
             checkedAt: "2026-08-10T12:00:00+00:00",
             errorCode: null,
           }),
-          checkForUpdates: vi.fn(),
+          checkForUpdates,
           installUpdate,
         })}
       />,
@@ -398,8 +406,9 @@ describe("B version application shell", () => {
 
     await user.click(updateButton);
     expect(installUpdate).not.toHaveBeenCalled();
+    await waitFor(() => expect(checkForUpdates).toHaveBeenCalledOnce());
     expect(
-      screen.getByRole("heading", { name: "安装 1.0.0 更新？" }),
+      await screen.findByRole("heading", { name: "安装 1.1.3 更新？" }),
     ).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "安装更新" }));

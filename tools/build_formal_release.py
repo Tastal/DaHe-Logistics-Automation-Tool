@@ -35,6 +35,7 @@ from dahe.application.template_studio.fingerprints import (
 )
 from dahe.release.launcher import (
     VersionPointer,
+    _copy_declared_operational_contracts,
     compute_resource_sha256,
     write_version_pointer_atomic,
 )
@@ -92,6 +93,32 @@ def _require_github_release_asset_size(path: Path) -> None:
         raise RuntimeError(
             f"GitHub release asset must be smaller than 2 GiB: {path.name} ({size} bytes)"
         )
+
+
+def _copy_operational_seed(seed_root: Path, target_root: Path) -> None:
+    target_root.mkdir(parents=True, exist_ok=True)
+    for name in (
+        "operational-template-bundle.json",
+        "operational-contract-install.json",
+    ):
+        source = seed_root / name
+        if not source.is_file() or source.is_symlink():
+            raise RuntimeError("formal operational seed is incomplete")
+        shutil.copy2(source, target_root / name)
+    try:
+        copied = _copy_declared_operational_contracts(
+            source=seed_root,
+            target=target_root,
+        )
+    except RuntimeError as exc:
+        raise RuntimeError("formal operational seed contracts are invalid") from exc
+    marker = json.loads(
+        (seed_root / "operational-contract-install.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    if copied != len(marker["copied_files"]):
+        raise RuntimeError("formal operational seed contracts are incomplete")
 
 
 def _git(root: Path, *arguments: str) -> str:
@@ -886,12 +913,7 @@ def main() -> int:
         payload / "runtimes" / "ocr-cpu.zip",
         payload / "runtimes" / "cpu-runtime-manifest.json",
     )
-    (payload / "seed").mkdir()
-    for name in (
-        "operational-template-bundle.json",
-        "operational-contract-install.json",
-    ):
-        shutil.copy2(seed_root / name, payload / "seed" / name)
+    _copy_operational_seed(seed_root, payload / "seed")
     write_version_pointer_atomic(
         payload,
         VersionPointer(

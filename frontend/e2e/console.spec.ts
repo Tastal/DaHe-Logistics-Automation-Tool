@@ -235,6 +235,14 @@ test("daily workspace uses one progress projection and keeps field editing visib
   expect(await input.evaluate((element) => getComputedStyle(element).borderStyle)).toBe("solid");
   const loadingTimeInputs = page.locator(".daily-item-row").first().locator(".segmented-datetime").first().locator("input");
   await expect(loadingTimeInputs).toHaveCount(6);
+  const dateRow = page.locator(".daily-item-row").first().locator(".segmented-datetime-date").first();
+  const timeRow = page.locator(".daily-item-row").first().locator(".segmented-datetime-time").first();
+  await expect(dateRow.locator("input")).toHaveCount(3);
+  await expect(timeRow.locator("input")).toHaveCount(3);
+  const rowBoxes = await Promise.all([dateRow.boundingBox(), timeRow.boundingBox()]);
+  expect(rowBoxes[0]).not.toBeNull();
+  expect(rowBoxes[1]).not.toBeNull();
+  expect(rowBoxes[1]?.y ?? 0).toBeGreaterThan((rowBoxes[0]?.y ?? 0) + (rowBoxes[0]?.height ?? 0));
   const timeBoxes = await loadingTimeInputs.evaluateAll((inputs) =>
     inputs.map((element) => {
       const box = element.getBoundingClientRect();

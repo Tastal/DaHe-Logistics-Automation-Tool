@@ -27,10 +27,13 @@ operator can select `山西贵恩博` or `上海晋亿晟` without navigating th
 the selected subject is verified only when a settlement or daily read starts,
 and its tasks, reviews, history, reuse index and reports remain isolated. Schema
 `0041_contract_subject_scope` assigns all pre-existing records to Shanxi. The
-1.1.2 installer keeps GitHub as the only online source, retains validated resumable
+1.1.3 installer keeps GitHub as the only online source, retains validated resumable
 application-ZIP downloads and supports an equally validated local package
 import for unstable networks. Its formal GPU add-on is installed and qualified
-by the versioned updater; copying the GPU ZIP by hand does not activate it.
+by the versioned updater; copying the GPU ZIP by hand does not activate it. A
+fresh formal installation also copies and verifies every read-only operational
+contract declared by its seed marker, so it does not depend on an older data
+root that happened to receive those contracts during development or repair.
 
 The committed development checkout is the authoritative latest implementation.
 Run and verify it only through `.venv\Scripts\python.exe`. An installed build is
@@ -271,7 +274,7 @@ frontend build pass. Keep the local archive under `dist/releases/<version>`;
 the binaries are ignored by Git while `dist/README.md` documents the layout:
 
 ```powershell
-$releaseOutput = Join-Path $PWD "dist\releases\1.1.2"
+$releaseOutput = Join-Path $PWD "dist\releases\1.1.3"
 .\.venv\Scripts\python.exe tools\build_formal_release.py `
   --output-root $releaseOutput `
   --browser-runtime-root "$env:LOCALAPPDATA\DaHeLogistics\runtimes\browser" `
@@ -304,14 +307,14 @@ manifest, then let the installed versioned updater verify, qualify and activate
 the add-on; do not extract it manually:
 
 ```powershell
-& "$env:LOCALAPPDATA\Programs\DaHeLogisticsAutomationTool\versions\1.1.2\DaHeUpdater.exe" `
+& "$env:LOCALAPPDATA\Programs\DaHeLogisticsAutomationTool\versions\1.1.3\DaHeUpdater.exe" `
   gpu-install `
   --manifest .\update-manifest.json `
-  --package .\DaHe-Logistics-Automation-Tool-1.1.2-gpu-addon-win-x64.zip `
+  --package .\DaHe-Logistics-Automation-Tool-1.1.3-gpu-addon-win-x64.zip `
   --install-root "$env:LOCALAPPDATA\Programs\DaHeLogisticsAutomationTool" `
   --json
 
-& "$env:LOCALAPPDATA\Programs\DaHeLogisticsAutomationTool\versions\1.1.2\DaHeUpdater.exe" `
+& "$env:LOCALAPPDATA\Programs\DaHeLogisticsAutomationTool\versions\1.1.3\DaHeUpdater.exe" `
   gpu-status `
   --install-root "$env:LOCALAPPDATA\Programs\DaHeLogisticsAutomationTool" `
   --json
@@ -324,7 +327,7 @@ computer. Failure leaves the verified CPU composition unchanged.
 The application ZIP carries the updater for that version. The installed
 application prefers this versioned updater; the stable root updater remains as
 the compatibility entry for the first upgrade from an older release. The
-1.1.2 manifest accepts Schema `0039_network_batch_default` and migrates to
+1.1.3 manifest accepts Schema `0039_network_batch_default` and migrates to
 `0041_contract_subject_scope`.
 
 The formal CPU OCR payload uses the flat composition layout documented in

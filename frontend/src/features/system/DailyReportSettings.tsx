@@ -78,14 +78,14 @@ export function DailyReportSettingsPanel({ services }: { services: AppServices }
           <label><span>查询地点关键词</span><input value={settings.queryPlaceKeyword} onChange={(event) => update("queryPlaceKeyword", event.target.value)} /></label>
           <label className="report-output-field"><span>输出目录</span><input value={settings.outputDirectory} onChange={(event) => update("outputDirectory", event.target.value)} /></label>
           <div className="compact-actions">
-            <Tooltip content="确认后才能生成正式装卸车报表。">
+            <Tooltip content="保存后用于生成正式装卸车报表。">
               <button
                 className="button primary"
                 type="submit"
                 disabled={busy || !settings.shippingMine.trim() || !settings.coalType.trim() || !settings.unloadingPlace.trim() || !settings.queryPlaceKeyword.trim() || !settings.outputDirectory.trim()}
               >
                 <Save aria-hidden="true" size={17} />
-                {busy ? "正在保存" : settings.confirmed ? "保存设置" : "保存并确认"}
+                {busy ? "正在保存" : "保存设置"}
               </button>
             </Tooltip>
           </div>
