@@ -185,7 +185,7 @@ function jsonResponse(body: object, status = 200): Response {
 
 function sessionResponse(): Response {
   return jsonResponse({
-    application_version: "1.0.0",
+    application_version: "1.1.0",
     api_version: "v1",
     csrf_token: "csrf-loop7",
   });

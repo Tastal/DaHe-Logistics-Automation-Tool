@@ -79,6 +79,7 @@ from dahe.adapters.sqlite.business_connection import (
     SqliteBusinessConnectionSessionStore,
 )
 from dahe.adapters.sqlite.chengfeng_capture import SqliteChengfengCaptureStore
+from dahe.adapters.sqlite.contract_subjects import SqliteContractSubjectStore
 from dahe.adapters.sqlite.daily_invocation_store import (
     SqliteDailyInvocationStore,
 )
@@ -91,6 +92,7 @@ from dahe.adapters.sqlite.daily_store import SqliteDailyStore
 from dahe.adapters.sqlite.locked_set_review import (
     SqliteLockedSetReviewRepository,
 )
+from dahe.adapters.sqlite.operational_review import SqliteOperationalReviewLinkStore
 from dahe.adapters.sqlite.platform_access import SqlitePlatformAccessRepository
 from dahe.adapters.sqlite.platform_credentials import (
     SqlitePlatformCredentialConfigStore,
@@ -130,6 +132,7 @@ from dahe.application.audit.projections import (
 from dahe.application.chengfeng.access_window import AccessPurpose
 from dahe.application.chengfeng.browser_readiness import (
     reconcile_operational_browser_readiness,
+    reconcile_terminal_automated_browser_holder,
 )
 from dahe.application.chengfeng.connection_mode import (
     ChengfengConnectionModeStore,
@@ -148,11 +151,13 @@ from dahe.application.chengfeng.identity_authority import (
     load_or_create_loop9_identity_authority,
 )
 from dahe.application.chengfeng.operational_capture import (
+    WHOLE_RUN_CAPTURE_MODE,
     FastOperationalSettlementCaptureCoordinator,
     OperationalSettlementCaptureCoordinator,
     load_complete_operational_checkpoints,
     scheduled_job_from_operational_batch,
     scheduled_job_from_operational_checkpoints,
+    scheduled_whole_run_review_job,
 )
 from dahe.application.chengfeng.settlement_capture import (
     PaginatedSettlementCaptureCoordinator,
@@ -860,6 +865,8 @@ def create_app(
             store=SqlitePlatformCredentialConfigStore(runtime),
         )
         platform_connection_mode_store = ChengfengConnectionModeStore()
+        contract_subject_store = SqliteContractSubjectStore(runtime)
+        contract_subject_store.initialize()
         browser_control_store = BrowserControlStore(
             runtime.engine,
             runtime.commit_gate,
@@ -937,6 +944,7 @@ def create_app(
                 clock=lambda: datetime.now(UTC),
                 runtime_log_store=runtime_log_store,
                 request_audit_store=platform_request_audit_store,
+                contract_subject_for_job=contract_subject_store.subject_for_job,
             )
             live_connector = VerifiedChengfengConnector(
                 runtime=live_runtime,
@@ -1004,10 +1012,8 @@ def create_app(
             settings = performance_settings_repository.get()
             return settings.detail_concurrency, settings.image_concurrency
 
-        def capture_batch_size() -> int:
-            return performance_settings_repository.get().network_batch_size
-
         daily_operational_ocr_store = SqliteDailyOperationalOcrStore(runtime)
+        operational_review_link_store = SqliteOperationalReviewLinkStore(runtime)
         selected_daily_contract: SelectedDailyReadContract | None = None
         active_daily_contract_selection = (
             data_root.resolve() / "daily-platform-read-contract" / "active-candidate.json"
@@ -1168,8 +1174,8 @@ def create_app(
                     navigation_authorizer=navigation_authorizer,
                     batch_store=chengfeng_capture_store,
                     concurrency_provider=capture_concurrency,
-                    batch_size_provider=capture_batch_size,
                     progress_sink=transient_business_progress_store.publish,
+                    capture_mode=WHOLE_RUN_CAPTURE_MODE,
                 )
 
                 def materialize_operational_audit(
@@ -1186,7 +1192,8 @@ def create_app(
                         spec: ScheduledJobSpec,
                         *,
                         source_identity: str,
-                    ) -> None:
+                        idempotency_contract: str = "legacy",
+                    ) -> JobRecord:
                         request_payload = {
                             "capture_job_id": capture_job_id,
                             "source_identity": source_identity,
@@ -1201,7 +1208,8 @@ def create_app(
                             ).encode("utf-8")
                         ).hexdigest()
                         idempotency_key = (
-                            f"operational-materialize:{source_identity}"
+                            "operational-materialize:"
+                            f"{idempotency_contract}:{source_identity}"
                         )
                         active, expected_version = repository.fixture_start_state(
                             spec.conflict_key
@@ -1237,6 +1245,12 @@ def create_app(
                                     request_hash=request_hash,
                                 )
                             )
+                        contract_subject_store.bind_job(
+                            job_id=audit_job.job_id,
+                            subject_code=contract_subject_store.subject_for_job(
+                                capture_job_id
+                            ),
+                        )
                         runtime_log_store.append(
                             level="info",
                             source="platform",
@@ -1252,12 +1266,66 @@ def create_app(
                             ),
                             job_id=audit_job.job_id,
                         )
+                        return audit_job
 
                     batch_run = chengfeng_capture_store.load_operational_run(job_id=capture_job_id)
                     pipeline_fingerprint = current_template_pipeline_build_fingerprint(
                         application_version=__version__
                     )
                     if batch_run is not None:
+                        if batch_run.capture_mode == WHOLE_RUN_CAPTURE_MODE:
+                            existing_link = operational_review_link_store.get(
+                                capture_job_id
+                            )
+                            if existing_link is not None:
+                                return
+                            checkpoint = chengfeng_capture_store.load(
+                                job_id=capture_job_id,
+                                scope=batch_run.scope,
+                                page_number=1,
+                                page_size=batch_run.batch_size,
+                            )
+                            if checkpoint is None:
+                                raise RuntimeError("published whole-run capture is missing")
+                            manifest_sha = hashlib.sha256(
+                                json.dumps(
+                                    checkpoint.to_payload(),
+                                    ensure_ascii=False,
+                                    sort_keys=True,
+                                    separators=(",", ":"),
+                                ).encode("utf-8")
+                            ).hexdigest()
+                            if checkpoint.details:
+                                spec = scheduled_whole_run_review_job(
+                                    checkpoint=checkpoint,
+                                    pipeline_fingerprint=pipeline_fingerprint,
+                                    source_job_id=capture_job_id,
+                                    business_kind="settlement",
+                                    scope_label="成丰待结算",
+                                )
+                                review_job = create_audit_job(
+                                    spec,
+                                    source_identity=f"{capture_job_id}:whole:{manifest_sha}",
+                                    idempotency_contract="whole-run-v1",
+                                )
+                                operational_review_link_store.register(
+                                    source_job_id=capture_job_id,
+                                    business_kind="settlement",
+                                    review_job_id=review_job.job_id,
+                                    eligible_item_count=len(spec.items),
+                                    missing_item_count=0,
+                                    source_manifest_sha256=manifest_sha,
+                                )
+                            else:
+                                operational_review_link_store.register(
+                                    source_job_id=capture_job_id,
+                                    business_kind="settlement",
+                                    review_job_id=None,
+                                    eligible_item_count=0,
+                                    missing_item_count=0,
+                                    source_manifest_sha256=manifest_sha,
+                                )
+                            return
                         for batch_number in range(
                             1,
                             batch_run.committed_batch_count + 1,
@@ -1357,6 +1425,9 @@ def create_app(
                     operational_coordinator=(operational_coordinator),
                     fast_operational_coordinator=(fast_operational_coordinator),
                     operational_materializer=(materialize_operational_audit),
+                    contract_subject_for_job=(
+                        contract_subject_store.subject_for_job
+                    ),
                 )
                 settlement_capture_execution_backend = AsyncSettlementCaptureExecutionBackend(
                     execute=settlement_live_executor,
@@ -1396,6 +1467,75 @@ def create_app(
                 pipeline_fingerprint = current_template_pipeline_build_fingerprint(
                     application_version=__version__
                 )
+                if run.capture_mode == WHOLE_RUN_CAPTURE_MODE:
+                    existing_link = operational_review_link_store.get(daily_job_id)
+                    if existing_link is not None:
+                        return
+                    checkpoint = chengfeng_capture_store.load(
+                        job_id=daily_job_id,
+                        scope=run.scope,
+                        page_number=1,
+                        page_size=run.batch_size,
+                    )
+                    if checkpoint is None:
+                        raise RuntimeError("published daily whole-run capture is missing")
+                    manifest_sha = hashlib.sha256(
+                        json.dumps(
+                            checkpoint.to_payload(),
+                            ensure_ascii=False,
+                            sort_keys=True,
+                            separators=(",", ":"),
+                        ).encode("utf-8")
+                    ).hexdigest()
+                    base = scheduled_whole_run_review_job(
+                        checkpoint=checkpoint,
+                        pipeline_fingerprint=pipeline_fingerprint,
+                        source_job_id=daily_job_id,
+                        business_kind="daily",
+                        scope_label=(
+                            f"装卸车离线审核 {run.scope.removeprefix('daily:')}"
+                        ),
+                    )
+                    review_items = base.items
+                    whole_review_job_id: str | None = None
+                    if review_items:
+                        spec = replace(
+                            base,
+                            items=review_items,
+                        )
+                        _active, expected_version = repository.fixture_start_state(
+                            spec.conflict_key
+                        )
+                        request_hash = hashlib.sha256(
+                            json.dumps(
+                                {"daily_job_id": daily_job_id, "fixture_id": spec.fixture_id},
+                                sort_keys=True,
+                                separators=(",", ":"),
+                            ).encode("utf-8")
+                        ).hexdigest()
+                        ocr_job, _created = repository.create_scheduled_job(
+                            fixture=spec,
+                            scope_label=spec.scope_label,
+                            idempotency_key=f"daily-operational-ocr:{daily_job_id}:whole",
+                            request_hash=request_hash,
+                            expected_record_version=expected_version,
+                        )
+                        contract_subject_store.bind_job(
+                            job_id=ocr_job.job_id,
+                            subject_code=contract_subject_store.subject_for_job(
+                                daily_job_id
+                            ),
+                        )
+                        whole_review_job_id = ocr_job.job_id
+                    operational_review_link_store.register(
+                        source_job_id=daily_job_id,
+                        business_kind="daily",
+                        review_job_id=whole_review_job_id,
+                        eligible_item_count=len(review_items),
+                        missing_item_count=0,
+                        source_manifest_sha256=manifest_sha,
+                    )
+                    return
                 for batch_number in range(
                     1,
                     run.committed_batch_count + 1,
@@ -1427,7 +1567,7 @@ def create_app(
                         and item.unloading_image_relative_path is not None
                     )
                     missing_count = len(base.items) - len(eligible)
-                    ocr_job_id: str | None = None
+                    legacy_ocr_job_id: str | None = None
                     if eligible:
                         capture_identity = base.fixture_id.rsplit(":", 1)[-1]
                         spec = replace(
@@ -1471,11 +1611,11 @@ def create_app(
                             request_hash=request_hash,
                             expected_record_version=(expected_version),
                         )
-                        ocr_job_id = ocr_job.job_id
+                        legacy_ocr_job_id = ocr_job.job_id
                     daily_operational_ocr_store.register_batch(
                         daily_job_id=daily_job_id,
                         batch_number=batch_number,
-                        ocr_job_id=ocr_job_id,
+                        ocr_job_id=legacy_ocr_job_id,
                         eligible_item_count=len(eligible),
                         missing_ticket_count=missing_count,
                     )
@@ -1538,12 +1678,14 @@ def create_app(
                         daily_store=daily_store,
                         clock=lambda: datetime.now(UTC),
                         concurrency_provider=capture_concurrency,
-                        batch_size_provider=capture_batch_size,
                         progress_sink=transient_business_progress_store.publish,
                     )
                 ),
                 operational_materializer=(
                     materialize_daily_operational_ocr if ocr_execution_backend is not None else None
+                ),
+                contract_subject_for_job=(
+                    contract_subject_store.subject_for_job
                 ),
                 unexpected_error_observer=observe_daily_unexpected_error,
             )
@@ -1638,6 +1780,7 @@ def create_app(
     )
     session_secret = secrets.token_urlsafe(32)
     csrf_token = secrets.token_urlsafe(32)
+    explicit_shutdown_requested = threading.Event()
 
     @asynccontextmanager
     async def lifespan(application: FastAPI) -> AsyncIterator[None]:
@@ -1670,6 +1813,22 @@ def create_app(
                 now=datetime.now(UTC),
             )
             repository.recover_abandoned_attempts(recovering_instance_id=instance_id)
+            interrupted_business_reads = repository.terminalize_business_reads(
+                status=JobStatus.FAILED,
+                diagnostic_code="CF-BUSINESS-READ-INTERRUPTED",
+            )
+            if interrupted_business_reads:
+                runtime_log_store.append(
+                    level="warning",
+                    source="platform",
+                    event_code="business_reads_interrupted_reconciled",
+                    stream="application",
+                    message=(
+                        "Recovered interrupted business read state for "
+                        f"{len(interrupted_business_reads)} job(s)."
+                    ),
+                    diagnostic_code="CF-BUSINESS-READ-INTERRUPTED",
+                )
             if settlement_capture_store is not None:
                 reconciled_settlement_jobs = (
                     settlement_capture_store.reconcile_terminal_or_expired_access(
@@ -1719,6 +1878,23 @@ def create_app(
                             f"for {len(reconciled_jobs)} job(s)."
                         ),
                     )
+            if (
+                settlement_capture_execution_backend is not None
+                and daily_live_executor is not None
+            ):
+                reconcile_terminal_automated_browser_holder(
+                    browser_control=browser_control_store,
+                    browser_runtime=browser_runtime,
+                    session_id=platform_session_id,
+                    load_job_state=lambda job_id: (
+                        repository.get_job(job_id).task_type,
+                        repository.get_job(job_id).status.is_terminal,
+                    ),
+                    reconcile_settlement=(
+                        settlement_capture_execution_backend.reconcile_terminal
+                    ),
+                    reconcile_daily=daily_live_executor.close_terminal_job,
+                )
             if platform_access_expiry_reconciler is not None:
                 platform_access_expiry_reconciler.start()
             outbox_log_bridge = RuntimeOutboxLogBridge(
@@ -1807,6 +1983,30 @@ def create_app(
             if process_supervisor is not None:
                 attempt_shutdown(process_supervisor.close)
             attempt_shutdown(lambda: repository.abandon_instance_attempts(instance_id=instance_id))
+            if explicit_shutdown_requested.is_set():
+                cancelled_business_reads: tuple[str, ...] = ()
+
+                def cancel_business_reads_on_shutdown() -> None:
+                    nonlocal cancelled_business_reads
+                    cancelled_business_reads = repository.terminalize_business_reads(
+                        status=JobStatus.CANCELLED,
+                        diagnostic_code=None,
+                    )
+
+                attempt_shutdown(cancel_business_reads_on_shutdown)
+                if cancelled_business_reads:
+                    attempt_shutdown(
+                        lambda: runtime_log_store.append(
+                            level="info",
+                            source="platform",
+                            event_code="business_reads_cancelled_for_shutdown",
+                            stream="application",
+                            message=(
+                                "Cancelled active business reads after workers "
+                                f"stopped ({len(cancelled_business_reads)} job(s))."
+                            ),
+                        )
+                    )
 
             def close_business_connection_on_shutdown() -> None:
                 business_session = business_session_store.latest(
@@ -2234,6 +2434,62 @@ def create_app(
             )
         return update_service.check().to_payload()
 
+    @app.post("/api/v1/system/updates/imports", status_code=201)
+    async def create_update_import(
+        request: Request,
+        _: str = Depends(require_write),
+    ) -> dict[str, object]:
+        if update_service is None:
+            raise ApiError(
+                409,
+                "update_program_unavailable",
+                "当前安装不支持软件更新。",
+            )
+        try:
+            content = await request.body()
+            if not content or len(content) > 64 * 1024:
+                raise ValueError("update manifest size is invalid")
+            return update_service.create_import(content).to_payload()
+        except (OSError, ValueError) as exc:
+            raise ApiError(
+                422,
+                "update_import_manifest_invalid",
+                "所选更新清单无效或不适用于当前版本。",
+            ) from exc
+
+    @app.put("/api/v1/system/updates/imports/{import_id}")
+    async def upload_update_import(
+        import_id: str,
+        request: Request,
+        x_dahe_update_file_name: str | None = Header(default=None),
+        _: str = Depends(require_write),
+    ) -> dict[str, object]:
+        if update_service is None:
+            raise ApiError(
+                409,
+                "update_program_unavailable",
+                "当前安装不支持软件更新。",
+            )
+        if x_dahe_update_file_name is None:
+            raise ApiError(
+                422,
+                "update_import_file_name_required",
+                "请选择与更新清单对应的应用 ZIP。",
+            )
+        try:
+            status = await update_service.upload_import_async(
+                import_id,
+                request.stream(),
+                file_name=x_dahe_update_file_name,
+            )
+        except (OSError, ValueError) as exc:
+            raise ApiError(
+                422,
+                "update_import_asset_invalid",
+                "应用 ZIP 与更新清单不一致。",
+            ) from exc
+        return status.to_payload()
+
     @app.post("/api/v1/system/updates/install", status_code=202)
     def install_update(
         _: str = Depends(require_write),
@@ -2286,6 +2542,32 @@ def create_app(
             replay = idempotency_key in shutdown_request_keys
             shutdown_request_keys.add(idempotency_key)
         if not replay:
+            explicit_shutdown_requested.set()
+            active_business_reads = tuple(
+                job
+                for job in repository.list_jobs()
+                if not job.status.is_terminal
+                and job.run_mode == "operational"
+                and job.task_type in {"daily", "settlement_capture"}
+            )
+            cancelled_business_reads = repository.terminalize_business_reads(
+                status=JobStatus.CANCELLED,
+                diagnostic_code=None,
+            )
+            for job in active_business_reads:
+                with contextlib.suppress(Exception):
+                    browser_runtime.abort_active_operation(job.job_id)
+            if cancelled_business_reads:
+                runtime_log_store.append(
+                    level="info",
+                    source="platform",
+                    event_code="business_reads_cancelled_for_shutdown",
+                    stream="application",
+                    message=(
+                        "Cancelled active business reads before worker shutdown "
+                        f"({len(cancelled_business_reads)} job(s))."
+                    ),
+                )
             runtime_log_store.append(
                 level="info",
                 source="application",
@@ -2708,6 +2990,7 @@ def create_app(
             business_session_store=business_session_store,
             credential_service=platform_credential_service,
             connection_mode_store=platform_connection_mode_store,
+            contract_subject_store=contract_subject_store,
             browser_control=browser_control_store,
             browser_runtime=browser_runtime,
             browser_lifecycle=browser_lifecycle,
@@ -2716,6 +2999,7 @@ def create_app(
             job_repository=repository,
             daily_invocation_store=daily_invocation_store,
             daily_operational_ocr_store=daily_operational_ocr_store,
+            operational_review_link_store=operational_review_link_store,
             transient_progress_store=transient_business_progress_store,
             selected_daily_contract=selected_daily_contract,
             daily_execution_available=(daily_execution_backend is not None),

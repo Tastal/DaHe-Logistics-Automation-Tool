@@ -11,6 +11,7 @@ from dahe.application.chengfeng.durable_capture import (
 )
 from dahe.application.chengfeng.operational_capture import (
     OPERATIONAL_BATCH_SIZE,
+    WHOLE_RUN_CAPTURE_MODE,
     FastOperationalSettlementCaptureCoordinator,
     OperationalCaptureRun,
     scheduled_job_from_operational_batch,
@@ -182,6 +183,7 @@ class MemoryBatchStore:
         job_id: str,
         scope: str,
         items: tuple[WaybillSummary, ...],
+        capture_mode: str,
         batch_size: int,
         detail_concurrency: int,
         image_concurrency: int,
@@ -201,6 +203,7 @@ class MemoryBatchStore:
             image_concurrency=image_concurrency,
             status="collecting",
             record_version=1,
+            capture_mode=capture_mode,
         )
         return self.run
 
@@ -273,12 +276,14 @@ def _coordinator(
     adapter: FakeAdapter,
     store: MemoryBatchStore,
     batch_size: int = OPERATIONAL_BATCH_SIZE,
+    capture_mode: str = "batch_v1",
 ) -> FastOperationalSettlementCaptureCoordinator:
     return FastOperationalSettlementCaptureCoordinator(
         adapter=adapter,
         navigation_authorizer=AllowNavigation(),
         batch_store=store,
         batch_size_provider=lambda: batch_size,
+        capture_mode=capture_mode,
     )
 
 
@@ -307,6 +312,63 @@ def test_fast_capture_freezes_dynamic_list_then_commits_configured_batches() -> 
     )
     assert second.checkpoint_revision == 2
     assert third.checkpoint_revision == 3
+
+
+def test_whole_run_freezes_and_publishes_more_than_one_hundred_once() -> None:
+    adapter = FakeAdapter(total=104)
+    store = MemoryBatchStore()
+    coordinator = _coordinator(
+        adapter=adapter,
+        store=store,
+        capture_mode=WHOLE_RUN_CAPTURE_MODE,
+    )
+
+    completed = coordinator.advance(invocation=Invocation(), authority=AUTHORITY)
+
+    assert completed.has_more is False
+    assert completed.capture_sha256 is not None
+    assert adapter.list_calls == [1, 2, 3]
+    assert len(adapter.detail_calls) == 104
+    assert len(adapter.image_calls) == 208
+    assert store.freeze_calls == 1
+    assert store.commit_calls == 1
+    assert store.run is not None
+    assert store.run.capture_mode == WHOLE_RUN_CAPTURE_MODE
+    assert store.run.committed_batch_count == 1
+    assert tuple(len(item.details) for item in completed.checkpoints) == (104,)
+
+
+def test_whole_run_does_not_retry_transient_network_failure() -> None:
+    class WholeRunAdapter(FakeAdapter):
+        def __init__(self) -> None:
+            super().__init__(total=1)
+            self.calls = 0
+
+        def read_waybill_whole_run(
+            self,
+            *,
+            authority: BrowserCommandAuthority,
+            summaries: tuple[WaybillSummary, ...],
+            detail_concurrency: int,
+            image_concurrency: int,
+        ) -> tuple[OperationalWaybillEvidence, ...]:
+            del authority, summaries, detail_concurrency, image_concurrency
+            self.calls += 1
+            raise TransientNetworkError(stage=ChengfengStage.DETAIL_QUERY)
+
+    adapter = WholeRunAdapter()
+    store = MemoryBatchStore()
+    coordinator = _coordinator(
+        adapter=adapter,
+        store=store,
+        capture_mode=WHOLE_RUN_CAPTURE_MODE,
+    )
+
+    with pytest.raises(TransientNetworkError):
+        coordinator.advance(invocation=Invocation(), authority=AUTHORITY)
+
+    assert adapter.calls == 1
+    assert store.commit_calls == 0
 
 
 def test_fast_capture_does_not_commit_a_partial_batch_and_retries_only_that_batch() -> None:

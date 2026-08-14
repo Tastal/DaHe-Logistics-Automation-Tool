@@ -15,6 +15,9 @@ export function BusinessOperationBar({
   onAction,
   moduleActions,
   trailing,
+  collapseTrailing = false,
+  pauseDisabledReason,
+  pauseDisabled = false,
 }: {
   job: JobSummary | null;
   busy?: boolean;
@@ -23,9 +26,14 @@ export function BusinessOperationBar({
   onAction: (action: "pause" | "resume" | "cancel") => void;
   moduleActions?: ReactNode;
   trailing?: ReactNode;
+  collapseTrailing?: boolean;
+  pauseDisabledReason?: string | null;
+  pauseDisabled?: boolean;
 }) {
   const resumable = Boolean(job?.actions.resume?.visible && job.actions.resume.enabled);
-  const pausable = Boolean(job?.actions.pause?.visible && job.actions.pause.enabled);
+  const pausable = Boolean(
+    !pauseDisabled && job?.actions.pause?.visible && job.actions.pause.enabled
+  );
   const toggleAction = resumable ? "resume" : "pause";
   const toggleEnabled = resumable || pausable;
   const cancelEnabled = Boolean(job?.actions.cancel?.visible && job.actions.cancel.enabled);
@@ -50,6 +58,7 @@ export function BusinessOperationBar({
           className="button"
           type="button"
           disabled={!toggleEnabled}
+          title={!toggleEnabled ? pauseDisabledReason ?? undefined : undefined}
           onClick={() => onAction(toggleAction)}
         >
           {resumable ? (
@@ -69,8 +78,13 @@ export function BusinessOperationBar({
           取消
         </button>
         {moduleActions}
+        {collapseTrailing && trailing ? (
+          <div className="business-operation-trailing">{trailing}</div>
+        ) : null}
       </ResponsiveSecondaryActions>
-      {trailing ? <div className="business-operation-trailing">{trailing}</div> : null}
+      {!collapseTrailing && trailing ? (
+        <div className="business-operation-trailing">{trailing}</div>
+      ) : null}
     </div>
   );
 }

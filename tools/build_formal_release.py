@@ -63,8 +63,10 @@ except ModuleNotFoundError:
     )
 
 ROOT = Path(__file__).resolve().parents[1]
-REVISION = "0039_network_batch_default"
+REVISION = "0041_contract_subject_scope"
+MINIMUM_SCHEMA_REVISION = "0039_network_batch_default"
 REPOSITORY = "Tastal/DaHe-Logistics-Automation-Tool"
+GITHUB_RELEASE_ASSET_LIMIT_BYTES = 2 * 1024 * 1024 * 1024
 
 
 def _sha256(path: Path) -> str:
@@ -73,6 +75,14 @@ def _sha256(path: Path) -> str:
         for chunk in iter(lambda: handle.read(1024 * 1024), b""):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def _require_github_release_asset_size(path: Path) -> None:
+    size = path.stat().st_size
+    if size >= GITHUB_RELEASE_ASSET_LIMIT_BYTES:
+        raise RuntimeError(
+            f"GitHub release asset must be smaller than 2 GiB: {path.name} ({size} bytes)"
+        )
 
 
 def _git(root: Path, *arguments: str) -> str:
@@ -87,6 +97,44 @@ def _git(root: Path, *arguments: str) -> str:
         shell=False,
     )
     return completed.stdout.strip()
+
+
+def _source_application_version(source_root: Path) -> str:
+    source = source_root / "src" / "dahe" / "__init__.py"
+    marker = "__version__ = "
+    matches = [
+        line.removeprefix(marker).strip().strip('"')
+        for line in source.read_text(encoding="utf-8").splitlines()
+        if line.startswith(marker)
+    ]
+    if len(matches) != 1 or not matches[0]:
+        raise RuntimeError("formal release source version is invalid")
+    return matches[0]
+
+
+def _require_release_tag(source_root: Path, version: str) -> None:
+    expected = f"v{version}"
+    actual = _git(
+        source_root,
+        "describe",
+        "--tags",
+        "--exact-match",
+        "--match",
+        expected,
+        "HEAD",
+    )
+    if actual != expected:
+        raise RuntimeError("formal release tag does not match the source version")
+
+
+def _copy_updater_binaries(
+    updater: Path,
+    *,
+    payload: Path,
+    version_root: Path,
+) -> None:
+    shutil.copy2(updater, payload / "DaHeUpdater.exe")
+    shutil.copy2(updater, version_root / "DaHeUpdater.exe")
 
 
 def _run_pyinstaller(
@@ -554,13 +602,14 @@ def main() -> int:
     require_project_venv()
     arguments = _parser().parse_args()
     source_root = arguments.source_root.resolve(strict=True)
-    if __version__ != "1.0.0":
-        raise RuntimeError("formal release builder requires application version 1.0.0")
-    source_version = source_root / "src" / "dahe" / "__init__.py"
-    if '__version__ = "1.0.0"' not in source_version.read_text(encoding="utf-8"):
-        raise RuntimeError("formal release source version is not 1.0.0")
+    source_version = _source_application_version(source_root)
+    if source_version != __version__:
+        raise RuntimeError(
+            "formal release source version differs from the build environment"
+        )
     if _git(source_root, "status", "--porcelain"):
         raise RuntimeError("formal release builder requires a clean committed checkout")
+    _require_release_tag(source_root, source_version)
     commit = _git(source_root, "rev-parse", "HEAD")
     if len(commit) != 40:
         raise RuntimeError("Git release commit is invalid")
@@ -617,9 +666,24 @@ def main() -> int:
         shutil.copy2(source_root / name, version_root / name)
     _copy_formal_pipeline_sources(source_root, version_root)
 
+    updater = _run_pyinstaller(
+        source_root=source_root,
+        entrypoint=source_root / "tools" / "entrypoints" / "dahe_updater.py",
+        name="DaHeUpdater",
+        dist_root=dist,
+        work_root=work,
+        one_file=True,
+    )
+    _copy_updater_binaries(
+        updater,
+        payload=payload,
+        version_root=version_root,
+    )
+
     source_build_sha256 = current_loop9_build_sha256(source_root)
     critical = (
         "DaHeApp.exe",
+        "DaHeUpdater.exe",
         "alembic.ini",
         "frontend/dist/index.html",
         "version-manifest.json",
@@ -669,16 +733,7 @@ def main() -> int:
         work_root=work,
         one_file=True,
     )
-    updater = _run_pyinstaller(
-        source_root=source_root,
-        entrypoint=source_root / "tools" / "entrypoints" / "dahe_updater.py",
-        name="DaHeUpdater",
-        dist_root=dist,
-        work_root=work,
-        one_file=True,
-    )
     shutil.copy2(launcher, payload / "DaHeLauncher.exe")
-    shutil.copy2(updater, payload / "DaHeUpdater.exe")
     _copy_browser_runtime(
         browser_runtime,
         payload / "runtimes" / "browser",
@@ -730,6 +785,7 @@ def main() -> int:
     )
     application_zip = output / application_name
     _zip_tree(version_root, application_zip)
+    _require_github_release_asset_size(application_zip)
     gpu_name = (
         f"DaHe-Logistics-Automation-Tool-{__version__}-gpu-addon-win-x64.zip"
     )
@@ -749,6 +805,7 @@ def main() -> int:
     )
     gpu_zip = output / gpu_name
     _zip_tree(gpu_root, gpu_zip)
+    _require_github_release_asset_size(gpu_zip)
 
     manifest = {
         "schema_version": 1,
@@ -774,7 +831,7 @@ def main() -> int:
                 f"v{__version__}/{gpu_name}"
             ),
         },
-        "minimum_schema_revision": REVISION,
+        "minimum_schema_revision": MINIMUM_SCHEMA_REVISION,
         "target_schema_revision": REVISION,
         "alembic_revision": REVISION,
         "minimum_updater_version": "1.0.0",
@@ -803,6 +860,7 @@ def main() -> int:
         )
     setup = next(installer_output.glob("*.exe"))
     shutil.copy2(setup, output / setup.name)
+    _require_github_release_asset_size(output / setup.name)
     assets = [
         output / setup.name,
         application_zip,

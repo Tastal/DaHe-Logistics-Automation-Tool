@@ -1,0 +1,28 @@
+{
+  "acceptance_gates": [
+    "switching the business date clears the previous date immediately and late responses cannot overwrite the selected date",
+    "manual review submits every unresolved field including confirmed null values and uses backend review status and counts",
+    "daily preparation enters /wayBill directly without preparing or querying /billablewaybill",
+    "settlement and daily reads use one visible Chengfeng page, cache-disabled reloads, fresh responses, and zero platform business writes",
+    "the sidebar exposes one backend-authoritative Chengfeng connection status and four accessible operator tools",
+    "the system workspace contains the converged diagnostic controls and no recent-problems, task, local-resource, or data-management panels",
+    "the committed source, isolated browser Worker, and running development service are the verified implementation"
+  ],
+  "allowed_external_resources": [
+    "https://pc.chengfengkuaiyun.com (read-only validation only)"
+  ],
+  "captured_at": "2026-08-12T18:31:46.4338974Z",
+  "forbidden_platform_operations": [
+    "settlement confirmation",
+    "payment",
+    "receipt cancellation",
+    "dispatch",
+    "any other platform business write"
+  ],
+  "fixture_policy": "Automated review persistence checks use temporary databases and sanitized fixtures; no production review record is changed for acceptance.",
+  "installed_release_policy": "Do not build, install, update shortcuts, or publish a release in Loop 12.",
+  "kind": "loop_12_daily_workspace_and_console_convergence_input_manifest",
+  "schema_version": 1,
+  "source_commit": "224007857d7bd050f4726b6fc3c5dfd86d0c1b6e",
+  "source_parent_commit": "677abbef1115aa507648182c9204190289ac2006"
+}

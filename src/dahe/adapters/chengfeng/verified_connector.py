@@ -220,6 +220,49 @@ class VerifiedChengfengConnector:
             )
         return tuple(result)
 
+    def read_waybill_whole_run(
+        self,
+        *,
+        authority: BrowserCommandAuthority,
+        summaries: tuple[WaybillSummary, ...],
+        detail_concurrency: int,
+        image_concurrency: int,
+        active_job_id: str | None = None,
+        progress_callback: Callable[[str, int, int], None] | None = None,
+    ) -> tuple[OperationalWaybillEvidence, ...]:
+        """Keep whole-run reads on the dedicated all-or-nothing runtime path."""
+
+        reader = getattr(self._runtime, "read_waybill_whole_run", None)
+        if not callable(reader):
+            raise ConnectorProtocolError(
+                stage=ChengfengStage.DETAIL_QUERY
+            )
+        self._authorizer.authorize(authority)
+        reader_kwargs: dict[str, object] = {
+            "authority": authority,
+            "summaries": summaries,
+            "detail_concurrency": detail_concurrency,
+            "image_concurrency": image_concurrency,
+        }
+        if active_job_id is not None:
+            reader_kwargs["active_job_id"] = active_job_id
+        if progress_callback is not None:
+            reader_kwargs["progress_callback"] = progress_callback
+        evidence = reader(**reader_kwargs)
+        self._authorizer.authorize(authority)
+        if (
+            not isinstance(evidence, tuple)
+            or len(evidence) != len(summaries)
+            or any(
+                not isinstance(item, OperationalWaybillEvidence)
+                for item in evidence
+            )
+        ):
+            raise ConnectorProtocolError(
+                stage=ChengfengStage.DETAIL_QUERY
+            )
+        return evidence
+
     def _execute(
         self,
         *,

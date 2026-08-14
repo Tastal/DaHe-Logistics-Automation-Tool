@@ -148,9 +148,12 @@ function services(overrides: Partial<AppServices> = {}): AppServices {
 }
 
 describe("B version application shell", () => {
-  it("shows only the five approved navigation entries", async () => {
+  it("shows three business entries and four icon-only utilities", async () => {
     const user = userEvent.setup();
-    render(<App services={services()} />);
+    render(<App services={services({
+      checkForUpdates: vi.fn(),
+      shutdownApplication: vi.fn(),
+    })} />);
 
     const navigation = await screen.findByRole("navigation", {
       name: "主导航",
@@ -158,8 +161,19 @@ describe("B version application shell", () => {
     expect(
       within(navigation)
         .getAllByRole("button")
-        .map((button) => button.textContent),
-    ).toEqual(["运费结算", "装卸车明细", "派单", "历史数据", "系统"]);
+        .map((button) => button.getAttribute("aria-label") ?? button.textContent),
+    ).toEqual([
+      "山西贵恩博",
+      "上海晋亿晟",
+      "运费结算",
+      "装卸车明细",
+      "派单",
+      "系统设置",
+      "历史数据",
+      "版本更新",
+      "退出程序",
+    ]);
+    expect(within(navigation).getByRole("status", { name: "成丰平台连接状态：连接异常" })).toBeVisible();
     expect(screen.getByRole("button", { name: "启动" })).toBeEnabled();
     expect(screen.queryByRole("button", { name: "开始审核" })).toBeNull();
     expect(screen.queryByRole("combobox", { name: "审核批次" })).toBeNull();
@@ -257,7 +271,7 @@ describe("B version application shell", () => {
 
     expect(await screen.findByText("WB-20260728-001")).toBeVisible();
     expect(screen.queryByRole("combobox", { name: "审核批次" })).toBeNull();
-    await waitFor(() => expect(loadSettlementWorkspace).toHaveBeenCalledWith("all"));
+    await waitFor(() => expect(loadSettlementWorkspace).toHaveBeenCalledWith("all", "shanxi_guienbo"));
     expect(oldAuditWorkspace).not.toHaveBeenCalled();
   });
 
@@ -272,6 +286,7 @@ describe("B version application shell", () => {
     expect(startPlatformBusinessRead).toHaveBeenCalledOnce();
     expect(startPlatformBusinessRead).toHaveBeenCalledWith({
       businessScope: "settlement",
+      contractSubjectCode: "shanxi_guienbo",
       expectedRecordVersion: 0,
     });
     expect(start).toBeDisabled();
@@ -321,14 +336,13 @@ describe("B version application shell", () => {
     const appServices = services();
     render(<App services={appServices} />);
 
-    await user.click(await screen.findByRole("button", { name: "系统" }));
-    await user.click(screen.getByRole("button", { name: "运行诊断" }));
+    await user.click(await screen.findByRole("button", { name: "系统设置" }));
 
     expect(await screen.findByText("数据存储")).toBeVisible();
     expect(screen.getByText("运行正常")).toBeVisible();
-    expect(screen.getByRole("button", { name: "导出诊断包" })).toBeVisible();
-    expect(screen.getByRole("button", { name: "打开诊断目录" })).toBeVisible();
-    expect(screen.getByRole("button", { name: "复制诊断摘要" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "导出诊断" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "打开目录" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "复制摘要" })).toBeVisible();
   });
 
   it("confirms local shutdown and leaves a stable exited page", async () => {
@@ -374,7 +388,7 @@ describe("B version application shell", () => {
     );
 
     const updateButton = await screen.findByRole("button", {
-      name: "有新版本 1.0.0，检查更新",
+      name: "有新版本 1.0.0，版本更新",
     });
     const exitButton = screen.getByRole("button", { name: "退出程序" });
     expect(
@@ -390,6 +404,39 @@ describe("B version application shell", () => {
 
     await user.click(screen.getByRole("button", { name: "安装更新" }));
     await waitFor(() => expect(installUpdate).toHaveBeenCalledOnce());
+  });
+
+  it("keeps local package import reachable when online update is unavailable", async () => {
+    const user = userEvent.setup();
+    const importUpdatePackage = vi.fn().mockResolvedValue({
+      state: "available",
+      currentVersion: "1.0.0",
+      availableVersion: "1.1.0",
+      updateAvailable: true,
+      checkedAt: "2026-08-14T00:00:00+00:00",
+      errorCode: null,
+    });
+    render(
+      <App
+        services={services({
+          checkForUpdates: vi.fn().mockResolvedValue({
+            state: "failed",
+            currentVersion: "1.0.0",
+            availableVersion: null,
+            updateAvailable: false,
+            checkedAt: "2026-08-14T00:00:00+00:00",
+            errorCode: "update_check_failed",
+          }),
+          importUpdatePackage,
+          installUpdate: vi.fn(),
+        })}
+      />,
+    );
+
+    await user.click(await screen.findByRole("button", { name: "版本更新" }));
+    expect(screen.getByRole("heading", { name: "软件更新" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "检查更新" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "导入更新包" })).toBeDisabled();
   });
 
   it("blocks the console when frontend and backend versions differ", async () => {

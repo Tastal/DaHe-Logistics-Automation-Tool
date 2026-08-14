@@ -17,6 +17,7 @@ from dahe_browser_worker.protocol import (
     PROTOCOL_VERSION,
     AbortCommand,
     BrowserCommand,
+    CaptureOperationalWholeRunCommand,
     CaptureStartCommand,
     CaptureStopCommand,
     CloseCommand,
@@ -29,6 +30,7 @@ from dahe_browser_worker.protocol import (
     PrepareDailyCommand,
     PrepareDailyFromAutomatedCommand,
     PrepareOperationalCompatCommand,
+    PrepareOperationalDailyCommand,
     PrepareSettlementFilterHandoffCommand,
     ProbeSettlementViewsCommand,
     ProtocolError,
@@ -44,6 +46,66 @@ from dahe_browser_worker.protocol import (
 )
 
 _STOP = object()
+
+_OPERATIONAL_PROTOCOL_FAILURE_CODES = {
+    "prepare result fields are invalid": ("browser_operational_prepare_fields_invalid"),
+    "prepare result metrics are invalid": ("browser_operational_prepare_metrics_invalid"),
+    "prepare result values are invalid": ("browser_operational_prepare_values_invalid"),
+    "operational query trace fields are invalid": ("browser_operational_trace_fields_invalid"),
+    "operational query trace values are invalid": ("browser_operational_trace_values_invalid"),
+}
+_OPERATIONAL_TRACE_FIELDS = frozenset(
+    {
+        "approved_request_count",
+        "blocked_request_count",
+        "cache_refresh_count",
+        "duration_ms",
+        "observed_request_count",
+        "page_count",
+        "query_attempt_count",
+        "query_attempt_id",
+        "request_method",
+        "request_path",
+        "request_reconciliation",
+        "resource_type",
+        "response_byte_size",
+        "response_status",
+        "response_structure_sha256",
+        "schema_version",
+        "zero_retry_performed",
+    }
+)
+
+
+def _safe_worker_failure_code(
+    command: BrowserCommand,
+    error: Exception,
+) -> str:
+    """Return a value-free, command-specific protocol diagnostic."""
+
+    if isinstance(error, BrowserReadError):
+        return error.code
+    if isinstance(error, LoginEntryError):
+        return "browser_login_entry_failed"
+    if isinstance(command, (InitializeCommand, InitializeHeadlessCommand)):
+        return "browser_initialize_failed"
+    if isinstance(command, PrepareOperationalCompatCommand):
+        if isinstance(error, ProtocolError):
+            message = str(error)
+            prefix = "operational query trace "
+            suffix = " is invalid"
+            if message.startswith(prefix) and message.endswith(suffix):
+                field_name = message[len(prefix) : -len(suffix)]
+                if field_name in _OPERATIONAL_TRACE_FIELDS:
+                    return f"browser_operational_trace_{field_name}_invalid"
+            return _OPERATIONAL_PROTOCOL_FAILURE_CODES.get(
+                message,
+                "browser_operational_response_contract_failed",
+            )
+        return "browser_operational_unexpected_failed"
+    if isinstance(command, PrepareOperationalDailyCommand):
+        return "browser_daily_direct_prepare_failed"
+    return "browser_smoke_failed"
 
 
 def main() -> int:
@@ -116,7 +178,7 @@ def main() -> int:
         command = queued
         assert not isinstance(command, AbortCommand)
         cancel_event = Event()
-        if isinstance(command, ReadOperationalBatchCommand):
+        if isinstance(command, (ReadOperationalBatchCommand, CaptureOperationalWholeRunCommand)):
             with active_lock:
                 active_request_id = command.request_id
                 active_abort = cancel_event
@@ -129,7 +191,9 @@ def main() -> int:
             )
         except Exception as exc:
             if (
-                isinstance(command, ReadOperationalBatchCommand)
+                isinstance(
+                    command, (ReadOperationalBatchCommand, CaptureOperationalWholeRunCommand)
+                )
                 and isinstance(exc, BrowserReadError)
                 and exc.code == "browser_read_cancelled"
             ):
@@ -137,21 +201,8 @@ def main() -> int:
                 # while preserving the visible human platform window.
                 with suppress(BrowserReadError):
                     engine.park_operational_session()
-            if isinstance(exc, BrowserReadError):
-                error_code = exc.code
-                discovery = exc.safe_discovery
-            elif isinstance(exc, LoginEntryError):
-                error_code = "browser_login_entry_failed"
-                discovery = None
-            elif isinstance(
-                command,
-                (InitializeCommand, InitializeHeadlessCommand),
-            ):
-                error_code = "browser_initialize_failed"
-                discovery = None
-            else:
-                error_code = "browser_smoke_failed"
-                discovery = None
+            error_code = _safe_worker_failure_code(command, exc)
+            discovery = exc.safe_discovery if isinstance(exc, BrowserReadError) else None
             output = response(
                 command,
                 ok=False,
@@ -164,7 +215,9 @@ def main() -> int:
                 batch_result=None,
             )
         finally:
-            if isinstance(command, ReadOperationalBatchCommand):
+            if isinstance(
+                command, (ReadOperationalBatchCommand, CaptureOperationalWholeRunCommand)
+            ):
                 with active_lock:
                     active_request_id = None
                     active_abort = None
@@ -238,7 +291,8 @@ def _execute_command(
         selected = engine.selected_browser
         discovery = None
         browser_open = engine.is_open()
-    elif isinstance(command, ReadOperationalBatchCommand):
+    elif isinstance(command, (ReadOperationalBatchCommand, CaptureOperationalWholeRunCommand)):
+
         def progress(phase: str, completed: int, total: int) -> None:
             emit(
                 {
@@ -267,14 +321,17 @@ def _execute_command(
         browser_open = engine.is_open()
         read_result = None
     elif isinstance(command, PrepareOperationalCompatCommand):
-        prepare_result = engine.prepare_operational_compat()
+        prepare_result = engine.prepare_operational_compat(
+            contract_subject_code=command.contract_subject_code
+        )
         selected = engine.selected_browser
         discovery = None
         browser_open = engine.is_open()
         read_result = None
     elif isinstance(command, PrepareSettlementFilterHandoffCommand):
         prepare_result = engine.prepare_settlement_filter_handoff(
-            command.waybill_numbers
+            command.waybill_numbers,
+            contract_subject_code=command.contract_subject_code,
         )
         selected = engine.selected_browser
         discovery = None
@@ -287,6 +344,18 @@ def _execute_command(
         read_result = None
     elif isinstance(command, PrepareDailyFromAutomatedCommand):
         discovery = [engine.prepare_daily_from_automated()]
+        prepare_result = engine.daily_preparation_evidence(
+            include_contract_subject=False
+        )
+        selected = engine.selected_browser
+        browser_open = engine.is_open()
+        read_result = None
+    elif isinstance(command, PrepareOperationalDailyCommand):
+        discovery = [
+            engine.prepare_operational_daily(
+                contract_subject_code=command.contract_subject_code
+            )
+        ]
         prepare_result = engine.daily_preparation_evidence()
         selected = engine.selected_browser
         browser_open = engine.is_open()

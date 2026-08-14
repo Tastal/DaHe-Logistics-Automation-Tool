@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 
@@ -67,7 +68,7 @@ class Fetcher:
 
 class Launcher:
     def __init__(self) -> None:
-        self.calls: list[tuple[Path, Path, Path, int]] = []
+        self.calls: list[tuple[Path, Path, Path, int, Path | None]] = []
 
     def launch(
         self,
@@ -76,9 +77,16 @@ class Launcher:
         manifest_path: Path,
         data_root: Path,
         process_id: int,
+        application_path: Path | None,
     ) -> None:
         self.calls.append(
-            (updater_path, manifest_path, data_root, process_id)
+            (
+                updater_path,
+                manifest_path,
+                data_root,
+                process_id,
+                application_path,
+            )
         )
 
 
@@ -89,7 +97,7 @@ def _service(
     launcher: Launcher | None = None,
 ) -> UpdateService:
     updater = tmp_path / "install" / "DaHeUpdater.exe"
-    updater.parent.mkdir()
+    updater.parent.mkdir(exist_ok=True)
     updater.write_bytes(b"updater")
     return UpdateService(
         current_version="0.8.1",
@@ -178,4 +186,61 @@ def test_install_rejects_a_missing_updater(tmp_path: Path) -> None:
     service.updater_path.unlink()
 
     with pytest.raises(UpdateInstallBlocked, match="unavailable"):
+        service.install(active_job_count=0, process_id=123)
+
+
+def test_local_import_validates_manifest_and_application_before_install(
+    tmp_path: Path,
+) -> None:
+    content = b"verified application archive"
+    manifest = json.loads(_content().decode())
+    manifest["application"]["size"] = len(content)
+    manifest["application"]["sha256"] = hashlib.sha256(content).hexdigest()
+    launcher = Launcher()
+    service = _service(
+        tmp_path,
+        fetcher=Fetcher(OSError("offline")),
+        launcher=launcher,
+    )
+
+    created = service.create_import(json.dumps(manifest).encode())
+    status = service.upload_import(created.import_id, [content[:7], content[7:]])
+    installed = service.install(active_job_count=0, process_id=123)
+
+    assert status.state == "available"
+    assert installed.state == "installing"
+    assert launcher.calls[0][4].read_bytes() == content
+
+
+def test_verified_local_import_survives_service_restart(tmp_path: Path) -> None:
+    content = b"verified application archive"
+    manifest = json.loads(_content().decode())
+    manifest["application"]["size"] = len(content)
+    manifest["application"]["sha256"] = hashlib.sha256(content).hexdigest()
+    first = _service(tmp_path, fetcher=Fetcher(OSError("offline")))
+    created = first.create_import(json.dumps(manifest).encode())
+    first.upload_import(created.import_id, [content])
+    launcher = Launcher()
+
+    restarted = _service(
+        tmp_path,
+        fetcher=Fetcher(OSError("offline")),
+        launcher=launcher,
+    )
+    restarted.install(active_job_count=0, process_id=123)
+
+    assert launcher.calls[0][4] is not None
+    assert launcher.calls[0][4].read_bytes() == content
+
+
+def test_local_import_rejects_hash_mismatch_and_cannot_install(
+    tmp_path: Path,
+) -> None:
+    service = _service(tmp_path, fetcher=Fetcher(OSError("offline")))
+    created = service.create_import(_content())
+
+    with pytest.raises(ValueError, match="hash"):
+        service.upload_import(created.import_id, [b"wrong"])
+
+    with pytest.raises(UpdateInstallBlocked):
         service.install(active_job_count=0, process_id=123)

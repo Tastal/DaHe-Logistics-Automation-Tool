@@ -27,7 +27,7 @@ from dahe.verification.locked_set import (
     LockedWaybill,
 )
 
-EXPECTED_REVISION = "0039_network_batch_default"
+EXPECTED_REVISION = "0041_contract_subject_scope"
 
 
 def _canonical_json(value: object) -> str:

@@ -9,6 +9,7 @@ from dahe.application.chengfeng.durable_capture import (
 from dahe.application.chengfeng.operational_capture import (
     operational_capture_sha256,
     scheduled_job_from_operational_checkpoints,
+    scheduled_whole_run_review_job,
 )
 from dahe.jobs.specs import ScheduledJobSpec, ScheduledWorkItemSpec
 from dahe.ports.chengfeng import (
@@ -114,6 +115,31 @@ def test_operational_capture_hash_reconciles_all_items() -> None:
     assert operational_capture_sha256(checkpoints) == (
         operational_capture_sha256(tuple(reversed(checkpoints)))
     )
+
+
+def test_identical_whole_run_captures_get_distinct_review_scopes() -> None:
+    checkpoint = _checkpoint()
+
+    first = scheduled_whole_run_review_job(
+        checkpoint=checkpoint,
+        pipeline_fingerprint="c" * 64,
+        source_job_id="a" * 32,
+        business_kind="settlement",
+        scope_label="First capture",
+    )
+    second = scheduled_whole_run_review_job(
+        checkpoint=checkpoint,
+        pipeline_fingerprint="c" * 64,
+        source_job_id="b" * 32,
+        business_kind="settlement",
+        scope_label="Second capture",
+    )
+
+    assert first.items == second.items
+    assert first.fixture_id != second.fixture_id
+    assert first.conflict_key != second.conflict_key
+    assert first.conflict_key == f"settlement-ocr:{'a' * 32}:whole"
+    assert second.conflict_key == f"settlement-ocr:{'b' * 32}:whole"
 
 
 def test_preloaded_evidence_is_limited_to_local_ocr_audit_jobs() -> None:

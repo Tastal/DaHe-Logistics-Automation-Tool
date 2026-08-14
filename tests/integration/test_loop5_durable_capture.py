@@ -30,6 +30,7 @@ from dahe.adapters.sqlite.browser_control import (
     NavigationRejectedError,
 )
 from dahe.adapters.sqlite.chengfeng_capture import SqliteChengfengCaptureStore
+from dahe.adapters.sqlite.contract_subjects import SqliteContractSubjectStore
 from dahe.adapters.sqlite.repository import SqliteJobRepository
 from dahe.adapters.sqlite.runtime import SqliteRuntime
 from dahe.application.chengfeng.durable_capture import (
@@ -65,6 +66,12 @@ def test_fast_operational_batch_commits_one_database_checkpoint(
 ) -> None:
     runtime = _runtime(tmp_path, project_root)
     _browser, authority = _acquire_authority(runtime)
+    subject_store = SqliteContractSubjectStore(runtime)
+    subject_store.initialize()
+    subject_store.bind_job(
+        job_id=authority.job_id,
+        subject_code="shanxi_guienbo",
+    )
     store = SqliteChengfengCaptureStore(
         runtime=runtime,
         evidence_store=ContentAddressedEvidenceStore(

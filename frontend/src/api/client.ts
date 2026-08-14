@@ -5,10 +5,12 @@ import type {
   BusinessConnectionSession,
   ConsoleEvent,
   ConsoleSnapshot,
+  ContractSubjectCode,
   CreateJobResult,
   DailyReportRecord,
   DailyReportSettings,
   DailyItem,
+  DailyItemRevisionResult,
   DailyItemsResult,
   DailyEditableField,
   PerformanceSettings,
@@ -120,6 +122,12 @@ interface WirePlatformBusinessReadProgress {
   estimated_remaining_seconds: number | null;
   estimate_state: "estimating" | "estimated" | "complete" | "unavailable";
   is_terminal: boolean;
+  source_job_id: string;
+  source_record_version: number;
+  capture_mode: "batch_v1" | "whole_run_v1";
+  visible_prefix_count: number;
+  online_capture_complete: boolean;
+  review_job: WireJob | null;
 }
 
 function platformBusinessReadProgress(
@@ -144,6 +152,12 @@ function platformBusinessReadProgress(
     estimatedRemainingSeconds: result.estimated_remaining_seconds,
     estimateState: result.estimate_state,
     isTerminal: result.is_terminal,
+    sourceJobId: result.source_job_id,
+    sourceRecordVersion: result.source_record_version,
+    captureMode: result.capture_mode,
+    visiblePrefixCount: result.visible_prefix_count,
+    onlineCaptureComplete: result.online_capture_complete,
+    reviewJob: result.review_job ? jobSummary(result.review_job) : null,
   };
 }
 
@@ -267,6 +281,16 @@ interface WirePlatformSession {
   login_state: PlatformSession["loginState"];
   active_job_id: string | null;
   warm_session_reusable: boolean;
+  connection_status: PlatformSession["connectionStatus"];
+  contract_subject: {
+    available_subjects: Array<{
+      code: PlatformSession["contractSubject"]["currentSubjectCode"];
+      label: string;
+    }>;
+    current_subject_code: PlatformSession["contractSubject"]["currentSubjectCode"];
+    record_version: number;
+    updated_at: string;
+  };
   contract_candidate_selected: boolean;
   contract_selection_sha256: string | null;
   access_window: WirePlatformAccessWindow | null;
@@ -276,6 +300,7 @@ interface WirePlatformSession {
 }
 
 interface WireDailyReport {
+  contract_subject_code: ContractSubjectCode;
   report_id: string;
   business_date: string;
   status: "pending_confirmation" | "confirmed";
@@ -698,6 +723,13 @@ function platformSession(session: WirePlatformSession): PlatformSession {
     loginState: session.login_state,
     activeJobId: session.active_job_id,
     warmSessionReusable: session.warm_session_reusable,
+    connectionStatus: session.connection_status,
+    contractSubject: {
+      availableSubjects: session.contract_subject.available_subjects,
+      currentSubjectCode: session.contract_subject.current_subject_code,
+      recordVersion: session.contract_subject.record_version,
+      updatedAt: session.contract_subject.updated_at,
+    },
     contractCandidateSelected: session.contract_candidate_selected,
     contractSelectionSha256: session.contract_selection_sha256,
     accessWindow: session.access_window
@@ -713,6 +745,7 @@ function platformSession(session: WirePlatformSession): PlatformSession {
 
 function dailyReport(report: WireDailyReport): DailyReportRecord {
   return {
+    contractSubjectCode: report.contract_subject_code,
     reportId: report.report_id,
     businessDate: report.business_date,
     status: report.status,
@@ -1062,6 +1095,48 @@ export class BrowserAppServices implements AppServices {
         "X-CSRF-Token": this.csrfToken,
         "Idempotency-Key": crypto.randomUUID(),
       },
+    });
+    return this.mapUpdateStatus(result);
+  }
+
+  async importUpdatePackage(
+    manifest: File,
+    application: File,
+  ): Promise<UpdateStatus> {
+    if (!this.csrfToken) {
+      throw new Error("The local session is not initialized.");
+    }
+    const created = await checkedJson<{
+      import_id: string;
+      application_file_name: string;
+    }>("/api/v1/system/updates/imports", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRF-Token": this.csrfToken,
+        "Idempotency-Key": crypto.randomUUID(),
+      },
+      body: manifest,
+    });
+    if (application.name !== created.application_file_name) {
+      throw new Error("应用 ZIP 文件名与更新清单不一致。");
+    }
+    const result = await checkedJson<{
+      state: UpdateStatus["state"];
+      current_version: string;
+      available_version: string | null;
+      update_available: boolean;
+      checked_at: string | null;
+      error_code: string | null;
+    }>(`/api/v1/system/updates/imports/${encodeURIComponent(created.import_id)}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/octet-stream",
+        "X-CSRF-Token": this.csrfToken,
+        "Idempotency-Key": crypto.randomUUID(),
+        "X-DaHe-Update-File-Name": application.name,
+      },
+      body: application,
     });
     return this.mapUpdateStatus(result);
   }
@@ -1444,6 +1519,7 @@ export class BrowserAppServices implements AppServices {
 
   async loadSettlementWorkspace(
     view: AuditWorkspaceView,
+    contractSubjectCode = "shanxi_guienbo" as const,
   ): Promise<SettlementWorkspaceResult> {
     const result = await checkedJson<{
       latest_fetch: null | {
@@ -1475,10 +1551,20 @@ export class BrowserAppServices implements AppServices {
       };
       items: WireAuditItem[];
       counts: Record<AuditWorkspaceView, number>;
-    }>(`/api/v1/settlement/workspace?view=${encodeURIComponent(view)}`);
+      source_job_id?: string;
+      source_record_version?: number;
+      capture_mode?: "batch_v1" | "whole_run_v1";
+      visible_prefix_count?: number;
+      online_capture_complete?: boolean;
+    }>(`/api/v1/settlement/workspace?view=${encodeURIComponent(view)}&contract_subject_code=${encodeURIComponent(contractSubjectCode)}`);
     return {
       items: result.items.map(auditReviewItem),
       counts: result.counts,
+      sourceJobId: result.source_job_id ?? null,
+      sourceRecordVersion: result.source_record_version ?? 0,
+      captureMode: result.capture_mode ?? "batch_v1",
+      visiblePrefixCount: result.visible_prefix_count ?? result.items.length,
+      onlineCaptureComplete: result.online_capture_complete ?? false,
       latestFetch: result.latest_fetch
         ? {
             createdAt: result.latest_fetch.created_at,
@@ -1512,18 +1598,22 @@ export class BrowserAppServices implements AppServices {
     };
   }
 
-  async loadReadySettlementWaybillNumbers(): Promise<string[]> {
+  async loadReadySettlementWaybillNumbers(
+    contractSubjectCode = "shanxi_guienbo" as const,
+  ): Promise<string[]> {
     const result = await checkedJson<{
       count: number;
       waybill_numbers: string[];
-    }>("/api/v1/settlement/ready-waybill-numbers");
+    }>(`/api/v1/settlement/ready-waybill-numbers?contract_subject_code=${encodeURIComponent(contractSubjectCode)}`);
     if (result.count !== result.waybill_numbers.length) {
       throw new Error("可结算运单数量不一致。请刷新后重试。");
     }
     return result.waybill_numbers;
   }
 
-  async prepareSettlementFilterHandoff(): Promise<{
+  async prepareSettlementFilterHandoff(
+    contractSubjectCode: ContractSubjectCode = "shanxi_guienbo",
+  ): Promise<{
     count: number;
     matchedCount: number;
     missingCount: number;
@@ -1546,7 +1636,10 @@ export class BrowserAppServices implements AppServices {
           "X-CSRF-Token": this.csrfToken,
           "Idempotency-Key": crypto.randomUUID(),
         },
-        body: JSON.stringify({ expected_record_version: 0 }),
+        body: JSON.stringify({
+          expected_record_version: 0,
+          contract_subject_code: contractSubjectCode,
+        }),
       },
     );
     return {
@@ -1644,13 +1737,15 @@ export class BrowserAppServices implements AppServices {
   async loadWaybillHistory(
     query = "",
     businessOutcome = "",
+    contractSubjectCode = "shanxi_guienbo" as const,
   ): Promise<AuditReviewItem[]> {
     const parameters = new URLSearchParams();
+    parameters.set("contract_subject_code", contractSubjectCode);
     if (query.trim()) parameters.set("q", query.trim());
     if (businessOutcome) {
       parameters.set("business_outcome", businessOutcome);
     }
-    const suffix = parameters.size ? `?${parameters.toString()}` : "";
+    const suffix = `?${parameters.toString()}`;
     const result = await checkedJson<{ items: WireAuditItem[] }>(
       `/api/v1/history/waybills${suffix}`,
     );
@@ -1689,6 +1784,34 @@ export class BrowserAppServices implements AppServices {
     return platformSession(
       await checkedJson<WirePlatformSession>("/api/v1/platform/session"),
     );
+  }
+
+  async selectContractSubject(
+    subjectCode: PlatformSession["contractSubject"]["currentSubjectCode"],
+    expectedRecordVersion: number,
+  ): Promise<PlatformSession["contractSubject"]> {
+    if (!this.csrfToken) throw new Error("The local session is not initialized.");
+    const result = await checkedJson<WirePlatformSession["contract_subject"]>(
+      "/api/v1/platform/contract-subject",
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRF-Token": this.csrfToken,
+          "Idempotency-Key": crypto.randomUUID(),
+        },
+        body: JSON.stringify({
+          subject_code: subjectCode,
+          expected_record_version: expectedRecordVersion,
+        }),
+      },
+    );
+    return {
+      availableSubjects: result.available_subjects,
+      currentSubjectCode: result.current_subject_code,
+      recordVersion: result.record_version,
+      updatedAt: result.updated_at,
+    };
   }
 
   async loadPlatformCredentials(): Promise<PlatformCredentialStatus> {
@@ -1794,6 +1917,7 @@ export class BrowserAppServices implements AppServices {
       },
       body: JSON.stringify({
         business_scope: input.businessScope,
+        contract_subject_code: input.contractSubjectCode,
         ...(input.businessDate ? { business_date: input.businessDate } : {}),
         expected_record_version: input.expectedRecordVersion,
       }),
@@ -1859,20 +1983,35 @@ export class BrowserAppServices implements AppServices {
     };
   }
 
-  async loadDailyItems(businessDate: string): Promise<DailyItemsResult> {
+  async loadDailyItems(
+    businessDate: string,
+    contractSubjectCode = "shanxi_guienbo" as const,
+  ): Promise<DailyItemsResult> {
     const result = await checkedJson<{
       business_date: string;
+      contract_subject_code: ContractSubjectCode;
       items: WireDailyItem[];
       counts: { all: number; needs_review: number; reviewed: number };
-    }>(`/api/v1/daily/items?business_date=${encodeURIComponent(businessDate)}`);
+      source_job_id: string | null;
+      source_record_version: number;
+      capture_mode: "batch_v1" | "whole_run_v1";
+      visible_prefix_count: number;
+      online_capture_complete: boolean;
+    }>(`/api/v1/daily/items?business_date=${encodeURIComponent(businessDate)}&contract_subject_code=${encodeURIComponent(contractSubjectCode)}`);
     return {
       businessDate: result.business_date,
+      contractSubjectCode: result.contract_subject_code,
       items: result.items.map(dailyItem),
       counts: {
         all: result.counts.all,
         needsReview: result.counts.needs_review,
         reviewed: result.counts.reviewed,
       },
+      sourceJobId: result.source_job_id,
+      sourceRecordVersion: result.source_record_version,
+      captureMode: result.capture_mode,
+      visiblePrefixCount: result.visible_prefix_count,
+      onlineCaptureComplete: result.online_capture_complete,
     };
   }
 
@@ -1938,11 +2077,18 @@ export class BrowserAppServices implements AppServices {
 
   async saveDailyItemRevision(
     platformWaybillId: string,
+    businessDate: string,
     expectedRecordVersion: number,
     changes: Partial<Record<DailyEditableField, string | null>>,
-  ): Promise<DailyItem> {
+    contractSubjectCode = "shanxi_guienbo" as const,
+  ): Promise<DailyItemRevisionResult> {
     if (!this.csrfToken) throw new Error("The local session is not initialized.");
-    const result = await checkedJson<{ item: WireDailyItem }>(
+    const result = await checkedJson<{
+      business_date: string;
+      contract_subject_code: ContractSubjectCode;
+      item: WireDailyItem;
+      counts: { all: number; needs_review: number; reviewed: number };
+    }>(
       `/api/v1/daily/items/${encodeURIComponent(platformWaybillId)}/revisions`,
       {
         method: "POST",
@@ -1952,12 +2098,23 @@ export class BrowserAppServices implements AppServices {
           "Idempotency-Key": crypto.randomUUID(),
         },
         body: JSON.stringify({
+          business_date: businessDate,
+          contract_subject_code: contractSubjectCode,
           expected_record_version: expectedRecordVersion,
           changes,
         }),
       },
     );
-    return dailyItem(result.item);
+    return {
+      businessDate: result.business_date,
+      contractSubjectCode: result.contract_subject_code,
+      item: dailyItem(result.item),
+      counts: {
+        all: result.counts.all,
+        needsReview: result.counts.needs_review,
+        reviewed: result.counts.reviewed,
+      },
+    };
   }
 
   async saveDailyReportSettings(
@@ -2000,9 +2157,12 @@ export class BrowserAppServices implements AppServices {
     };
   }
 
-  async findDailyReport(businessDate: string): Promise<DailyReportRecord | null> {
+  async findDailyReport(
+    businessDate: string,
+    contractSubjectCode = "shanxi_guienbo" as const,
+  ): Promise<DailyReportRecord | null> {
     const result = await checkedJson<{ report: WireDailyReport | null }>(
-      `/api/v1/daily/reports?business_date=${encodeURIComponent(businessDate)}`,
+      `/api/v1/daily/reports?business_date=${encodeURIComponent(businessDate)}&contract_subject_code=${encodeURIComponent(contractSubjectCode)}`,
     );
     return result.report ? dailyReport(result.report) : null;
   }
@@ -2030,9 +2190,11 @@ export class BrowserAppServices implements AppServices {
   async createDailyReport(
     businessDate: string,
     expectedSettingsVersion: number,
+    contractSubjectCode = "shanxi_guienbo" as const,
   ): Promise<DailyReportRecord> {
     return this.writeDailyReport("/api/v1/daily/reports", {
       business_date: businessDate,
+      contract_subject_code: contractSubjectCode,
       expected_settings_version: expectedSettingsVersion,
     });
   }

@@ -1,0 +1,66 @@
+{
+  "accepted_at": "2026-08-11T19:53:09+00:00",
+  "asset_sha256": {
+    "DaHe-Logistics-Automation-Tool-1.0.0-Setup.exe": "b88885e9467597a530ffc022304666cb5fd16917bdcc792ab891a5d0d3a436f3",
+    "DaHe-Logistics-Automation-Tool-1.0.0-gpu-addon-win-x64.zip": "8e682ef8f98dc138d1e0a5bbecac76de446c0cf20b0984c1e892cddea708ce4a",
+    "DaHe-Logistics-Automation-Tool-1.0.0-win-x64.zip": "31b1d05fef29550d314965c248f72fb252d52d62db9a4276e165acaadfe247ba",
+    "SHA256SUMS.txt": "fcab3e78803f2300c92d3ae262c8eecc1948da349dd1a994ccbf1e4acdec0823",
+    "update-manifest.json": "fd183fa927ddec3b3da058db94e04c14a84253ae0e9cf7907478c03caf6983b2"
+  },
+  "automated_checks": {
+    "database_update_and_release_targeted": "52 passed",
+    "fault_injection": [
+      "application hash mismatch rejected before destination switch",
+      "insufficient disk space rejected before download and pointer switch",
+      "network failure preserves current version",
+      "active or resumable work blocks installation",
+      "readiness failure restores version pointer and database",
+      "invalid and unknown schemas are rejected",
+      "empty, current, and repeated migrations pass"
+    ],
+    "public_full_backend": "2933 passed, 9 skipped",
+    "public_frontend": "24 files, 141 tests passed and production build passed",
+    "public_mypy": "356 source files passed",
+    "public_ruff": "passed"
+  },
+  "database": {
+    "backup_evidence": "%LOCALAPPDATA%/DaHeLogisticsAutomationTool/verification/production-backup-restore-before-v1-final-d1e0586.json",
+    "backup_evidence_canonical_sha256": "b4594ab720dc32a066686e0650254ab8f018bafc0e8696e8004399aff04530c8",
+    "integrity": "ok",
+    "jobs_before_and_after": 278,
+    "schema_revision": "0039_network_batch_default"
+  },
+  "defender": {
+    "result": "no threats",
+    "scan_exit_codes": [0, 0, 0, 0, 0],
+    "targets": [
+      "installer",
+      "installed main application",
+      "launcher",
+      "updater",
+      "GPU addon"
+    ]
+  },
+  "installation": {
+    "application_version": "1.0.0",
+    "build_git_commit": "d1e058669c6c29f5319b26c7e7278eb2b08450ad",
+    "cold_start_readiness_passes": 2,
+    "desktop_shortcut_count": 1,
+    "forbidden_install_artifact_count": 0,
+    "resource_sha256": "54eb5b4c3a8314f6288beda61ed719e8f4a4b3eb96decadd2ca9842d5c3bd8ad",
+    "schema_revision": "0039_network_batch_default",
+    "user_data_retained": true,
+    "user_scope_install": true
+  },
+  "kind": "loop_10_gate_b_install_update_schema_evidence",
+  "portable_runtime": {
+    "browser_smoke": "passed",
+    "cpu_ocr_smoke": "passed",
+    "developer_provenance_hits": 0,
+    "python_version": "3.12.10",
+    "release_archive_entries_scanned": 16004,
+    "release_uncompressed_bytes_scanned": 3060764382
+  },
+  "result": "passed",
+  "schema_version": 1
+}

@@ -1,4 +1,5 @@
 import {
+  type ReactNode,
   type UIEvent,
   useEffect,
   useMemo,
@@ -18,6 +19,7 @@ import type {
   RuntimeLogLevel,
 } from "../../api/auditContracts";
 import type { AppServices } from "../../app/contracts";
+import { ResponsiveSecondaryActions } from "../../components/ResponsiveSecondaryActions";
 
 const MAX_VISIBLE_LOGS = 1000;
 
@@ -28,7 +30,7 @@ function logLine(event: RuntimeLogEvent): string {
   return `${time} ${event.level.toUpperCase().padEnd(7)} ${event.source} ${event.message}`;
 }
 
-export function RuntimeLogTerminal({ services }: { services: AppServices }) {
+export function RuntimeLogTerminal({ services, diagnosticActions }: { services: AppServices; diagnosticActions?: ReactNode }) {
   const [events, setEvents] = useState<RuntimeLogEvent[]>([]);
   const [buffered, setBuffered] = useState<RuntimeLogEvent[]>([]);
   const [paused, setPaused] = useState(false);
@@ -140,7 +142,8 @@ export function RuntimeLogTerminal({ services }: { services: AppServices }) {
     <section className="runtime-log-section" aria-labelledby="runtime-log-title">
       <header className="runtime-log-heading">
         <h3 id="runtime-log-title">后台运行日志</h3>
-        <div className="runtime-log-actions">
+        <ResponsiveSecondaryActions>
+          {diagnosticActions}
           <button
             className="button"
             type="button"
@@ -155,13 +158,13 @@ export function RuntimeLogTerminal({ services }: { services: AppServices }) {
           </button>
           <button className="button" type="button" onClick={() => void copyVisible()}>
             <Clipboard aria-hidden="true" size={16} />
-            复制可见日志
+            复制日志
           </button>
           <a className="button" href="/api/v1/diagnostics/logs/export">
             <Download aria-hidden="true" size={16} />
-            导出全部日志
+            导出日志
           </a>
-        </div>
+        </ResponsiveSecondaryActions>
       </header>
       <div className="runtime-log-filters">
         <label>

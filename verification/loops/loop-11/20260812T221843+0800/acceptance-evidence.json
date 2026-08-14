@@ -1,0 +1,109 @@
+{
+  "accepted_at": "2026-08-12T14:18:43.066943+00:00",
+  "automated_checks": {
+    "authoritative_command": ".\\.venv\\Scripts\\python.exe tools\\check.py",
+    "frontend": {
+      "build": "passed",
+      "test_files": 24,
+      "tests_passed": 141
+    },
+    "mypy_source_files": 356,
+    "mypy_status": "passed",
+    "python_tests_passed": 2950,
+    "python_tests_skipped": 9,
+    "ruff_status": "passed",
+    "skip_reason": "The current Windows account cannot create symbolic links."
+  },
+  "browser_contract": {
+    "daily_route": "/wayBill",
+    "settlement_route": "/billablewaybill",
+    "single_chengfeng_page": true,
+    "unrelated_browser_pages_managed": false,
+    "visible_window_preserved": true
+  },
+  "daily_read": {
+    "audit_evidence_sha256": "b41456c1640a2cc3356c2574ae78196ee619907839ee933bbd85bc5f8e61ef57",
+    "business_job_id": "0abd9774405a4f5b89084d2a299a5322",
+    "cache_refresh_count": 1,
+    "download_ticket_image_reads": 82,
+    "elapsed_seconds": 299,
+    "fetched_waybills": 42,
+    "get_waybill_detail_reads": 42,
+    "list_reads": 1,
+    "missing_ocr_results": 2,
+    "page_count": 1,
+    "platform_business_write_count": 0,
+    "recognized_ocr_results": 40,
+    "route": "/wayBill",
+    "status": "succeeded",
+    "technical_failures": 0,
+    "waybills": 42
+  },
+  "diagnosis": {
+    "failed_real_attempts_observed": 4,
+    "failure_code": "CF-SETTLEMENT-WAYBILL-CONTROL-UNAVAILABLE",
+    "previous_failure_mechanism": [
+      "The SPA could take approximately 40 to 60 seconds to render the settlement controls.",
+      "The implementation counted the tab locator before waiting, so delayed controls were rejected immediately.",
+      "The first visible .el-form belonged to the signing-subject header and had no Reset or Query controls, but it consumed the full query-region timeout before global fallback."
+    ],
+    "verified_fix": [
+      "Exact role and exact text tab locators share one bounded render wait.",
+      "Visible forms that do not own exactly one Reset and one Query control are skipped without consuming the timeout.",
+      "The global exact-control fallback waits once and then verifies a unique visible pair."
+    ]
+  },
+  "installed_release": {
+    "application_version": "1.0.0",
+    "build_git_commit": "d1e058669c6c29f5319b26c7e7278eb2b08450ad",
+    "changed_in_this_batch": false
+  },
+  "kind": "loop_11_chengfeng_regression_correction_evidence",
+  "platform_request_audit": {
+    "daily": {
+      "allowed": 125,
+      "attempted": 125,
+      "denied": 0,
+      "redirects": 0,
+      "succeeded": 125
+    },
+    "forbidden_business_write_count": 0,
+    "settlement": {
+      "allowed": 40,
+      "attempted": 40,
+      "denied": 0,
+      "redirects": 0,
+      "succeeded": 40
+    }
+  },
+  "previous_evidence": "verification/loops/loop-11/20260812T185500+0800/acceptance-evidence.json",
+  "result": "passed",
+  "running_source": {
+    "application_version": "1.0.0",
+    "browser_worker_engine_sha256": "e2f817bf374700aeb059bdc6747d8aa121e8c573557c9696980e457777ef6465",
+    "build_git_commit": "development",
+    "launch_interpreter": ".venv\\Scripts\\python.exe",
+    "readiness_http_status": 200,
+    "resource_sha256": "fe6b120814d02385bc673c545789a8195595421a2426bad5503b3d3187363090",
+    "schema_revision": "0039_network_batch_default",
+    "worker_matches_committed_source": true
+  },
+  "schema_version": 1,
+  "settlement_read": {
+    "audit_evidence_sha256": "ede266f4515707f02d2ffec61f4836fb38ea2495a890466be36fabebad8a3202",
+    "business_job_id": "175c7fd692bd429abb7b13363abf582d",
+    "cache_refresh_count": 1,
+    "download_ticket_image_reads": 26,
+    "elapsed_seconds": 35,
+    "get_waybill_detail_reads": 13,
+    "list_reads": 1,
+    "page_count": 1,
+    "platform_business_write_count": 0,
+    "query_attempt_count": 1,
+    "route": "/billablewaybill",
+    "status": "succeeded",
+    "ticket_images": 26,
+    "waybills": 13
+  },
+  "source_commit": "21955352c596ba364d3ce1e300cd6e1b9687f9a5"
+}

@@ -4,13 +4,15 @@ import {
   LoaderCircle,
   Save,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import type {
   AppServices,
   BusinessWorkspaceProgress,
+  ContractSubjectCode,
   DailyEditableField,
   DailyItem,
+  DailyItemRevisionResult,
   DailyItemsResult,
   DailyReportRecord,
   DailyReportSettings,
@@ -97,9 +99,9 @@ function dailyProgress(
     );
     if (resolved < total) {
       return {
-        phase: "recognize",
-        label: `正在识别磅单 ${progress.recognized}/${total}`,
-        current: resolved,
+        phase: "offline_review",
+        label: `正在离线审核 ${progress.visiblePrefixCount}/${total}`,
+        current: progress.visiblePrefixCount,
         total,
         ...timing,
       };
@@ -135,7 +137,13 @@ function versionedEvidenceUrl(url: string): string {
   return `${url}${separator}client_version=${encodeURIComponent(__APP_VERSION__)}`;
 }
 
-function DailyItemRow({ item, services, onSaved }: { item: DailyItem; services: AppServices; onSaved: (item: DailyItem) => void }) {
+function DailyItemRow({ item, businessDate, contractSubjectCode, services, onSaved }: {
+  item: DailyItem;
+  businessDate: string;
+  contractSubjectCode: ContractSubjectCode;
+  services: AppServices;
+  onSaved: (result: DailyItemRevisionResult) => void;
+}) {
   const initial = useMemo(() => ({
     loading_net_tonnes: item.effectiveFields.loading_net_tonnes ?? "",
     loading_time: localInput(item.effectiveFields.loading_time, true),
@@ -147,14 +155,15 @@ function DailyItemRow({ item, services, onSaved }: { item: DailyItem; services: 
   const [error, setError] = useState<string | null>(null);
   const [viewer, setViewer] = useState<{ url: string; label: string } | null>(null);
   const changed = (Object.keys(initial) as DailyEditableField[]).some((field) => draft[field] !== initial[field]);
+  const requiresReviewConfirmation = item.reviewState === "needs_review";
   const invalidTime = [draft.loading_time, draft.unloading_time].some(
     (value) => value !== "" && !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2})?$/.test(value),
   );
   const save = async () => {
-    if (!services.saveDailyItemRevision || !changed) return;
+    if (!services.saveDailyItemRevision || (!changed && !requiresReviewConfirmation)) return;
     const changes: Partial<Record<DailyEditableField, string | null>> = {};
     (Object.keys(initial) as DailyEditableField[]).forEach((field) => {
-      if (draft[field] === initial[field]) return;
+      if (draft[field] === initial[field] && !item.fieldIssues[field].hasIssue) return;
       if (field === "loading_time") changes[field] = apiTime(draft[field], true);
       else if (field === "unloading_time") changes[field] = apiTime(draft[field], false);
       else changes[field] = draft[field] || null;
@@ -162,7 +171,13 @@ function DailyItemRow({ item, services, onSaved }: { item: DailyItem; services: 
     setBusy(true);
     setError(null);
     try {
-      onSaved(await services.saveDailyItemRevision(item.platformWaybillId, item.recordVersion, changes));
+      onSaved(await services.saveDailyItemRevision(
+        item.platformWaybillId,
+        businessDate,
+        item.recordVersion,
+        changes,
+        contractSubjectCode,
+      ));
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : "保存失败，请重试。");
     } finally {
@@ -209,7 +224,7 @@ function DailyItemRow({ item, services, onSaved }: { item: DailyItem; services: 
       {ticket("loading")}
       {ticket("unloading")}
       <div className="daily-item-save">
-        <button className="button" type="button" disabled={!changed || busy || invalidTime} onClick={() => void save()}>
+        <button className="button" type="button" disabled={(!changed && !requiresReviewConfirmation) || busy || invalidTime} onClick={() => void save()}>
           {busy ? <LoaderCircle className="spin" aria-hidden="true" size={17} /> : <Save aria-hidden="true" size={17} />}保存
         </button>
         {error ? <span className="field-error-text" role="alert">{error}</span> : null}
@@ -219,85 +234,100 @@ function DailyItemRow({ item, services, onSaved }: { item: DailyItem; services: 
   );
 }
 
-export function DailyWorkspace({ services, jobs, productionReadOnly = false, workspaceRevision = 0 }: { services: AppServices; jobs: JobSummary[]; productionReadOnly?: boolean; workspaceRevision?: number }) {
+export function DailyWorkspace({ services, jobs, productionReadOnly = false, workspaceRevision = 0, contractSubjectCode = "shanxi_guienbo" }: { services: AppServices; jobs: JobSummary[]; productionReadOnly?: boolean; workspaceRevision?: number; contractSubjectCode?: ContractSubjectCode }) {
   const { showToast } = useToast();
   const [businessDate, setBusinessDate] = useState(initialBusinessDate);
   const [view, setView] = useState<DailyView>("all");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [itemsResult, setItemsResult] = useState<DailyItemsResult | null>(null);
+  const [loadingBusinessDate, setLoadingBusinessDate] = useState(true);
   const [progress, setProgress] = useState<PlatformBusinessReadProgress | null>(null);
   const [reportSettings, setReportSettings] = useState<DailyReportSettings | null>(null);
   const [report, setReport] = useState<DailyReportRecord | null>(null);
+  const [startedJob, setStartedJob] = useState<JobSummary | null>(null);
+  const loadGeneration = useRef(0);
+  const selectedBusinessDate = useRef(businessDate);
+  const activeSourceJobId = useRef<string | null>(null);
   const dailyJobs = useMemo(() => jobs.filter((job) => job.taskType === "daily" && job.scopeLabel.includes(businessDate)), [businessDate, jobs]);
   const currentJob = useMemo(() => [...dailyJobs].sort((a, b) => (b.updatedAt ?? "").localeCompare(a.updatedAt ?? ""))[0] ?? null, [dailyJobs]);
+  const sourceJob = startedJob === null
+    ? currentJob
+    : jobs.find((job) => job.jobId === startedJob.jobId) ?? startedJob;
 
   useEffect(() => {
+    selectedBusinessDate.current = businessDate;
     localStorage.setItem("dahe:last-daily-business-date", businessDate);
   }, [businessDate]);
   useEffect(() => {
     if (!services.loadDailyItems) return;
-    let active = true;
-    void services.loadDailyItems(businessDate).then(
+    const generation = ++loadGeneration.current;
+    void services.loadDailyItems(businessDate, contractSubjectCode).then(
       (result) => {
-        if (!active) return;
+        if (
+          generation !== loadGeneration.current ||
+          result.businessDate !== businessDate ||
+          selectedBusinessDate.current !== businessDate ||
+          (activeSourceJobId.current !== null && result.sourceJobId !== activeSourceJobId.current)
+        ) return;
         setItemsResult(result);
+        setLoadingBusinessDate(false);
         setMessage(null);
       },
       (error: unknown) => {
-        if (!active) return;
+        if (generation !== loadGeneration.current || selectedBusinessDate.current !== businessDate) return;
         setItemsResult(null);
+        setLoadingBusinessDate(false);
         setMessage(error instanceof Error ? error.message : "装卸车明细暂时无法读取。");
       },
     );
-    return () => { active = false; };
-  }, [businessDate, services, workspaceRevision]);
+    return () => {
+      if (loadGeneration.current === generation) loadGeneration.current += 1;
+    };
+  }, [businessDate, contractSubjectCode, currentJob?.jobStatus, currentJob?.updatedAt, services, workspaceRevision]);
   useEffect(() => {
     if (!productionReadOnly || !services.loadDailyReportSettings || !services.findDailyReport) return;
-    void Promise.all([services.loadDailyReportSettings(), services.findDailyReport(businessDate)]).then(([settings, found]) => { setReportSettings(settings); setReport(found); });
-  }, [businessDate, productionReadOnly, services]);
+    void Promise.all([services.loadDailyReportSettings(), services.findDailyReport(businessDate, contractSubjectCode)]).then(([settings, found]) => { setReportSettings(settings); setReport(found); });
+  }, [businessDate, contractSubjectCode, productionReadOnly, services]);
   useEffect(() => {
-    if (!currentJob || !services.loadPlatformBusinessReadProgress) return;
-    void services.loadPlatformBusinessReadProgress(currentJob.jobId).then(setProgress).catch(() => undefined);
-  }, [currentJob, services, workspaceRevision]);
-  const currentJobId = currentJob?.jobId;
+    if (!sourceJob || !services.loadPlatformBusinessReadProgress) return;
+    void services.loadPlatformBusinessReadProgress(sourceJob.jobId).then((next) => {
+      if (next.sourceJobId === sourceJob.jobId) setProgress(next);
+    }).catch(() => undefined);
+  }, [services, sourceJob, workspaceRevision]);
+  const currentJobId = sourceJob?.jobId;
   useEffect(() => {
     if (!currentJobId || !services.subscribePlatformBusinessReadProgress) return;
-    return services.subscribePlatformBusinessReadProgress(currentJobId, setProgress);
+    return services.subscribePlatformBusinessReadProgress(currentJobId, (next) => {
+      if (next.sourceJobId === currentJobId) setProgress(next);
+    });
   }, [currentJobId, services]);
-  useEffect(() => {
-    if (currentJob?.jobStatus !== "succeeded" || !services.loadDailyItems) return;
-    let active = true;
-    void services.loadDailyItems(businessDate).then(
-      (result) => {
-        if (!active) return;
-        setItemsResult(result);
-        setMessage(null);
-      },
-      (error: unknown) => {
-        if (!active) return;
-        setMessage(error instanceof Error ? error.message : "装卸车明细暂时无法读取。");
-      },
-    );
-    return () => { active = false; };
-  }, [businessDate, currentJob?.jobStatus, services]);
-
   const start = async () => {
     if (!services.startPlatformBusinessRead) return;
     setBusy(true); setMessage(null);
-    try { await services.startPlatformBusinessRead({ businessScope: "daily", businessDate, expectedRecordVersion: 0 }); }
+    try {
+      setItemsResult(null);
+      setLoadingBusinessDate(true);
+      setProgress(null);
+      const result = await services.startPlatformBusinessRead({ businessScope: "daily", businessDate, expectedRecordVersion: 0, contractSubjectCode });
+      if (result.job?.jobId) {
+        activeSourceJobId.current = result.job.jobId;
+        setStartedJob(result.job);
+      }
+    }
     catch (error) { setMessage(error instanceof Error ? error.message : "获取任务未能开始。"); }
     finally { setBusy(false); }
   };
   const runAction = async (action: "pause" | "resume" | "cancel") => {
-    if (!currentJob?.actions[action]?.enabled) return;
-    await services.runJobAction(currentJob.jobId, action, currentJob.recordVersion);
+    const actionJob = progress?.reviewJob ?? sourceJob;
+    if (!actionJob?.actions[action]?.enabled) return;
+    await services.runJobAction(actionJob.jobId, action, actionJob.recordVersion);
   };
   const createReport = async () => {
     if (!reportSettings || !services.createDailyReport) return;
     setBusy(true); setMessage(null);
     try {
-      setReport(await services.createDailyReport(businessDate, reportSettings.recordVersion));
+      setReport(await services.createDailyReport(businessDate, reportSettings.recordVersion, contractSubjectCode));
       showToast("报表已生成。", "success");
     }
     catch (error) { setMessage(error instanceof Error ? error.message : "报表生成失败。"); }
@@ -317,21 +347,33 @@ export function DailyWorkspace({ services, jobs, productionReadOnly = false, wor
     <section className="daily-workspace" aria-labelledby="daily-title">
       <h1 className="visually-hidden" id="daily-title">装卸车明细</h1>
       <BusinessOperationBar
-        job={currentJob}
+        job={progress?.reviewJob ?? sourceJob}
         busy={busy}
         startDisabled={!services.startPlatformBusinessRead}
         onStart={() => void start()}
         onAction={(action) => void runAction(action)}
+        pauseDisabled={!progress?.onlineCaptureComplete}
+        pauseDisabledReason="下载完成后可暂停离线审核"
         moduleActions={<>
           <button className="button excel-action" type="button" disabled={busy || !reportSettings?.confirmed || !itemsResult?.items.length} onClick={() => void createReport()}><FileSpreadsheet aria-hidden="true" size={17} />生成报表</button>
           {report ? <button className="button" type="button" disabled={!services.openDailyReportFolder} onClick={() => void openReportFolder()}><FolderOpen aria-hidden="true" size={17} />打开所在文件夹</button> : null}
         </>}
         trailing={<div className="business-date-control">
           <span>业务日</span>
-          <ChineseDatePicker value={businessDate} onChange={setBusinessDate} />
+          <ChineseDatePicker value={businessDate} onChange={(next) => {
+            loadGeneration.current += 1;
+            selectedBusinessDate.current = next;
+            activeSourceJobId.current = null;
+            setStartedJob(null);
+            setProgress(null);
+            setItemsResult(null);
+            setLoadingBusinessDate(true);
+            setMessage(null);
+            setBusinessDate(next);
+          }} />
         </div>}
       />
-      <BusinessProgress progress={dailyProgress(currentJob, progress, message)} />
+      <BusinessProgress progress={dailyProgress(sourceJob, progress, message)} />
       <div className="business-filter-line">
         <BusinessFilterTabs
           items={[
@@ -345,22 +387,30 @@ export function DailyWorkspace({ services, jobs, productionReadOnly = false, wor
         {report?.stale ? <span className="field-error-text">字段已修改，请重新生成报表</span> : null}
       </div>
       <div className="daily-item-list">
-        {filteredItems.map((item) => <DailyItemRow key={`${item.platformWaybillId}:${item.recordVersion}`} item={item} services={services} onSaved={(saved) => {
+        {loadingBusinessDate ? <p className="quiet-empty" role="status" aria-label="正在读取该业务日">正在读取该业务日</p> : null}
+        {filteredItems.map((item) => <DailyItemRow key={`${item.platformWaybillId}:${item.recordVersion}`} item={item} businessDate={businessDate} contractSubjectCode={contractSubjectCode} services={services} onSaved={(saved) => {
+          if (
+            saved.businessDate !== selectedBusinessDate.current ||
+            saved.contractSubjectCode !== contractSubjectCode
+          ) return;
           setItemsResult((current) => {
-            if (!current) return current;
-            const items = current.items.map((value) => value.platformWaybillId === saved.platformWaybillId ? saved : value);
-            const needsReview = items.filter((value) => value.reviewState === "needs_review").length;
+            if (!current || current.businessDate !== saved.businessDate) return current;
+            const items = current.items.map((value) => value.platformWaybillId === saved.item.platformWaybillId ? saved.item : value);
             return {
               ...current,
               items,
-              counts: { all: items.length, needsReview, reviewed: items.length - needsReview },
+              counts: saved.counts,
             };
           });
           setReport((current) => current ? { ...current, stale: true } : current);
-          showToast("已保存，已移入已核对。", "success");
+          if (saved.item.reviewState === "reviewed") {
+            showToast("已保存，已移入已核对。", "success");
+          } else {
+            showToast("已保存，仍有字段待核对。", "warning");
+          }
         }} />)}
       </div>
-      {itemsResult && itemsResult.items.length === 0 ? <p className="quiet-empty">该业务日暂无已保存的装卸车明细。</p> : null}
+      {!loadingBusinessDate && itemsResult && itemsResult.items.length === 0 ? <p className="quiet-empty">该业务日暂无已保存的装卸车明细。</p> : null}
     </section>
   );
 }

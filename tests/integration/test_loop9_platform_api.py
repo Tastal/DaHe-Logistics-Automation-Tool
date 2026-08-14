@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import time
 from collections.abc import Iterator
 from contextlib import contextmanager
 from datetime import UTC, date, datetime, timedelta
@@ -126,6 +127,7 @@ class FakeBrowserRuntime:
         self.settlement_view_probe_count = 0
         self.operational_handoff_count = 0
         self.human_login_start_count = 0
+        self.operational_start_count = 0
 
     @property
     def available(self) -> bool:
@@ -147,6 +149,14 @@ class FakeBrowserRuntime:
         if not self._available:
             raise BrowserRuntimeError("unavailable")
         self.human_login_start_count += 1
+        self._running = True
+        self._selected_browser = "chromium"
+        return "chromium"
+
+    def start_operational(self) -> str:
+        if not self._available:
+            raise BrowserRuntimeError("unavailable")
+        self.operational_start_count += 1
         self._running = True
         self._selected_browser = "chromium"
         return "chromium"
@@ -493,6 +503,78 @@ def _idle_settlement_backend() -> AsyncSettlementCaptureExecutionBackend:
     return AsyncSettlementCaptureExecutionBackend(execute=execute)
 
 
+def test_contract_subject_selection_is_local_versioned_and_does_not_open_browser(
+    tmp_path: Path,
+) -> None:
+    browser_runtime = FakeBrowserRuntime()
+    app = _app(
+        tmp_path,
+        enabled=True,
+        browser_runtime=browser_runtime,
+    )
+
+    with TestClient(app) as client:
+        csrf = client.get(
+            "/api/v1/session",
+            headers=_headers(),
+        ).json()["csrf_token"]
+        initial = client.get(
+            "/api/v1/platform/session",
+            headers=_headers(),
+        )
+        assert initial.status_code == 200, initial.text
+        subject = initial.json()["contract_subject"]
+        assert subject["current_subject_code"] == "shanxi_guienbo"
+        assert subject["available_subjects"] == [
+            {"code": "shanxi_guienbo", "label": "山西贵恩博"},
+            {"code": "shanghai_jinyisheng", "label": "上海晋亿晟"},
+        ]
+
+        changed = client.put(
+            "/api/v1/platform/contract-subject",
+            headers=_headers(csrf=csrf, key="select-shanghai"),
+            json={
+                "subject_code": "shanghai_jinyisheng",
+                "expected_record_version": subject["record_version"],
+            },
+        )
+        assert changed.status_code == 200, changed.text
+        changed_subject = changed.json()
+        assert changed_subject["current_subject_code"] == "shanghai_jinyisheng"
+        assert changed_subject["record_version"] == subject["record_version"] + 1
+        assert browser_runtime.operational_start_count == 0
+        assert browser_runtime.human_login_start_count == 0
+
+        stale = client.put(
+            "/api/v1/platform/contract-subject",
+            headers=_headers(csrf=csrf, key="stale-select-shanxi"),
+            json={
+                "subject_code": "shanxi_guienbo",
+                "expected_record_version": subject["record_version"],
+            },
+        )
+        assert stale.status_code == 409, stale.text
+        assert stale.json()["error"]["code"] == "record_version_conflict"
+
+        invalid = client.put(
+            "/api/v1/platform/contract-subject",
+            headers=_headers(csrf=csrf, key="select-unknown"),
+            json={
+                "subject_code": "unknown_subject",
+                "expected_record_version": changed_subject["record_version"],
+            },
+        )
+        assert invalid.status_code == 422, invalid.text
+        assert "detail" in invalid.json()
+
+        current = client.get(
+            "/api/v1/platform/session",
+            headers=_headers(),
+        ).json()["contract_subject"]
+        assert current["current_subject_code"] == "shanghai_jinyisheng"
+        assert current["record_version"] == changed_subject["record_version"]
+
+
 def test_business_reads_start_without_daily_confirmation_and_attach_duplicates(
     tmp_path: Path,
 ) -> None:
@@ -520,6 +602,7 @@ def test_business_reads_start_without_daily_confirmation_and_attach_duplicates(
             headers=_headers(csrf=csrf, key="fast-settlement"),
             json={
                 "business_scope": "settlement",
+                "contract_subject_code": "shanxi_guienbo",
                 "expected_record_version": 0,
             },
         )
@@ -533,6 +616,7 @@ def test_business_reads_start_without_daily_confirmation_and_attach_duplicates(
             headers=_headers(csrf=csrf, key="fast-settlement-repeat"),
             json={
                 "business_scope": "settlement",
+                "contract_subject_code": "shanxi_guienbo",
                 "expected_record_version": 0,
             },
         )
@@ -549,6 +633,7 @@ def test_business_reads_start_without_daily_confirmation_and_attach_duplicates(
             headers=_headers(csrf=csrf, key="fast-daily"),
             json={
                 "business_scope": "daily",
+                "contract_subject_code": "shanxi_guienbo",
                 "business_date": "2026-08-01",
                 "expected_record_version": 0,
             },
@@ -562,6 +647,7 @@ def test_business_reads_start_without_daily_confirmation_and_attach_duplicates(
             headers=_headers(csrf=csrf, key="fast-unknown"),
             json={
                 "business_scope": "unknown",
+                "contract_subject_code": "shanxi_guienbo",
                 "expected_record_version": 0,
             },
         )
@@ -601,14 +687,16 @@ def test_business_reads_start_without_daily_confirmation_and_attach_duplicates(
         assert returned.status_code == 200, returned.text
         assert (
             returned.json()["platform_session"]["browser_lifecycle"]
-            == "stopped"
+            == "ready"
         )
+        assert returned.json()["platform_session"]["runtime_running"] is True
 
         network_only = client.post(
             "/api/v1/platform/business-reads",
             headers=_headers(csrf=csrf, key="fast-daily-network-only"),
             json={
                 "business_scope": "daily",
+                "contract_subject_code": "shanxi_guienbo",
                 "business_date": "2026-08-02",
                 "network_only_measurement": True,
                 "expected_record_version": 0,
@@ -624,11 +712,125 @@ def test_business_reads_start_without_daily_confirmation_and_attach_duplicates(
             headers=_headers(csrf=csrf, key="fast-settlement-network-only"),
             json={
                 "business_scope": "settlement",
+                "contract_subject_code": "shanxi_guienbo",
                 "network_only_measurement": True,
                 "expected_record_version": 0,
             },
         )
         assert invalid_network_only.status_code == 422
+
+
+def test_business_read_start_queues_a_missing_runtime_for_the_owner_task(
+    tmp_path: Path,
+) -> None:
+    for business_scope in ("settlement", "daily"):
+        data_root = (tmp_path / f"failed-browser-{business_scope}").resolve()
+        _prepare_settlement_selection(data_root)
+        _prepare_daily_selection(data_root)
+        app = _app(
+            tmp_path,
+            enabled=True,
+            data_root=data_root,
+            browser_runtime=FakeBrowserRuntime(available=False),
+            daily_execution_backend=_idle_daily_backend(),
+            settlement_capture_execution_backend=_idle_settlement_backend(),
+        )
+        with TestClient(app) as client:
+            csrf = client.get(
+                "/api/v1/session",
+                headers=_headers(),
+            ).json()["csrf_token"]
+            payload: dict[str, object] = {
+                "business_scope": business_scope,
+                "contract_subject_code": "shanxi_guienbo",
+                "expected_record_version": 0,
+            }
+            if business_scope == "daily":
+                payload["business_date"] = "2026-08-01"
+            started = client.post(
+                "/api/v1/platform/business-reads",
+                headers=_headers(
+                    csrf=csrf,
+                    key=f"failed-browser-{business_scope}",
+                ),
+                json=payload,
+            )
+
+            assert started.status_code == 200, started.text
+            body = started.json()
+            assert body["created"] is True
+            job_id = body["job"]["job_id"]
+            progress = client.get(
+                f"/api/v1/platform/business-reads/{job_id}/progress",
+                headers=_headers(),
+            ).json()
+            job = client.get(
+                f"/api/v1/jobs/{job_id}",
+                headers=_headers(),
+            ).json()
+            assert job["job_status"] == "queued"
+            assert job["diagnostic_code"] is None
+            assert progress["is_terminal"] is False
+            assert progress["phase"] == "opening_browser"
+            assert progress["capture_mode"] == "whole_run_v1"
+            if business_scope == "daily":
+                active, version = app.state.repository.fixture_start_state(
+                    "daily:shanxi_guienbo:2026-08-01"
+                )
+                assert active is True
+                assert version == job["record_version"]
+
+
+def test_business_read_start_leaves_browser_start_to_the_owner_task(
+    tmp_path: Path,
+) -> None:
+    class BlockingBrowserRuntime(FakeBrowserRuntime):
+        def __init__(self) -> None:
+            super().__init__()
+            self.start_entered = Event()
+            self.allow_start = Event()
+
+        def start_operational(self) -> str:
+            self.start_entered.set()
+            if not self.allow_start.wait(timeout=5):
+                raise BrowserRuntimeError("test browser start timed out")
+            return super().start_operational()
+
+    data_root = (tmp_path / "nonblocking-browser-start").resolve()
+    _prepare_settlement_selection(data_root)
+    runtime = BlockingBrowserRuntime()
+    app = _app(
+        tmp_path,
+        enabled=True,
+        data_root=data_root,
+        browser_runtime=runtime,
+        settlement_capture_execution_backend=_idle_settlement_backend(),
+    )
+    try:
+        with TestClient(app) as client:
+            csrf = client.get(
+                "/api/v1/session",
+                headers=_headers(),
+            ).json()["csrf_token"]
+            started_at = time.monotonic()
+            response = client.post(
+                "/api/v1/platform/business-reads",
+                headers=_headers(csrf=csrf, key="nonblocking-browser-start"),
+                json={
+                    "business_scope": "settlement",
+                    "contract_subject_code": "shanxi_guienbo",
+                    "expected_record_version": 0,
+                },
+            )
+            elapsed = time.monotonic() - started_at
+
+            assert response.status_code == 200, response.text
+            assert response.json()["created"] is True
+            assert elapsed < 1
+            assert not runtime.start_entered.wait(timeout=0.2)
+            assert runtime.running is False
+    finally:
+        runtime.allow_start.set()
 
 
 def test_future_daily_business_window_is_rejected_before_any_state_is_created(
@@ -664,6 +866,7 @@ def test_future_daily_business_window_is_rejected_before_any_state_is_created(
             headers=_headers(csrf=csrf, key="future-daily"),
             json={
                 "business_scope": "daily",
+                "contract_subject_code": "shanxi_guienbo",
                 "business_date": "2026-08-11",
                 "expected_record_version": 0,
             },
@@ -683,7 +886,7 @@ def test_future_daily_business_window_is_rejected_before_any_state_is_created(
         )
 
 
-def test_batch_business_read_is_picked_up_before_headless_browser_is_started(
+def test_whole_run_is_picked_up_after_visible_browser_is_started(
     tmp_path: Path,
 ) -> None:
     data_root = (tmp_path / "fast-business-read-scheduler").resolve()
@@ -726,13 +929,14 @@ def test_batch_business_read_is_picked_up_before_headless_browser_is_started(
             headers=_headers(csrf=csrf, key="fast-scheduler-start"),
             json={
                 "business_scope": "settlement",
+                "contract_subject_code": "shanxi_guienbo",
                 "expected_record_version": 0,
             },
         )
         assert response.status_code == 200, response.text
         job_id = response.json()["job"]["job_id"]
         assert executed.wait(timeout=1), (
-            "batch business read was not scheduled"
+            "whole-run business read was not scheduled"
         )
         job = client.get(
             f"/api/v1/jobs/{job_id}",
@@ -808,6 +1012,7 @@ def test_operational_login_recovery_opens_one_window_and_resumes_once(
             headers=_headers(csrf=csrf, key="automatic-login-start"),
             json={
                 "business_scope": "settlement",
+                "contract_subject_code": "shanxi_guienbo",
                 "expected_record_version": 0,
             },
         )
@@ -834,6 +1039,88 @@ def test_operational_login_recovery_opens_one_window_and_resumes_once(
 
         client.get("/api/v1/settlement/workspace", headers=_headers())
         Event().wait(1.1)
+        assert browser_runtime.human_login_start_count == 1
+        assert browser_runtime.freeze_count == 1
+
+
+def test_operational_login_recovery_retries_a_transient_browser_start(
+    tmp_path: Path,
+) -> None:
+    class ClosingBrowserRuntime(FakeBrowserRuntime):
+        def __init__(self) -> None:
+            super().__init__()
+            self.start_attempt_count = 0
+
+        def start_human_login(self) -> str:
+            self.start_attempt_count += 1
+            if self.start_attempt_count == 1:
+                raise BrowserRuntimeError(
+                    "prior browser process is still closing",
+                    code="browser_worker_start_failed",
+                )
+            return super().start_human_login()
+
+    data_root = (tmp_path / "automatic-login-transient-start").resolve()
+    _prepare_settlement_selection(data_root)
+    browser_runtime = ClosingBrowserRuntime()
+    resumed = Event()
+    call_count = 0
+
+    def execute(
+        work: SettlementCaptureStageWork,
+    ) -> SettlementCaptureStageExecution:
+        nonlocal call_count
+        call_count += 1
+        if call_count == 1:
+            return SettlementCaptureStageExecution(
+                stage_attempt_id=work.stage_attempt_id,
+                outcome="waiting_external",
+                completed_stage=work.stage,
+                next_stage=work.stage,
+                platform_read_performed=False,
+                checkpoint_revision=None,
+                manifest_sha256=None,
+                diagnostic_code="CF-LOGIN-REQUIRED",
+            )
+        resumed.set()
+        return SettlementCaptureStageExecution(
+            stage_attempt_id=work.stage_attempt_id,
+            outcome="failed",
+            completed_stage=work.stage,
+            next_stage=None,
+            platform_read_performed=False,
+            checkpoint_revision=None,
+            manifest_sha256=None,
+            diagnostic_code="TEST-CAPTURE-STOP",
+        )
+
+    app = _app(
+        tmp_path,
+        enabled=True,
+        data_root=data_root,
+        browser_runtime=browser_runtime,
+        settlement_capture_execution_backend=(
+            AsyncSettlementCaptureExecutionBackend(execute=execute)
+        ),
+        auto_run_jobs=True,
+    )
+    with TestClient(app) as client:
+        csrf = client.get(
+            "/api/v1/session",
+            headers=_headers(),
+        ).json()["csrf_token"]
+        response = client.post(
+            "/api/v1/platform/business-reads",
+            headers=_headers(csrf=csrf, key="automatic-login-transient"),
+            json={
+                "business_scope": "settlement",
+                "contract_subject_code": "shanxi_guienbo",
+                "expected_record_version": 0,
+            },
+        )
+        assert response.status_code == 200, response.text
+        assert resumed.wait(timeout=7)
+        assert browser_runtime.start_attempt_count == 2
         assert browser_runtime.human_login_start_count == 1
         assert browser_runtime.freeze_count == 1
 

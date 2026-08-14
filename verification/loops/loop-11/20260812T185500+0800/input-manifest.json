@@ -1,0 +1,24 @@
+{
+  "acceptance_gates": [
+    "one visible Chengfeng tab and the correct route for both business reads",
+    "cache-disabled reload and a fresh query response before reading",
+    "normal shutdown cancels active business reads and freezes elapsed time",
+    "the source checkout remains authoritative while the installed release stays unchanged"
+  ],
+  "allowed_external_resources": [
+    "https://pc.chengfengkuaiyun.com (read-only validation only)"
+  ],
+  "captured_at": "2026-08-12T10:55:00+00:00",
+  "forbidden_platform_operations": [
+    "settlement confirmation",
+    "payment",
+    "receipt cancellation",
+    "dispatch",
+    "any other platform business write"
+  ],
+  "installed_release_policy": "Do not build, install, update shortcuts, or publish a release in Loop 11.",
+  "kind": "loop_11_input_manifest",
+  "schema_version": 1,
+  "source_commit": "7facc79dd70763fdbd4dceee293acd3851d233cb",
+  "source_parent_commit": "47e105822f2d1083d0baf81d2ae4c0b0bee8e1fb"
+}

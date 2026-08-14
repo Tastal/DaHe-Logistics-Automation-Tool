@@ -1,0 +1,28 @@
+{
+  "acceptance_gates": [
+    "the delayed Chengfeng settlement page is allowed to render before exact controls are resolved",
+    "an unrelated visible form cannot consume the settlement query control timeout",
+    "settlement and daily reads both complete against the real platform with one visible Chengfeng tab and the correct route",
+    "cache-disabled reload evidence and a fresh query response exist before business data is accepted",
+    "the real-platform request audit contains zero platform business writes",
+    "the latest committed source and isolated browser Worker are the running development implementation"
+  ],
+  "allowed_external_resources": [
+    "https://pc.chengfengkuaiyun.com (read-only validation only)"
+  ],
+  "captured_at": "2026-08-12T14:18:43.066943+00:00",
+  "forbidden_platform_operations": [
+    "settlement confirmation",
+    "payment",
+    "receipt cancellation",
+    "dispatch",
+    "any other platform business write"
+  ],
+  "installed_release_policy": "Do not build, install, update shortcuts, or publish a release in this Loop 11 correction batch.",
+  "kind": "loop_11_chengfeng_regression_correction_input_manifest",
+  "previous_evidence": "verification/loops/loop-11/20260812T185500+0800/acceptance-evidence.json",
+  "regression_trigger": "Four post-acceptance settlement attempts failed with CF-SETTLEMENT-WAYBILL-CONTROL-UNAVAILABLE after the real Chengfeng SPA and query-area structure diverged from the earlier test timing assumptions.",
+  "schema_version": 1,
+  "source_commit": "21955352c596ba364d3ce1e300cd6e1b9687f9a5",
+  "source_parent_commit": "da5953642ece38daf6a5f553fa8aa2e006264e9a"
+}

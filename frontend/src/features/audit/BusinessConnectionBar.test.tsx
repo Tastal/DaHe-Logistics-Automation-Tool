@@ -25,6 +25,16 @@ function session(overrides: Partial<PlatformSession> = {}): PlatformSession {
     loginState: "unavailable",
     activeJobId: null,
     warmSessionReusable: false,
+    connectionStatus: { code: "browser_closed", label: "浏览器关闭" },
+    contractSubject: {
+      availableSubjects: [
+        { code: "shanxi_guienbo", label: "山西贵恩博" },
+        { code: "shanghai_jinyisheng", label: "上海晋亿晟" },
+      ],
+      currentSubjectCode: "shanxi_guienbo",
+      recordVersion: 1,
+      updatedAt: "2026-08-14T00:00:00+00:00",
+    },
     contractCandidateSelected: true,
     contractSelectionSha256: "a".repeat(64),
     accessWindow: null,
@@ -65,6 +75,7 @@ describe("Business connection bar", () => {
 
     expect(start).toHaveBeenCalledWith({
       businessScope: "settlement",
+      contractSubjectCode: "shanxi_guienbo",
       expectedRecordVersion: 0,
     });
     expect(screen.queryByText("旧程序已完全停止")).not.toBeInTheDocument();

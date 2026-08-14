@@ -67,7 +67,7 @@ def test_local_diagnostic_package_and_environment_exclude_business_data(
     assert recorded.status_code == 202
     assert environment.status_code == 200
     assert environment.json()["database"]["schema_revision"] == (
-        "0039_network_batch_default"
+        "0041_contract_subject_scope"
     )
     assert exported.status_code == 200
     assert len(exported.content) <= 20 * 1024 * 1024

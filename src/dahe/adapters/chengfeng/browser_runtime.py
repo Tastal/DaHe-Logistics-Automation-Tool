@@ -9,6 +9,7 @@ from collections.abc import Callable, Iterator
 from dataclasses import dataclass, replace
 from pathlib import Path, PurePosixPath
 from threading import Event, RLock
+from time import monotonic
 from typing import Protocol
 from uuid import uuid4
 
@@ -34,12 +35,19 @@ from dahe.system.supervision import (
 )
 
 HUMAN_LOGIN_WORKER_TIMEOUT_SECONDS = 75
+# Readiness may rebuild the worker once; two bounded attempts stay within 30 s.
+OPERATIONAL_START_WORKER_TIMEOUT_SECONDS = 15
 FREEZE_HUMAN_SESSION_WORKER_TIMEOUT_SECONDS = 80
 PREPARE_AUTOMATED_WORKER_TIMEOUT_SECONDS = 80
 PREPARE_OPERATIONAL_WORKER_TIMEOUT_SECONDS = 150
-PREPARE_DAILY_WORKER_TIMEOUT_SECONDS = 80
+PREPARE_DAILY_WORKER_TIMEOUT_SECONDS = PREPARE_OPERATIONAL_WORKER_TIMEOUT_SECONDS
 OPERATIONAL_BATCH_WORKER_TIMEOUT_SECONDS = 480
-BROWSER_PROTOCOL_VERSION = 6
+BROWSER_PROTOCOL_VERSION = 9
+_CONTRACT_SUBJECT_CODES = frozenset(
+    {"shanxi_guienbo", "shanghai_jinyisheng"}
+)
+_OPERATIONAL_WORKER_MAX_REQUEST_BYTES = 4 * 1024 * 1024
+_OPERATIONAL_WORKER_MAX_RESPONSE_BYTES = 16 * 1024 * 1024
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
 _QUERY_ATTEMPT_ID = re.compile(r"^[0-9a-f]{32}$")
 _READ_MEDIA_TYPES = {
@@ -173,7 +181,9 @@ class SettlementQueryFlightRecord:
             or self.zero_retry_performed
             != (self.query_attempt_count == 2)
             or type(self.cache_refresh_count) is not int
-            or self.cache_refresh_count != self.query_attempt_count
+            or not self.query_attempt_count
+            <= self.cache_refresh_count
+            <= self.query_attempt_count + 1
             or type(self.page_count) is not int
             or self.page_count != 1
             or self.request_method != "POST"
@@ -557,11 +567,16 @@ class BrowserRuntime(Protocol):
         scope: str = "current",
     ) -> SettlementListProbe: ...
 
-    def prepare_operational_compat(self) -> SettlementListProbe: ...
+    def prepare_operational_compat(
+        self,
+        contract_subject_code: str = "shanxi_guienbo",
+    ) -> SettlementListProbe: ...
 
     def prepare_settlement_filter_handoff(
         self,
         waybill_numbers: tuple[str, ...],
+        *,
+        contract_subject_code: str = "shanxi_guienbo",
     ) -> dict[str, int]: ...
 
     def handoff_operational_session(self) -> None: ...
@@ -572,7 +587,10 @@ class BrowserRuntime(Protocol):
 
     def prepare_daily_from_automated(self) -> dict[str, object]: ...
 
-    def prepare_operational_daily(self) -> dict[str, object]: ...
+    def prepare_operational_daily(
+        self,
+        contract_subject_code: str,
+    ) -> dict[str, object]: ...
 
     def read_daily(self, request: DailyAuthorizedRequest) -> BrowserReadPayload: ...
 
@@ -590,6 +608,19 @@ class BrowserRuntime(Protocol):
         reuse_candidates: tuple[WaybillReuseCandidate, ...] = (),
         active_job_id: str | None = None,
         progress_callback: Callable[[str, int, int], None] | None = None,
+        contract_subject_code: str = "shanxi_guienbo",
+    ) -> tuple[BrowserOperationalBatchItem, ...]: ...
+
+    def read_operational_whole_run(
+        self,
+        requests: tuple[tuple[str, LiveAuthorizedRequest], ...],
+        *,
+        detail_concurrency: int,
+        image_concurrency: int,
+        reuse_candidates: tuple[WaybillReuseCandidate, ...] = (),
+        active_job_id: str | None = None,
+        progress_callback: Callable[[str, int, int], None] | None = None,
+        contract_subject_code: str = "shanxi_guienbo",
     ) -> tuple[BrowserOperationalBatchItem, ...]: ...
 
     def abort_active_operation(self, job_id: str) -> bool: ...
@@ -624,6 +655,7 @@ class IsolatedBrowserRuntime:
         self._selected_browser: str | None = None
         self._headless = False
         self._active_read_scope: str | None = None
+        self._active_contract_subject_code: str | None = None
         self._operational_probe: SettlementListProbe | None = None
         self._daily_preparation: dict[str, object] | None = None
         self._discovery_capturing = False
@@ -845,6 +877,7 @@ class IsolatedBrowserRuntime:
             "prepare_operational_compat",
             "prepare_settlement_filter_handoff",
             "prepare_daily_from_automated",
+            "prepare_operational_daily",
         }:
             if response.get("ok") is True and prepare_result is None:
                 raise BrowserRuntimeError(
@@ -854,7 +887,10 @@ class IsolatedBrowserRuntime:
             raise BrowserRuntimeError(
                 "browser worker returned a probe for the wrong command"
             )
-        if command == "read_operational_batch":
+        if command in {
+            "read_operational_batch",
+            "capture_operational_whole_run",
+        }:
             if response.get("ok") is True and not isinstance(
                 batch_result,
                 list,
@@ -1168,8 +1204,8 @@ class IsolatedBrowserRuntime:
                     "dahe_browser_worker",
                 ],
                 runtime_dir=self._data_root / "runtime" / "browser-worker",
-                max_request_bytes=16 * 1024,
-                max_response_bytes=512 * 1024,
+                max_request_bytes=_OPERATIONAL_WORKER_MAX_REQUEST_BYTES,
+                max_response_bytes=_OPERATIONAL_WORKER_MAX_RESPONSE_BYTES,
                 below_normal_priority=self._below_normal_priority,
                 output_sink=self._output_sink,
             )
@@ -1224,8 +1260,8 @@ class IsolatedBrowserRuntime:
                 runtime_dir=(
                     self._data_root / "runtime" / "browser-worker"
                 ),
-                max_request_bytes=16 * 1024,
-                max_response_bytes=512 * 1024,
+                max_request_bytes=_OPERATIONAL_WORKER_MAX_REQUEST_BYTES,
+                max_response_bytes=_OPERATIONAL_WORKER_MAX_RESPONSE_BYTES,
                 below_normal_priority=self._below_normal_priority,
                 output_sink=self._output_sink,
             )
@@ -1239,7 +1275,7 @@ class IsolatedBrowserRuntime:
                         "profile_root": os.fspath(self._profile_root()),
                         "staging_root": os.fspath(self._staging_root()),
                     },
-                    timeout=HUMAN_LOGIN_WORKER_TIMEOUT_SECONDS,
+                    timeout=OPERATIONAL_START_WORKER_TIMEOUT_SECONDS,
                 )
                 selected = response.get("selected_browser")
                 if (
@@ -1261,6 +1297,8 @@ class IsolatedBrowserRuntime:
     def prepare_settlement_filter_handoff(
         self,
         waybill_numbers: tuple[str, ...],
+        *,
+        contract_subject_code: str = "shanxi_guienbo",
     ) -> dict[str, int]:
         """Open the official read-only batch filter in a visible owned window."""
 
@@ -1282,6 +1320,7 @@ class IsolatedBrowserRuntime:
                     "command": "prepare_settlement_filter_handoff",
                     "request_id": uuid4().hex,
                     "waybill_numbers": list(waybill_numbers),
+                    "contract_subject_code": contract_subject_code,
                 },
                 timeout=HUMAN_LOGIN_WORKER_TIMEOUT_SECONDS,
             )
@@ -1512,12 +1551,66 @@ class IsolatedBrowserRuntime:
         reuse_candidates: tuple[WaybillReuseCandidate, ...] = (),
         active_job_id: str | None = None,
         progress_callback: Callable[[str, int, int], None] | None = None,
+        contract_subject_code: str = "shanxi_guienbo",
     ) -> tuple[BrowserOperationalBatchItem, ...]:
-        """Execute one sanitized frozen-size batch inside the owned worker."""
+        """Execute one sanitized frozen-size legacy batch inside the owned worker."""
+
+        return self._read_operational_capture_unit(
+            requests,
+            command="read_operational_batch",
+            maximum_items=100,
+            detail_concurrency=detail_concurrency,
+            image_concurrency=image_concurrency,
+            reuse_candidates=reuse_candidates,
+            active_job_id=active_job_id,
+            progress_callback=progress_callback,
+            contract_subject_code=contract_subject_code,
+        )
+
+    def read_operational_whole_run(
+        self,
+        requests: tuple[tuple[str, LiveAuthorizedRequest], ...],
+        *,
+        detail_concurrency: int,
+        image_concurrency: int,
+        reuse_candidates: tuple[WaybillReuseCandidate, ...] = (),
+        active_job_id: str | None = None,
+        progress_callback: Callable[[str, int, int], None] | None = None,
+        contract_subject_code: str = "shanxi_guienbo",
+    ) -> tuple[BrowserOperationalBatchItem, ...]:
+        """Execute one all-or-nothing online capture for the frozen identity set."""
+
+        return self._read_operational_capture_unit(
+            requests,
+            command="capture_operational_whole_run",
+            maximum_items=2000,
+            detail_concurrency=detail_concurrency,
+            image_concurrency=image_concurrency,
+            reuse_candidates=reuse_candidates,
+            active_job_id=active_job_id,
+            progress_callback=progress_callback,
+            contract_subject_code=contract_subject_code,
+        )
+
+    def _read_operational_capture_unit(
+        self,
+        requests: tuple[tuple[str, LiveAuthorizedRequest], ...],
+        *,
+        command: str,
+        maximum_items: int,
+        detail_concurrency: int,
+        image_concurrency: int,
+        reuse_candidates: tuple[WaybillReuseCandidate, ...],
+        active_job_id: str | None,
+        progress_callback: Callable[[str, int, int], None] | None,
+        contract_subject_code: str,
+    ) -> tuple[BrowserOperationalBatchItem, ...]:
 
         if (
             not requests
-            or len(requests) > 100
+            or len(requests) > maximum_items
+            or contract_subject_code not in _CONTRACT_SUBJECT_CODES
+            or self._active_contract_subject_code != contract_subject_code
             or type(detail_concurrency) is not int
             or not 1 <= detail_concurrency <= 4
             or type(image_concurrency) is not int
@@ -1603,8 +1696,9 @@ class IsolatedBrowserRuntime:
                 response = self._exchange_streaming_batch(
                     {
                         "schema_version": BROWSER_PROTOCOL_VERSION,
-                        "command": "read_operational_batch",
+                        "command": command,
                         "request_id": request_id,
+                        "contract_subject_code": contract_subject_code,
                         "details": details,
                         "detail_concurrency": detail_concurrency,
                         "image_concurrency": image_concurrency,
@@ -1812,6 +1906,7 @@ class IsolatedBrowserRuntime:
             return True
         process.terminate()
         self._active_read_scope = None
+        self._active_contract_subject_code = None
         self._operational_probe = None
         self._daily_preparation = None
         # The process is owned by this runtime. Restore the visible platform
@@ -1864,12 +1959,16 @@ class IsolatedBrowserRuntime:
             self._daily_preparation = None
             return probe
 
-    def prepare_operational_compat(self) -> SettlementListProbe:
+    def prepare_operational_compat(
+        self,
+        contract_subject_code: str = "shanxi_guienbo",
+    ) -> SettlementListProbe:
         """Prepare the page-authoritative current settlement read."""
 
         with self._lock:
             if self._process is None or not self._process.is_alive:
                 self._active_read_scope = None
+                self._active_contract_subject_code = None
                 self._operational_probe = None
                 self._daily_preparation = None
                 raise BrowserRuntimeError(
@@ -1879,6 +1978,8 @@ class IsolatedBrowserRuntime:
             if (
                 self._active_read_scope == "settlement"
                 and self._operational_probe is not None
+                and (self._active_contract_subject_code or "shanxi_guienbo")
+                == contract_subject_code
             ):
                 return self._operational_probe
             if self._active_read_scope is not None:
@@ -1893,6 +1994,7 @@ class IsolatedBrowserRuntime:
                     "schema_version": BROWSER_PROTOCOL_VERSION,
                     "command": "prepare_operational_compat",
                     "request_id": uuid4().hex,
+                    "contract_subject_code": contract_subject_code,
                 },
                 timeout=PREPARE_OPERATIONAL_WORKER_TIMEOUT_SECONDS,
             )
@@ -1905,8 +2007,24 @@ class IsolatedBrowserRuntime:
                     "browser operational preparation failed"
                 )
             try:
+                raw_prepare = response.get("prepare_result")
+                if (
+                    not isinstance(raw_prepare, dict)
+                    or raw_prepare.get("contract_subject_code")
+                    != contract_subject_code
+                    or raw_prepare.get("contract_subject_confirmed") is not True
+                ):
+                    raise ValueError("contract subject confirmation is invalid")
                 probe = SettlementListProbe.from_worker_payload(
-                    response.get("prepare_result"),
+                    {
+                        key: value
+                        for key, value in raw_prepare.items()
+                        if key
+                        not in {
+                            "contract_subject_code",
+                            "contract_subject_confirmed",
+                        }
+                    },
                     require_query_trace=True,
                 )
             except (TypeError, ValueError) as exc:
@@ -1925,6 +2043,8 @@ class IsolatedBrowserRuntime:
                 ),
             )
             self._active_read_scope = "settlement"
+            if contract_subject_code is not None:
+                self._active_contract_subject_code = contract_subject_code
             self._operational_probe = probe
             self._daily_preparation = None
             return probe
@@ -1960,6 +2080,7 @@ class IsolatedBrowserRuntime:
                     code="browser_operational_handoff_failed",
                 )
             self._active_read_scope = None
+            self._active_contract_subject_code = None
             self._operational_probe = None
             self._daily_preparation = None
 
@@ -1993,6 +2114,7 @@ class IsolatedBrowserRuntime:
                     code="browser_operational_park_failed",
                 )
             self._active_read_scope = None
+            self._active_contract_subject_code = None
             self._operational_probe = None
             self._daily_preparation = None
 
@@ -2008,23 +2130,32 @@ class IsolatedBrowserRuntime:
             "prepare_daily_from_automated"
         )
 
-    def prepare_operational_daily(self) -> dict[str, object]:
-        """Reuse or rebuild the page-owned operational daily authority."""
+    def prepare_operational_daily(
+        self,
+        contract_subject_code: str = "shanxi_guienbo",
+    ) -> dict[str, object]:
+        """Prepare the daily authority without visiting the settlement route."""
 
         with self._lock:
             if (
                 self._active_read_scope == "daily"
                 and self._daily_preparation is not None
+                and (self._active_contract_subject_code or "shanxi_guienbo")
+                == contract_subject_code
             ):
                 return dict(self._daily_preparation)
             if self._active_read_scope is not None:
                 self.park_operational_session()
-            self.prepare_operational_compat()
-            return self.prepare_daily_from_automated()
+            return self._prepare_daily_command(
+                "prepare_operational_daily",
+                contract_subject_code=contract_subject_code,
+            )
 
     def _prepare_daily_command(
         self,
         command: str,
+        *,
+        contract_subject_code: str | None = None,
     ) -> dict[str, object]:
         with self._lock:
             if (
@@ -2040,12 +2171,18 @@ class IsolatedBrowserRuntime:
                     "controlled browser is not running for daily preparation",
                     code="browser_context_closed",
                 )
-            response = self._exchange(
-                {
+            started_at = monotonic()
+            payload: dict[str, object] = {
                     "schema_version": BROWSER_PROTOCOL_VERSION,
                     "command": command,
                     "request_id": uuid4().hex,
-                },
+                }
+            if command == "prepare_operational_daily":
+                if contract_subject_code not in _CONTRACT_SUBJECT_CODES:
+                    raise BrowserRuntimeError("contract subject is invalid")
+                payload["contract_subject_code"] = contract_subject_code
+            response = self._exchange(
+                payload,
                 timeout=PREPARE_DAILY_WORKER_TIMEOUT_SECONDS,
             )
             observations = response.get("discovery")
@@ -2055,7 +2192,10 @@ class IsolatedBrowserRuntime:
                 or response.get("read_result") is not None
                 or (command == "prepare_daily" and prepare_result is not None)
                 or (
-                    command == "prepare_daily_from_automated"
+                    command in {
+                        "prepare_daily_from_automated",
+                        "prepare_operational_daily",
+                    }
                     and prepare_result is None
                 )
                 or not isinstance(observations, list)
@@ -2073,8 +2213,31 @@ class IsolatedBrowserRuntime:
                     "browser worker returned an unsafe daily request structure"
                 ) from exc
             freshness: DailyPreparationEvidence | None = None
-            if command == "prepare_daily_from_automated":
+            if command in {
+                "prepare_daily_from_automated",
+                "prepare_operational_daily",
+            }:
                 try:
+                    if command == "prepare_operational_daily":
+                        if (
+                            not isinstance(prepare_result, dict)
+                            or prepare_result.get("contract_subject_code")
+                            != contract_subject_code
+                            or prepare_result.get("contract_subject_confirmed")
+                            is not True
+                        ):
+                            raise ValueError(
+                                "contract subject confirmation is invalid"
+                            )
+                        prepare_result = {
+                            key: value
+                            for key, value in prepare_result.items()
+                            if key
+                            not in {
+                                "contract_subject_code",
+                                "contract_subject_confirmed",
+                            }
+                        }
                     freshness = DailyPreparationEvidence.from_worker_payload(
                         prepare_result
                     )
@@ -2102,10 +2265,14 @@ class IsolatedBrowserRuntime:
                         "scope=daily "
                         f"cache_refresh_count={freshness.cache_refresh_count} "
                         f"page_count={freshness.page_count} "
-                        f"route={freshness.route}"
+                        f"route={freshness.route} "
+                        f"duration_ms={int((monotonic() - started_at) * 1000)} "
+                        "settlement_prepare_count=0 "
+                        "settlement_list_request_count=0"
                     ),
                 )
             self._active_read_scope = "daily"
+            self._active_contract_subject_code = contract_subject_code
             self._operational_probe = None
             self._daily_preparation = dict(prepared)
             return prepared
@@ -2247,6 +2414,7 @@ class IsolatedBrowserRuntime:
         self._selected_browser = None
         self._headless = False
         self._active_read_scope = None
+        self._active_contract_subject_code = None
         self._operational_probe = None
         self._daily_preparation = None
         self._discovery_capturing = False
@@ -2279,5 +2447,6 @@ class IsolatedBrowserRuntime:
                 self._selected_browser = None
                 self._headless = False
                 self._active_read_scope = None
+                self._active_contract_subject_code = None
                 self._operational_probe = None
                 self._daily_preparation = None

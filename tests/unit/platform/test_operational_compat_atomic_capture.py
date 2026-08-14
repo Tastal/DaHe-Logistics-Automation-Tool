@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import json
 import sys
@@ -147,6 +147,9 @@ def test_operational_query_preserves_landing_scope_and_uses_atomic_capture(
         def first(self) -> Trigger:
             return self
 
+        def count(self) -> int:
+            return 1
+
         def wait_for(self, *, state: str, timeout: int) -> None:
             assert state == "visible"
             assert timeout == engine.SESSION_HEADER_QUERY_BUTTON_TIMEOUT_MS
@@ -215,6 +218,30 @@ def test_operational_query_preserves_landing_scope_and_uses_atomic_capture(
             return self.closed
 
         def locator(self, selector: str) -> Locator:
+            if selector == "[role='search']:visible, form:visible, .el-form:visible":
+                page = self
+
+                class QueryRegions:
+                    def count(self) -> int:
+                        return 1
+
+                    def nth(self, index: int) -> QueryRegions:
+                        assert index == 0
+                        return self
+
+                    def is_visible(self) -> bool:
+                        return True
+
+                    def get_by_role(
+                        self,
+                        role: str,
+                        *,
+                        name: str,
+                        exact: bool,
+                    ) -> Trigger:
+                        return page.get_by_role(role, name=name, exact=exact)
+
+                return QueryRegions()  # type: ignore[return-value]
             assert selector == "input[type='password']"
             return Locator()
 
@@ -230,7 +257,11 @@ def test_operational_query_preserves_landing_scope_and_uses_atomic_capture(
             name: str,
             exact: bool,
         ) -> Trigger:
-            assert role == "button" and exact is True
+            assert exact is True
+            if role == "tab":
+                assert name == "按运单显示"
+                return Trigger(self, "waybill-tab")
+            assert role == "button"
             if name == "登录":
                 return Trigger(self, "login")
             return Trigger(self, {"重置": "reset", "查询": "query"}[name])
@@ -260,7 +291,7 @@ def test_operational_query_preserves_landing_scope_and_uses_atomic_capture(
             return ResponseInfo(self)
 
         def wait_for_timeout(self, timeout_ms: int) -> None:
-            assert timeout_ms == 300
+            assert timeout_ms in {250, 300}
 
         def goto(
             self,
@@ -277,7 +308,7 @@ def test_operational_query_preserves_landing_scope_and_uses_atomic_capture(
                 events.append("operational-session-parked")
                 return
             assert url == engine.CHENGFENG_HUMAN_LOGIN_ENTRY
-            assert wait_until in {"commit", "domcontentloaded"}
+            assert wait_until == "domcontentloaded"
             assert timeout == engine.HUMAN_LOGIN_NAVIGATION_TIMEOUT_MS
             self.url = url
             self.navigation_count += 1
@@ -375,6 +406,12 @@ def test_operational_query_preserves_landing_scope_and_uses_atomic_capture(
             assert handler is self.page_handler
             self.page_handler = None
 
+    engine._ensure_contract_subject = (
+        lambda _page, *, contract_subject_code, login_page: {
+            "contract_subject_code": contract_subject_code,
+            "contract_subject_switch_performed": False,
+        }
+    )
     worker = engine.BrowserEngine()
     worker._context = Context()
     worker._human_page = page
@@ -461,6 +498,6 @@ def test_operational_query_preserves_landing_scope_and_uses_atomic_capture(
     assert isinstance(second_controlled_page, Page)
     assert second_controlled_page is controlled_page
     assert len([candidate for candidate in worker._context.pages if not candidate.is_closed()]) == 1
-    assert second_controlled_page.navigation_count == 5
+    assert second_controlled_page.navigation_count == 4
     assert events.count("waybill-tab-transiently-unavailable") == 1
-    assert events.count("page-cache-refreshed") == 5
+    assert events.count("page-cache-refreshed") == 4

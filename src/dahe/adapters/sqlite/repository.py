@@ -14,6 +14,7 @@ from dahe.adapters.sqlite.loop3_repository import SqliteLoop3Store
 from dahe.adapters.sqlite.loop4_recovery_store import SharedWorkRetryResult
 from dahe.adapters.sqlite.runtime import DatabaseMigrationError, SqliteRuntime
 from dahe.adapters.sqlite.schema import (
+    CONFLICT_KEYS,
     IDEMPOTENCY_RECORDS,
     JOBS,
     OUTBOX,
@@ -538,6 +539,11 @@ class SqliteJobRepository:
             )
             if item_result.rowcount != 1:
                 raise RuntimeError("stale work item failure")
+            connection.execute(
+                update(CONFLICT_KEYS)
+                .where(CONFLICT_KEYS.c.job_id == job_id)
+                .values(active=0)
+            )
             self._append_event(
                 connection,
                 event_type="job.failed",
@@ -551,6 +557,100 @@ class SqliteJobRepository:
                 created_at=now,
             )
             return self._get_job(connection, job_id)
+
+    def terminalize_business_reads(
+        self,
+        *,
+        status: JobStatus,
+        diagnostic_code: str | None,
+    ) -> tuple[str, ...]:
+        """Atomically stop every active operational browser read."""
+
+        if status not in {JobStatus.CANCELLED, JobStatus.FAILED}:
+            raise ValueError("business read terminal status is invalid")
+        if status is JobStatus.FAILED and not diagnostic_code:
+            raise ValueError("failed business reads require a diagnostic")
+        now = _utc_now()
+        changed: list[str] = []
+        with self.commit_gate.transaction(self.engine) as connection:
+            rows = tuple(
+                connection.execute(
+                    select(JOBS).where(
+                        JOBS.c.task_type.in_(("daily", "settlement_capture")),
+                        JOBS.c.run_mode == "operational",
+                        JOBS.c.status.in_(ACTIVE_STATUSES),
+                    )
+                ).mappings()
+            )
+            for row in rows:
+                job_id = str(row["job_id"])
+                next_version = int(row["record_version"]) + 1
+                connection.execute(
+                    update(JOBS)
+                    .where(
+                        JOBS.c.job_id == job_id,
+                        JOBS.c.record_version == row["record_version"],
+                    )
+                    .values(
+                        status=status.value,
+                        diagnostic_code=diagnostic_code,
+                        record_version=next_version,
+                        updated_at=now,
+                    )
+                )
+                connection.execute(
+                    update(WORK_ITEMS)
+                    .where(
+                        WORK_ITEMS.c.job_id == job_id,
+                        WORK_ITEMS.c.status.not_in(
+                            (
+                                WorkItemStatus.CANCELLED.value,
+                                WorkItemStatus.SUCCEEDED.value,
+                                WorkItemStatus.FAILED.value,
+                            )
+                        ),
+                    )
+                    .values(
+                        status=(
+                            WorkItemStatus.CANCELLED.value
+                            if status is JobStatus.CANCELLED
+                            else WorkItemStatus.FAILED.value
+                        ),
+                        end_reason=(
+                            "application_shutdown"
+                            if status is JobStatus.CANCELLED
+                            else "application_interrupted"
+                        ),
+                        diagnostic_code=diagnostic_code,
+                        waiting_reason_kind=None,
+                        waiting_reason=None,
+                        record_version=WORK_ITEMS.c.record_version + 1,
+                    )
+                )
+                connection.execute(
+                    update(CONFLICT_KEYS)
+                    .where(CONFLICT_KEYS.c.job_id == job_id)
+                    .values(active=0)
+                )
+                self._append_event(
+                    connection,
+                    event_type=(
+                        "job.cancelled"
+                        if status is JobStatus.CANCELLED
+                        else "job.failed"
+                    ),
+                    aggregate_id=job_id,
+                    record_version=next_version,
+                    payload={
+                        "job_id": job_id,
+                        "job_status": status.value,
+                        "current_stage": row["current_stage"],
+                        "diagnostic_code": diagnostic_code,
+                    },
+                    created_at=now,
+                )
+                changed.append(job_id)
+        return tuple(sorted(changed))
 
     def create_scheduled_job(
         self,

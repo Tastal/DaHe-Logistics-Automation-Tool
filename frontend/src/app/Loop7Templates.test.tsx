@@ -448,7 +448,7 @@ function services(
 async function openTemplateWorkbench(
   user: ReturnType<typeof userEvent.setup>,
 ): Promise<void> {
-  await user.click(await screen.findByRole("button", { name: "系统" }));
+  await user.click(await screen.findByRole("button", { name: "系统设置" }));
   await user.click(await screen.findByRole("button", { name: "识别模板" }));
 }
 

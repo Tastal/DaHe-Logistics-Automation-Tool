@@ -180,7 +180,7 @@ def test_workbook_is_written_formally_then_reopened_and_validated(
         rows=rows,
     )
 
-    assert result.path.name == "20260801-金鸡滩煤矿装卸车明细.xlsx"
+    assert result.path.name == "装卸车明细-山西贵恩博-2026-08-01.xlsx"
     assert result.path.is_file()
     assert result.row_count == 1
     assert result.loading_net_total == Decimal("32.80")
@@ -213,7 +213,7 @@ def test_workbook_atomically_replaces_an_existing_formal_file(
     tmp_path: Path,
 ) -> None:
     settings = _settings(tmp_path)
-    path = tmp_path / "20260801-金鸡滩煤矿装卸车明细.xlsx"
+    path = tmp_path / "装卸车明细-山西贵恩博-2026-08-01.xlsx"
     path.write_bytes(b"manual edit")
 
     result = DailyReportWorkbook().write_pending(

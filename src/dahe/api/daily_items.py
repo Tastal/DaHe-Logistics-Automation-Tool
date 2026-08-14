@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from datetime import date, datetime
 from decimal import Decimal, InvalidOperation
-from typing import Literal
+from typing import Literal, cast
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -15,6 +15,10 @@ from dahe.adapters.sqlite.daily_items import (
     SqliteDailyItemRepository,
 )
 from dahe.api.errors import ApiError
+from dahe.application.chengfeng.contract_subject import (
+    SHANXI_GUIENBO,
+    require_contract_subject_code,
+)
 from dahe.domain.daily.calendar import SHANGHAI
 from dahe.domain.daily.models import DailyObservationFields
 from dahe.ports.jobs import IdempotencyConflictError, RecordVersionConflictError
@@ -61,6 +65,8 @@ class DailyItemChanges(BaseModel):
 class SaveDailyItemRevisionRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
+    business_date: date
+    contract_subject_code: str = SHANXI_GUIENBO
     expected_record_version: int = Field(ge=1)
     changes: DailyItemChanges
 
@@ -140,6 +146,28 @@ def _item_payload(item: DailyItemView, *, business_date: date) -> dict[str, obje
     }
 
 
+def _counts_payload(
+    repository: SqliteDailyItemRepository,
+    *,
+    business_date: date,
+    contract_subject_code: str = "shanxi_guienbo",
+) -> dict[str, int]:
+    items = repository.list_items(
+        business_date,
+        contract_subject_code=contract_subject_code,
+    )
+    reviewed = sum(
+        _item_payload(item, business_date=business_date)["review_state"] == "reviewed"
+        for item in items
+    )
+    return {
+        "all": len(items),
+        "needs_review": len(items) - reviewed,
+        "reviewed": reviewed,
+        "complete": reviewed,
+    }
+
+
 def build_daily_item_router(
     *,
     enabled: bool,
@@ -156,13 +184,21 @@ def build_daily_item_router(
     @router.get("/items")
     def list_items(
         business_date: date,
+        contract_subject_code: str = "shanxi_guienbo",
         view: Literal["all", "reviewed", "needs_review", "complete"] = "all",
         _: None = Depends(require_session),
     ) -> dict[str, object]:
         require_enabled()
-        items = repository.list_items(business_date)
+        subject_code = require_contract_subject_code(contract_subject_code)
+        items = repository.list_items(
+            business_date,
+            contract_subject_code=subject_code,
+        )
+        source = repository.latest_source_context(
+            business_date,
+            contract_subject_code=subject_code,
+        )
         payloads = tuple(_item_payload(item, business_date=business_date) for item in items)
-        reviewed = sum(item["review_state"] == "reviewed" for item in payloads)
         selected_view = "reviewed" if view == "complete" else view
         selected = (
             payloads
@@ -172,12 +208,19 @@ def build_daily_item_router(
         return {
             "business_date": business_date.isoformat(),
             "items": selected,
-            "counts": {
-                "all": len(items),
-                "needs_review": len(items) - reviewed,
-                "reviewed": reviewed,
-                "complete": reviewed,
-            },
+            "contract_subject_code": subject_code,
+            "counts": _counts_payload(
+                repository,
+                business_date=business_date,
+                contract_subject_code=subject_code,
+            ),
+            "source_job_id": None if source is None else source.source_job_id,
+            "source_record_version": 0 if source is None else source.source_record_version,
+            "capture_mode": "batch_v1" if source is None else source.capture_mode,
+            "visible_prefix_count": len(payloads),
+            "online_capture_complete": (
+                False if source is None else source.online_capture_complete
+            ),
             "active_job": None,
             "progress": None,
         }
@@ -189,10 +232,43 @@ def build_daily_item_router(
         idempotency_key: str = Depends(require_write),
     ) -> dict[str, object]:
         require_enabled()
+        subject_code = require_contract_subject_code(
+            payload.contract_subject_code
+        )
+        try:
+            current = repository.get_item(
+                platform_waybill_id,
+                contract_subject_code=subject_code,
+            )
+            actual_business_date = repository.business_date_for(current.machine)
+        except DailyItemConflictError as exc:
+            raise ApiError(409, "daily_item_conflict", str(exc)) from exc
+        if actual_business_date != payload.business_date:
+            raise ApiError(
+                409,
+                "daily_item_business_date_conflict",
+                "记录不属于当前业务日。请刷新后重试。",
+            )
         changes = {
             field: getattr(payload.changes, field)
             for field in payload.changes.model_fields_set
         }
+        current_payload = _item_payload(current, business_date=actual_business_date)
+        field_issues = cast(
+            dict[str, dict[str, object]],
+            current_payload["field_issues"],
+        )
+        unresolved_fields = {
+            field
+            for field, issue in field_issues.items()
+            if issue["has_issue"]
+        }
+        if not unresolved_fields.issubset(changes):
+            raise ApiError(
+                422,
+                "daily_item_review_fields_incomplete",
+                "请一次确认当前记录的全部待核对字段。",
+            )
         if "unloading_time" in changes and changes["unloading_time"] is not None:
             parsed = datetime.fromisoformat(str(changes["unloading_time"]))
             changes["unloading_time"] = parsed.replace(microsecond=0).isoformat()
@@ -205,6 +281,7 @@ def build_daily_item_router(
                 expected_record_version=payload.expected_record_version,
                 changes=changes,
                 idempotency_key=idempotency_key,
+                contract_subject_code=subject_code,
             )
         except RecordVersionConflictError as exc:
             raise ApiError(409, "record_version_conflict", "记录已更新。请刷新后重试。") from exc
@@ -215,7 +292,14 @@ def build_daily_item_router(
         business_date = repository.business_date_for(item.machine)
         return {
             "idempotent_replay": replayed,
+            "business_date": business_date.isoformat(),
+            "contract_subject_code": subject_code,
             "item": _item_payload(item, business_date=business_date),
+            "counts": _counts_payload(
+                repository,
+                business_date=business_date,
+                contract_subject_code=subject_code,
+            ),
         }
 
     return router

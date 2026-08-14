@@ -318,6 +318,7 @@ class SqliteLoop3JobStore:
                         CONFLICT_KEYS.c.job_id,
                         CONFLICT_KEYS.c.active,
                         JOBS.c.record_version,
+                        JOBS.c.status,
                     )
                     .join(JOBS, JOBS.c.job_id == CONFLICT_KEYS.c.job_id)
                     .where(CONFLICT_KEYS.c.conflict_key == fixture.conflict_key)
@@ -326,7 +327,19 @@ class SqliteLoop3JobStore:
                 .one_or_none()
             )
             if conflict is not None and bool(conflict["active"]):
-                raise ActiveScopeConflictError("an active job already owns this conflict key")
+                owner_status = JobStatus(str(conflict["status"]))
+                if not owner_status.is_terminal:
+                    raise ActiveScopeConflictError(
+                        "an active job already owns this conflict key"
+                    )
+                connection.execute(
+                    update(CONFLICT_KEYS)
+                    .where(
+                        CONFLICT_KEYS.c.conflict_key
+                        == fixture.conflict_key
+                    )
+                    .values(active=0)
+                )
             current_start_version = 0 if conflict is None else int(conflict["record_version"])
             if current_start_version != expected_record_version:
                 raise RecordVersionConflictError("fixture start action record version is stale")
@@ -481,6 +494,7 @@ class SqliteLoop3JobStore:
                     select(
                         CONFLICT_KEYS.c.active,
                         JOBS.c.record_version,
+                        JOBS.c.status,
                     )
                     .join(JOBS, JOBS.c.job_id == CONFLICT_KEYS.c.job_id)
                     .where(CONFLICT_KEYS.c.conflict_key == conflict_key)
@@ -490,7 +504,10 @@ class SqliteLoop3JobStore:
             )
             if row is None:
                 return False, 0
-            return bool(row["active"]), int(row["record_version"])
+            active = bool(row["active"]) and not JobStatus(
+                str(row["status"])
+            ).is_terminal
+            return active, int(row["record_version"])
 
     def request_job_control(
         self,

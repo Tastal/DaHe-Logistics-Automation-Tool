@@ -179,6 +179,7 @@ export interface DailyReportSettings {
 }
 
 export interface DailyReportRecord {
+  contractSubjectCode: ContractSubjectCode;
   reportId: string;
   businessDate: string;
   status: "pending_confirmation" | "confirmed";
@@ -224,7 +225,20 @@ export interface DailyItem {
 
 export interface DailyItemsResult {
   businessDate: string;
+  contractSubjectCode: ContractSubjectCode;
   items: DailyItem[];
+  counts: { all: number; needsReview: number; reviewed: number };
+  sourceJobId: string | null;
+  sourceRecordVersion: number;
+  captureMode: "batch_v1" | "whole_run_v1";
+  visiblePrefixCount: number;
+  onlineCaptureComplete: boolean;
+}
+
+export interface DailyItemRevisionResult {
+  businessDate: string;
+  contractSubjectCode: ContractSubjectCode;
+  item: DailyItem;
   counts: { all: number; needsReview: number; reviewed: number };
 }
 
@@ -272,6 +286,10 @@ export interface BusinessConnectionSession {
   recordVersion: number;
 }
 
+export type ContractSubjectCode =
+  | "shanxi_guienbo"
+  | "shanghai_jinyisheng";
+
 export interface PlatformSession {
   enabled: boolean;
   runMode: "shadow" | "operational";
@@ -291,6 +309,19 @@ export interface PlatformSession {
   loginState: "ready" | "login_required" | "unavailable";
   activeJobId: string | null;
   warmSessionReusable: boolean;
+  connectionStatus: {
+    code: "browser_closed" | "opening" | "login_required" | "ready" | "reading" | "downloading" | "error";
+    label: "浏览器关闭" | "正在打开" | "等待登录" | "连接就绪" | "正在读取" | "正在下载" | "连接异常";
+  };
+  contractSubject: {
+    availableSubjects: Array<{
+      code: ContractSubjectCode;
+      label: string;
+    }>;
+    currentSubjectCode: ContractSubjectCode;
+    recordVersion: number;
+    updatedAt: string;
+  };
   contractCandidateSelected: boolean;
   contractSelectionSha256: string | null;
   accessWindow: PlatformAccessWindow | null;
@@ -375,6 +406,7 @@ export interface StartPlatformBusinessReadInput {
   businessScope: "settlement" | "daily";
   businessDate?: string;
   expectedRecordVersion: number;
+  contractSubjectCode: ContractSubjectCode;
 }
 
 export interface StartPlatformBusinessReadResult {
@@ -402,14 +434,23 @@ export interface PlatformBusinessReadProgress {
   estimatedRemainingSeconds: number | null;
   estimateState: "estimating" | "estimated" | "complete" | "unavailable";
   isTerminal: boolean;
+  sourceJobId: string;
+  sourceRecordVersion: number;
+  captureMode: "batch_v1" | "whole_run_v1";
+  visiblePrefixCount: number;
+  onlineCaptureComplete: boolean;
+  reviewJob: JobSummary | null;
 }
 
 export interface BusinessWorkspaceProgress {
   phase:
     | "idle"
+    | "opening_browser"
+    | "waiting_login"
     | "login"
     | "read"
     | "download"
+    | "offline_review"
     | "recognize"
     | "finalize"
     | "complete"
@@ -465,9 +506,14 @@ export interface AppServices {
   ): Promise<AuditWorkspaceResult>;
   loadSettlementWorkspace?(
     view: AuditWorkspaceView,
+    contractSubjectCode?: ContractSubjectCode,
   ): Promise<SettlementWorkspaceResult>;
-  loadReadySettlementWaybillNumbers?(): Promise<string[]>;
-  prepareSettlementFilterHandoff?(): Promise<{
+  loadReadySettlementWaybillNumbers?(
+    contractSubjectCode?: ContractSubjectCode,
+  ): Promise<string[]>;
+  prepareSettlementFilterHandoff?(
+    contractSubjectCode?: ContractSubjectCode,
+  ): Promise<{
     count: number;
     matchedCount: number;
     missingCount: number;
@@ -491,9 +537,14 @@ export interface AppServices {
   loadWaybillHistory?(
     query?: string,
     businessOutcome?: string,
+    contractSubjectCode?: ContractSubjectCode,
   ): Promise<AuditReviewItem[]>;
   loadDiagnostics?(): Promise<DiagnosticsSnapshot>;
   loadPlatformSession?(): Promise<PlatformSession>;
+  selectContractSubject?(
+    subjectCode: ContractSubjectCode,
+    expectedRecordVersion: number,
+  ): Promise<PlatformSession["contractSubject"]>;
   createPlatformAccessWindow?(
     input: CreatePlatformAccessWindowInput,
   ): Promise<PlatformAccessWindow>;
@@ -538,10 +589,11 @@ export interface AppServices {
   saveDailyReportSettings?(
     input: SaveDailyReportSettingsInput,
   ): Promise<DailyReportSettings>;
-  findDailyReport?(businessDate: string): Promise<DailyReportRecord | null>;
+  findDailyReport?(businessDate: string, contractSubjectCode?: ContractSubjectCode): Promise<DailyReportRecord | null>;
   createDailyReport?(
     businessDate: string,
     expectedSettingsVersion: number,
+    contractSubjectCode?: ContractSubjectCode,
   ): Promise<DailyReportRecord>;
   confirmDailyReport?(
     reportId: string,
@@ -555,12 +607,17 @@ export interface AppServices {
     reportId: string,
     expectedRecordVersion: number,
   ): Promise<void>;
-  loadDailyItems?(businessDate: string): Promise<DailyItemsResult>;
+  loadDailyItems?(
+    businessDate: string,
+    contractSubjectCode?: ContractSubjectCode,
+  ): Promise<DailyItemsResult>;
   saveDailyItemRevision?(
     platformWaybillId: string,
+    businessDate: string,
     expectedRecordVersion: number,
     changes: Partial<Record<DailyEditableField, string | null>>,
-  ): Promise<DailyItem>;
+    contractSubjectCode?: ContractSubjectCode,
+  ): Promise<DailyItemRevisionResult>;
   loadPerformanceSettings?(): Promise<PerformanceSettings>;
   savePerformanceSettings?(settings: PerformanceSettings): Promise<PerformanceSettings>;
   startPlatformHumanLogin?(
@@ -595,6 +652,7 @@ export interface AppServices {
   shutdownApplication?(): Promise<void>;
   loadUpdateStatus?(): Promise<UpdateStatus>;
   checkForUpdates?(): Promise<UpdateStatus>;
+  importUpdatePackage?(manifest: File, application: File): Promise<UpdateStatus>;
   installUpdate?(): Promise<UpdateStatus>;
   recordBreadcrumb?(page: "settlement" | "daily" | "history" | "system"): Promise<void>;
   loadEnvironmentSnapshot?(): Promise<EnvironmentSnapshot>;

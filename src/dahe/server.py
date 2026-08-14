@@ -156,12 +156,18 @@ def run_local_console(
             install_root = Path(
                 os.environ.get("DAHE_INSTALL_ROOT", os.fspath(project_root))
             ).resolve()
+            versioned_updater = project_root / "DaHeUpdater.exe"
+            updater_path = (
+                versioned_updater
+                if versioned_updater.is_file()
+                else install_root / "DaHeUpdater.exe"
+            )
             update_service = (
                 UpdateService(
                     current_version=__version__,
-                    updater_version="1.0.0",
+                    updater_version=__version__,
                     data_root=data_root,
-                    updater_path=install_root / "DaHeUpdater.exe",
+                    updater_path=updater_path,
                 )
                 if production_read_only
                 else None

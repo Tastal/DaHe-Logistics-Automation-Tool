@@ -107,7 +107,7 @@ function services(
 }
 
 async function openMaintenance(user: ReturnType<typeof userEvent.setup>) {
-  await user.click(await screen.findByRole("button", { name: "系统" }));
+  await user.click(await screen.findByRole("button", { name: "系统设置" }));
 }
 
 async function openLockedSetReview(user: ReturnType<typeof userEvent.setup>) {
@@ -200,7 +200,7 @@ describe("locked-set review entry", () => {
     await waitFor(() => expect(saveLockedSetReviewItem).toHaveBeenCalledOnce());
     expect(screen.getByRole("button", { name: "运费结算" })).toBeDisabled();
     expect(
-      screen.getByRole("button", { name: "系统" }),
+      screen.getByRole("button", { name: "系统设置" }),
     ).toBeDisabled();
     expect(
       screen.getByRole("button", { name: /样本 02/ }),

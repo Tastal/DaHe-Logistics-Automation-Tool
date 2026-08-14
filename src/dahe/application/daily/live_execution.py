@@ -66,6 +66,7 @@ from dahe.jobs.daily_execution import (
 )
 from dahe.ports.chengfeng import (
     BrowserCommandAuthority,
+    BrowserContextClosedError,
     ChengfengReadError,
     ChengfengReadPort,
     LoginRequiredError,
@@ -75,6 +76,7 @@ from dahe.ports.chengfeng import (
 # Keep the fencing authority valid until that bounded retry budget and browser
 # preparation have both completed.
 _CONTROL_TTL = timedelta(minutes=30)
+_MAX_OPERATIONAL_BROWSER_START_RECOVERY_RETRIES = 1
 
 
 class DailyLiveStageExecutor:
@@ -104,6 +106,9 @@ class DailyLiveStageExecutor:
             FastOperationalDailyCaptureCoordinator | None
         ) = None,
         operational_materializer: Callable[[str], None] | None = None,
+        contract_subject_for_job: Callable[[str], str] = (
+            lambda _job_id: "shanxi_guienbo"
+        ),
         unexpected_error_observer: (
             Callable[[str, str, str], None] | None
         ) = None,
@@ -136,7 +141,9 @@ class DailyLiveStageExecutor:
         )
         self._operational_coordinator = operational_coordinator
         self._operational_materializer = operational_materializer
+        self._contract_subject_for_job = contract_subject_for_job
         self._prepared_operational_jobs: set[str] = set()
+        self._operational_browser_recovery_counts: dict[str, int] = {}
         self._unexpected_error_observer = unexpected_error_observer
         self._clock = clock
         self._authorizer = SqliteBrowserNavigationAuthorizer(
@@ -152,7 +159,9 @@ class DailyLiveStageExecutor:
         # A live job can outlast its owned browser process.  The runtime keeps
         # the cheap same-process preparation cache and rebuilds authority when
         # its worker generation changes, so a job-level shortcut is unsafe.
-        self._browser_runtime.prepare_operational_daily()
+        self._browser_runtime.prepare_operational_daily(
+            self._contract_subject_for_job(job_id)
+        )
         self._prepared_operational_jobs.add(job_id)
 
     def __call__(self, work: DailyStageWork) -> DailyStageExecution:
@@ -162,6 +171,7 @@ class DailyLiveStageExecutor:
         invocation: DailyInvocationRecord | None = None
         acquired = None
         is_operational = False
+        rebuild_operational_browser = False
         failure_step = "load_invocation"
         try:
             invocation = self._invocations.get_by_job(work.job_id)
@@ -255,7 +265,7 @@ class DailyLiveStageExecutor:
                 if is_operational
                 else "legacy"
             )
-            if is_operational and capture_strategy == "batch_v1":
+            if is_operational and capture_strategy in {"batch_v1", "whole_run_v1"}:
                 # Reuse live private authority when the worker survived, or
                 # rebuild it through the page-owned settlement transition
                 # after a process restart. Never resume through the legacy
@@ -263,7 +273,7 @@ class DailyLiveStageExecutor:
                 self._ensure_operational_browser_prepared(work.job_id)
             elif is_operational and invocation.checkpoint is None:
                 self._browser_runtime.prepare_daily()
-            if is_operational and capture_strategy == "batch_v1":
+            if is_operational and capture_strategy in {"batch_v1", "whole_run_v1"}:
                 if self._operational_coordinator is None:
                     raise DailyCaptureError(
                         "fast operational daily capture is unavailable"
@@ -283,6 +293,10 @@ class DailyLiveStageExecutor:
                             self._daily_contract_selection_sha256
                         ),
                     ),
+                )
+                self._operational_browser_recovery_counts.pop(
+                    work.job_id,
+                    None,
                 )
                 failure_step = "release_browser_control"
                 self._browser_control.release_automated(
@@ -467,6 +481,15 @@ class DailyLiveStageExecutor:
                     invocation,
                     diagnostic_code=exc.diagnostic_code,
                 )
+            if is_operational and isinstance(
+                exc,
+                BrowserContextClosedError,
+            ):
+                rebuild_operational_browser = True
+                return self._operational_browser_recovery(
+                    work,
+                    invocation,
+                )
             if is_operational and exc.retryable:
                 return self._waiting_external(
                     work,
@@ -497,6 +520,16 @@ class DailyLiveStageExecutor:
                     work,
                     invocation,
                     diagnostic_code="CF-DAILY-LOGIN-REQUIRED",
+                )
+            if is_operational and exc.code in {
+                "browser_context_closed",
+                "browser_daily_route_unavailable",
+                "browser_worker_unavailable",
+            }:
+                rebuild_operational_browser = True
+                return self._operational_browser_recovery(
+                    work,
+                    invocation,
                 )
             if is_operational and exc.code in {
                 "browser_read_network_failed",
@@ -538,7 +571,13 @@ class DailyLiveStageExecutor:
             OperationalCaptureContractError,
             PlatformReadAuditError,
             ValueError,
-        ):
+        ) as exc:
+            if self._unexpected_error_observer is not None:
+                self._unexpected_error_observer(
+                    work.job_id,
+                    failure_step,
+                    type(exc).__name__,
+                )
             return self._failure(
                 work,
                 invocation,
@@ -619,6 +658,42 @@ class DailyLiveStageExecutor:
                                     work.job_id
                                 )
                                 self._browser_runtime.close()
+            if rebuild_operational_browser:
+                self._prepared_operational_jobs.discard(work.job_id)
+                with contextlib.suppress(
+                    BrowserRuntimeError,
+                    OSError,
+                    RuntimeError,
+                    ValueError,
+                ):
+                    self._browser_runtime.close()
+
+    def _operational_browser_recovery(
+        self,
+        work: DailyStageWork,
+        invocation: DailyInvocationRecord | None,
+    ) -> DailyStageExecution:
+        recovery_count = (
+            self._operational_browser_recovery_counts.get(work.job_id, 0)
+            + 1
+        )
+        self._operational_browser_recovery_counts[work.job_id] = recovery_count
+        if (
+            invocation is not None
+            and recovery_count <= _MAX_OPERATIONAL_BROWSER_START_RECOVERY_RETRIES
+        ):
+            return self._retry(
+                work,
+                invocation,
+                diagnostic_code="CF-DAILY-BROWSER-RESTARTING",
+            )
+        self._operational_browser_recovery_counts.pop(work.job_id, None)
+        return self._failure(
+            work,
+            invocation,
+            diagnostic_code="CF-DAILY-BROWSER-RUNTIME-FAILED",
+            retryable=False,
+        )
 
     def _failure(
         self,
@@ -685,7 +760,8 @@ class DailyLiveStageExecutor:
         try:
             keep_warm = (
                 self._invocations.job_run_mode(job_id) == "operational"
-                and self._invocations.capture_strategy(job_id) == "batch_v1"
+                and self._invocations.capture_strategy(job_id)
+                in {"batch_v1", "whole_run_v1"}
             )
         except DailyInvocationConflictError:
             keep_warm = False
@@ -709,7 +785,8 @@ class DailyLiveStageExecutor:
     ) -> None:
         access_window_id = grant.access_window_id
         failures: list[Exception] = []
-        if grant.consumed_at is None:
+        window_was_active = grant.consumed_at is None
+        if window_was_active:
             try:
                 self._access.retire(
                     access_window_id=access_window_id,
@@ -768,6 +845,13 @@ class DailyLiveStageExecutor:
             elif (
                 control.browser_control_mode == "idle"
                 and (
+                    window_was_active
+                    or (
+                        control.browser_lifecycle == "recovering"
+                        and control.job_id == job_id
+                    )
+                )
+                and (
                     control.browser_lifecycle == "ready"
                     or (
                         control.browser_lifecycle == "recovering"
@@ -793,7 +877,8 @@ class DailyLiveStageExecutor:
                 ) as exc:
                     failures.append(exc)
             elif (
-                control.browser_lifecycle == "stopped"
+                window_was_active
+                and control.browser_lifecycle == "stopped"
                 and self._browser_runtime.running
             ):
                 try:
@@ -827,9 +912,15 @@ class DailyLiveStageExecutor:
             raise DailyInvocationConflictError(
                 "daily job is not eligible for terminal cleanup"
             )
+        try:
+            terminal_invocation = self._invocations.get_by_job(job_id)
+        except DailyInvocationConflictError:
+            terminal_invocation = None
         if (
             self._operational_materializer is not None
             and not self._invocations.is_network_only_measurement(job_id)
+            and terminal_invocation is not None
+            and terminal_invocation.status == "succeeded"
         ):
             # The final capture checkpoint is committed before the scheduler
             # marks the parent job terminal. Create the last local OCR child

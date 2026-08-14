@@ -39,6 +39,37 @@ JOBS = Table(
     Column("updated_at", String(40), nullable=False),
 )
 
+PLATFORM_CONTRACT_SUBJECT_STATE = Table(
+    "platform_contract_subject_state",
+    METADATA,
+    Column("state_id", String(32), primary_key=True),
+    Column("current_subject_code", String(40), nullable=False),
+    Column("record_version", Integer, nullable=False),
+    Column("updated_at", String(40), nullable=False),
+    CheckConstraint(
+        "state_id = 'primary' AND current_subject_code IN "
+        "('shanxi_guienbo', 'shanghai_jinyisheng') AND record_version >= 1",
+        name="ck_platform_contract_subject_state_shape",
+    ),
+)
+
+PLATFORM_JOB_SUBJECTS = Table(
+    "platform_job_subjects",
+    METADATA,
+    Column(
+        "job_id",
+        String(32),
+        ForeignKey("jobs.job_id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
+    Column("contract_subject_code", String(40), nullable=False),
+    Column("created_at", String(40), nullable=False),
+    CheckConstraint(
+        "contract_subject_code IN ('shanxi_guienbo', 'shanghai_jinyisheng')",
+        name="ck_platform_job_subject_value",
+    ),
+)
+
 WORK_ITEMS = Table(
     "work_items",
     METADATA,
@@ -303,7 +334,7 @@ SETTLEMENT_CAPTURE_STRATEGIES = Table(
     Column("strategy", String(20), nullable=False),
     Column("created_at", String(40), nullable=False),
     CheckConstraint(
-        "strategy IN ('legacy', 'batch_v1')",
+        "strategy IN ('legacy', 'batch_v1', 'whole_run_v1')",
         name="ck_settlement_capture_strategy_value",
     ),
 )
@@ -318,11 +349,18 @@ OPERATIONAL_CAPTURE_RUNS = Table(
         primary_key=True,
     ),
     Column("scope", String(20), nullable=False),
+    Column(
+        "contract_subject_code",
+        String(40),
+        nullable=False,
+        server_default="shanxi_guienbo",
+    ),
     Column("total", Integer, nullable=False),
     Column("items_json", Text, nullable=False),
     Column("items_sha256", String(64), nullable=False),
     Column("next_item_index", Integer, nullable=False),
     Column("committed_batch_count", Integer, nullable=False),
+    Column("capture_mode", String(20), nullable=False, default="batch_v1"),
     Column("batch_size", Integer, nullable=False),
     Column("detail_concurrency", Integer, nullable=False),
     Column("image_concurrency", Integer, nullable=False),
@@ -337,7 +375,10 @@ OPERATIONAL_CAPTURE_RUNS = Table(
         "total >= 0 AND next_item_index >= 0 "
         "AND next_item_index <= total "
         "AND committed_batch_count >= 0 "
-        "AND batch_size IN (15, 20, 50, 100) "
+        "AND capture_mode IN ('batch_v1', 'whole_run_v1') "
+        "AND ((capture_mode = 'batch_v1' AND batch_size IN (15, 20, 50, 100)) "
+        "OR (capture_mode = 'whole_run_v1' AND committed_batch_count <= 1 "
+        "AND ((total = 0 AND batch_size = 1) OR batch_size = total))) "
         "AND detail_concurrency BETWEEN 1 AND 4 "
         "AND image_concurrency BETWEEN 1 AND 6 "
         "AND status IN ('collecting', 'complete') "
@@ -356,6 +397,7 @@ OPERATIONAL_CAPTURE_RUNS = Table(
 OPERATIONAL_EVIDENCE_REUSE = Table(
     "operational_evidence_reuse",
     METADATA,
+    Column("contract_subject_code", String(40), primary_key=True),
     Column("platform_waybill_id", String(64), primary_key=True),
     Column("source_revision_sha256", String(64), nullable=False),
     Column("loading_sha256", String(64)),
@@ -409,6 +451,36 @@ DAILY_OPERATIONAL_OCR_BATCHES = Table(
     ),
 )
 
+OPERATIONAL_REVIEW_LINKS = Table(
+    "operational_review_links",
+    METADATA,
+    Column(
+        "source_job_id",
+        String(32),
+        ForeignKey("jobs.job_id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
+    Column("business_kind", String(20), nullable=False),
+    Column(
+        "review_job_id",
+        String(32),
+        ForeignKey("jobs.job_id", ondelete="RESTRICT"),
+        unique=True,
+    ),
+    Column("eligible_item_count", Integer, nullable=False),
+    Column("missing_item_count", Integer, nullable=False),
+    Column("source_manifest_sha256", String(64), nullable=False),
+    Column("created_at", String(40), nullable=False),
+    CheckConstraint(
+        "business_kind IN ('settlement', 'daily') "
+        "AND eligible_item_count >= 0 AND missing_item_count >= 0 "
+        "AND length(source_manifest_sha256) = 64 "
+        "AND ((eligible_item_count = 0 AND review_job_id IS NULL) "
+        "OR (eligible_item_count > 0 AND review_job_id IS NOT NULL))",
+        name="ck_operational_review_link_shape",
+    ),
+)
+
 SETTLEMENT_CAPTURE_INVOCATIONS = Table(
     "settlement_capture_invocations",
     METADATA,
@@ -431,6 +503,12 @@ SETTLEMENT_CAPTURE_INVOCATIONS = Table(
         unique=True,
     ),
     Column("scope", String(20), nullable=False),
+    Column(
+        "contract_subject_code",
+        String(40),
+        nullable=False,
+        server_default="shanxi_guienbo",
+    ),
     Column("page_size", Integer, nullable=False),
     Column("source_build_sha256", String(64), nullable=False),
     Column("contract_canonical_sha256", String(64), nullable=False),
@@ -528,8 +606,7 @@ SETTLEMENT_CAPTURE_IDENTITIES = Table(
         name="uq_settlement_capture_waybill_identity",
     ),
     CheckConstraint(
-        "length(item_identity_sha256) = 64 "
-        "AND source_page_number >= 1",
+        "length(item_identity_sha256) = 64 AND source_page_number >= 1",
         name="ck_settlement_capture_identity_shape",
     ),
 )
@@ -738,10 +815,7 @@ CANDIDATE_DEVELOPMENT_OCR_RUNS = Table(
         name="ck_candidate_development_ocr_runs_byte_size",
     ),
     CheckConstraint(
-        "completion_status IN ("
-        "'completed', "
-        "'completed_with_runtime_differences'"
-        ")",
+        "completion_status IN ('completed', 'completed_with_runtime_differences')",
         name="ck_candidate_development_ocr_runs_status",
     ),
     CheckConstraint(
@@ -1074,8 +1148,7 @@ TEMPLATE_LIFECYCLE_ATTEMPTS = Table(
     Column("actor_id", String(200), nullable=False),
     Column("created_at", String(40), nullable=False),
     CheckConstraint(
-        "terminal_status IN ("
-        "'succeeded', 'business_failed', 'technical_failed')",
+        "terminal_status IN ('succeeded', 'business_failed', 'technical_failed')",
         name="ck_template_lifecycle_attempts_terminal_status",
     ),
     CheckConstraint(
@@ -1771,8 +1844,7 @@ LOCKED_SET_REVIEW_ITEMS = Table(
         name="ck_locked_set_review_items_status",
     ),
     CheckConstraint(
-        "decision IN ('confirmed', 'replace_candidate') "
-        "AND decision = review_status",
+        "decision IN ('confirmed', 'replace_candidate') AND decision = review_status",
         name="ck_locked_set_review_items_decision",
     ),
     CheckConstraint(
@@ -1972,6 +2044,12 @@ DAILY_CAPTURE_INVOCATIONS = Table(
         nullable=False,
     ),
     Column("request_fingerprint", String(64), nullable=False),
+    Column(
+        "contract_subject_code",
+        String(40),
+        nullable=False,
+        server_default="shanxi_guienbo",
+    ),
     Column("request_json", Text, nullable=False),
     Column("authority_json", Text),
     Column("checkpoint_json", Text),
@@ -2030,6 +2108,12 @@ DAILY_CANDIDATE_SNAPSHOTS = Table(
     METADATA,
     Column("snapshot_id", String(100), primary_key=True),
     Column("target_business_date", String(10), nullable=False),
+    Column(
+        "contract_subject_code",
+        String(40),
+        nullable=False,
+        server_default="shanxi_guienbo",
+    ),
     Column("query_started_at", String(40), nullable=False),
     Column("query_ended_at", String(40), nullable=False),
     Column("query_safety_ended_at", String(40), nullable=False),
@@ -2039,9 +2123,7 @@ DAILY_CANDIDATE_SNAPSHOTS = Table(
     Column("fingerprint", String(64), nullable=False, unique=True),
     Column("captured_at", String(40), nullable=False),
     CheckConstraint(
-        "candidate_count >= 0 "
-        "AND length(source_contract_sha256) = 64 "
-        "AND length(fingerprint) = 64",
+        "candidate_count >= 0 AND length(source_contract_sha256) = 64 AND length(fingerprint) = 64",
         name="ck_daily_candidate_snapshot_shape",
     ),
 )
@@ -2060,6 +2142,12 @@ DAILY_OBSERVATIONS = Table(
         nullable=False,
     ),
     Column("platform_waybill_id", String(200), nullable=False),
+    Column(
+        "contract_subject_code",
+        String(40),
+        nullable=False,
+        server_default="shanxi_guienbo",
+    ),
     Column("waybill_number", String(200)),
     Column("source_detail_sha256", String(64), nullable=False),
     Column("loading_ticket_sha256", String(64)),
@@ -2085,6 +2173,12 @@ DAILY_RECORD_REVISIONS = Table(
     METADATA,
     Column("revision_id", String(32), primary_key=True),
     Column("platform_waybill_id", String(200), nullable=False),
+    Column(
+        "contract_subject_code",
+        String(40),
+        nullable=False,
+        server_default="shanxi_guienbo",
+    ),
     Column("revision_number", Integer, nullable=False),
     Column(
         "observation_id",
@@ -2097,6 +2191,7 @@ DAILY_RECORD_REVISIONS = Table(
     Column("payload_json", Text, nullable=False),
     Column("created_at", String(40), nullable=False),
     UniqueConstraint(
+        "contract_subject_code",
         "platform_waybill_id",
         "revision_number",
         name="uq_daily_record_revision_number",
@@ -2112,6 +2207,12 @@ DAILY_MANUAL_REVISIONS = Table(
     METADATA,
     Column("action_id", String(32), primary_key=True),
     Column("platform_waybill_id", String(200), nullable=False),
+    Column(
+        "contract_subject_code",
+        String(40),
+        nullable=False,
+        server_default="shanxi_guienbo",
+    ),
     Column("manual_revision_number", Integer, nullable=False),
     Column(
         "base_observation_id",
@@ -2125,6 +2226,7 @@ DAILY_MANUAL_REVISIONS = Table(
     Column("request_hash", String(64), nullable=False),
     Column("created_at", String(40), nullable=False),
     UniqueConstraint(
+        "contract_subject_code",
         "platform_waybill_id",
         "manual_revision_number",
         name="uq_daily_manual_revision_number",
@@ -2145,6 +2247,7 @@ DAILY_MANUAL_REVISION_IDEMPOTENCY = Table(
     Column("idempotency_key", String(200), primary_key=True),
     Column("request_hash", String(64), nullable=False),
     Column("platform_waybill_id", String(200), nullable=False),
+    Column("contract_subject_code", String(40), primary_key=True),
     Column("action_id", String(32), nullable=False),
     Column("result_record_version", Integer, nullable=False),
     Column("created_at", String(40), nullable=False),
@@ -2193,8 +2296,7 @@ DAILY_REPORT_SETTINGS = Table(
     Column("record_version", Integer, nullable=False),
     Column("updated_at", String(40), nullable=False),
     CheckConstraint(
-        "settings_id = 'primary' AND confirmed IN (0, 1) "
-        "AND record_version >= 1",
+        "settings_id = 'primary' AND confirmed IN (0, 1) AND record_version >= 1",
         name="ck_daily_report_settings_shape",
     ),
 )
@@ -2204,6 +2306,7 @@ DAILY_REPORTS = Table(
     METADATA,
     Column("report_id", String(32), primary_key=True),
     Column("business_date", String(10), nullable=False, index=True),
+    Column("contract_subject_code", String(40), nullable=False),
     Column("status", String(32), nullable=False),
     Column("settings_record_version", Integer, nullable=False),
     Column("output_directory", Text, nullable=False),
@@ -2225,12 +2328,20 @@ DAILY_REPORTS = Table(
         name="ck_daily_report_shape",
     ),
 )
+Index(
+    "uq_daily_report_subject_business_date_current",
+    DAILY_REPORTS.c.contract_subject_code,
+    DAILY_REPORTS.c.business_date,
+    unique=True,
+    sqlite_where=DAILY_REPORTS.c.stale == 0,
+)
 
 DAILY_REPORT_IDEMPOTENCY = Table(
     "daily_report_idempotency",
     METADATA,
     Column("idempotency_key", String(200), primary_key=True),
     Column("operation", String(40), nullable=False),
+    Column("contract_subject_code", String(40), primary_key=True),
     Column("request_hash", String(64), nullable=False),
     Column("result_json", Text, nullable=False),
     Column("created_at", String(40), nullable=False),

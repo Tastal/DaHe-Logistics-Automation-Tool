@@ -55,6 +55,7 @@ from dahe.adapters.sqlite.browser_control import (
 from dahe.adapters.sqlite.business_connection import (
     SqliteBusinessConnectionSessionStore,
 )
+from dahe.adapters.sqlite.contract_subjects import SqliteContractSubjectStore
 from dahe.adapters.sqlite.daily_invocation_store import (
     DailyInvocationAuthority,
     DailyInvocationConflictError,
@@ -63,6 +64,7 @@ from dahe.adapters.sqlite.daily_invocation_store import (
 from dahe.adapters.sqlite.daily_operational_ocr import (
     SqliteDailyOperationalOcrStore,
 )
+from dahe.adapters.sqlite.operational_review import SqliteOperationalReviewLinkStore
 from dahe.adapters.sqlite.platform_access import (
     PlatformAccessConflictError,
     SqlitePlatformAccessRepository,
@@ -89,6 +91,10 @@ from dahe.application.chengfeng.connection_mode import (
     ChengfengConnectionMode,
     ChengfengConnectionModeConflictError,
     ChengfengConnectionModeStore,
+)
+from dahe.application.chengfeng.contract_subject import (
+    ContractSubjectError,
+    require_contract_subject_code,
 )
 from dahe.application.chengfeng.credential_service import (
     PlatformCredentialConfig,
@@ -356,6 +362,7 @@ class SettlementFilterHandoffRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     expected_record_version: Literal[0]
+    contract_subject_code: str
 
 
 class ClosePlatformSessionRequest(BaseModel):
@@ -370,6 +377,9 @@ class CreateDailyJobRequest(BaseModel):
 
     expected_record_version: int = Field(ge=0)
     scope: Literal["current", "last_completed"] = "current"
+    contract_subject_code: Literal[
+        "shanxi_guienbo", "shanghai_jinyisheng"
+    ] = "shanxi_guienbo"
 
 
 class CreateSettlementCaptureRequest(BaseModel):
@@ -386,6 +396,16 @@ class CreateSettlementCaptureRequest(BaseModel):
     no_settlement_or_payment_confirmed: bool
     same_account_session_risk_accepted: bool
     expected_record_version: Literal[0]
+    contract_subject_code: Literal[
+        "shanxi_guienbo", "shanghai_jinyisheng"
+    ] = "shanxi_guienbo"
+
+
+class SelectContractSubjectRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    subject_code: Literal["shanxi_guienbo", "shanghai_jinyisheng"]
+    expected_record_version: int = Field(ge=1)
 
 
 class StartBusinessSessionRequest(BaseModel):
@@ -437,17 +457,16 @@ class CreateBusinessReadRequest(BaseModel):
     business_date: date | None = None
     network_only_measurement: bool = False
     expected_record_version: int = Field(ge=0)
+    contract_subject_code: Literal[
+        "shanxi_guienbo", "shanghai_jinyisheng"
+    ]
 
     def validated_business_date(self) -> date | None:
         if self.business_scope == "settlement":
             if self.business_date is not None:
-                raise ValueError(
-                    "settlement reads do not accept a business date"
-                )
+                raise ValueError("settlement reads do not accept a business date")
             if self.network_only_measurement:
-                raise ValueError(
-                    "network-only measurement is limited to daily reads"
-                )
+                raise ValueError("network-only measurement is limited to daily reads")
             return None
         if self.business_date is None:
             raise ValueError("daily reads require a business date")
@@ -512,6 +531,66 @@ def _business_progress_timing(
         "estimate_state": estimate_state,
         "is_terminal": is_terminal,
     }
+
+
+_REVIEW_COMPLETED_STATUSES = {
+    WorkItemStatus.SUCCEEDED,
+    WorkItemStatus.WAITING_USER,
+}
+_REVIEW_PREFIX_STATUSES = _REVIEW_COMPLETED_STATUSES | {
+    WorkItemStatus.FAILED,
+    WorkItemStatus.CANCELLED,
+}
+
+
+def _review_progress(
+    items: Sequence[WorkItemRecord],
+    *,
+    expected_count: int,
+) -> tuple[int, bool, bool]:
+    """Return contiguous visibility, machine-review completion, and failure."""
+
+    visible_prefix = 0
+    for item in items:
+        if item.status not in _REVIEW_PREFIX_STATUSES:
+            break
+        visible_prefix += 1
+    failed = any(
+        item.status in {WorkItemStatus.FAILED, WorkItemStatus.CANCELLED}
+        for item in items
+    )
+    complete = bool(
+        len(items) == expected_count
+        and all(item.status in _REVIEW_COMPLETED_STATUSES for item in items)
+    )
+    return visible_prefix, complete, failed
+
+
+def _progress_stream_signature(payload: dict[str, object]) -> str:
+    """Ignore clock-only fields while detecting durable progress changes."""
+
+    review_job = payload.get("review_job")
+    review_identity = None
+    if isinstance(review_job, dict):
+        review_identity = {
+            "job_id": review_job.get("job_id"),
+            "job_status": review_job.get("job_status"),
+            "record_version": review_job.get("record_version"),
+        }
+    return json.dumps(
+        {
+            "phase": payload.get("phase"),
+            "current": payload.get("progress_current"),
+            "total": payload.get("progress_total"),
+            "source_record_version": payload.get("source_record_version"),
+            "visible_prefix_count": payload.get("visible_prefix_count"),
+            "online_capture_complete": payload.get("online_capture_complete"),
+            "is_terminal": payload.get("is_terminal"),
+            "review_job": review_identity,
+        },
+        sort_keys=True,
+        separators=(",", ":"),
+    )
 
 
 def _daily_business_date_from_items(
@@ -587,11 +666,10 @@ def _browser_payload(
     record: BrowserControlRecord,
     *,
     runtime: BrowserRuntime,
+    transient_progress_store: TransientBusinessProgressStore | None = None,
     idempotent_replay: bool = False,
 ) -> dict[str, object]:
-    visible_browser_running = (
-        record.browser_lifecycle == "ready" and runtime.running
-    )
+    visible_browser_running = record.browser_lifecycle == "ready" and runtime.running
     human_handoff_ready = (
         visible_browser_running
         and record.browser_control_mode in {"idle", "human_handoff"}
@@ -619,8 +697,48 @@ def _browser_payload(
         "login_state": login_state,
         "active_job_id": record.job_id,
         "warm_session_reusable": human_handoff_ready,
+        "connection_status": _connection_status_payload(
+            record,
+            runtime=runtime,
+            transient_progress_store=transient_progress_store,
+        ),
         "idempotent_replay": idempotent_replay,
     }
+
+
+def _connection_status_payload(
+    record: BrowserControlRecord,
+    *,
+    runtime: BrowserRuntime,
+    transient_progress_store: TransientBusinessProgressStore | None = None,
+) -> dict[str, str]:
+    """Project one operator-facing connection state from backend authority."""
+
+    if not runtime.available:
+        code, label = "error", "连接异常"
+    elif record.browser_lifecycle == "stopped" and not runtime.running:
+        code, label = "browser_closed", "浏览器关闭"
+    elif record.browser_lifecycle == "recovering":
+        code, label = "opening", "正在打开"
+    elif record.browser_lifecycle != "ready" or not runtime.running:
+        code, label = "error", "连接异常"
+    elif record.browser_control_mode == "human_login":
+        code, label = "login_required", "等待登录"
+    elif record.browser_control_mode == "automated":
+        progress = (
+            None
+            if record.job_id is None or transient_progress_store is None
+            else transient_progress_store.get(record.job_id)
+        )
+        if progress is not None and progress.phase == "image":
+            code, label = "downloading", "正在下载"
+        else:
+            code, label = "reading", "正在读取"
+    elif record.browser_control_mode in {"idle", "human_handoff"}:
+        code, label = "ready", "连接就绪"
+    else:
+        code, label = "error", "连接异常"
+    return {"code": code, "label": label}
 
 
 def _business_session_payload(
@@ -703,29 +821,21 @@ def _daily_observation_matches_selection(
         and isinstance(item.get("path"), str)
         and str(item["path"]).startswith("$.")
     }
-    expected_request = {
-        name: rule.type
-        for name, rule in selected.manifest.request_fields.items()
-    }
+    expected_request = {name: rule.type for name, rule in selected.manifest.request_fields.items()}
     observed_response = {
         str(item.get("path")): item.get("type")
         for item in response_fields
-        if isinstance(item, dict)
-        and isinstance(item.get("path"), str)
+        if isinstance(item, dict) and isinstance(item.get("path"), str)
     }
     expected_response = {
-        field.path: frozenset(field.types)
-        for field in selected.manifest.response_fields
+        field.path: frozenset(field.types) for field in selected.manifest.response_fields
     }
     return (
         len(observed_request) == len(request_fields)
         and len(observed_response) == len(response_fields)
         and observed_request == expected_request
         and set(observed_response) == set(expected_response)
-        and all(
-            observed_response[path] in expected_response[path]
-            for path in expected_response
-        )
+        and all(observed_response[path] in expected_response[path] for path in expected_response)
     )
 
 
@@ -738,6 +848,7 @@ def build_platform_router(
     business_session_store: SqliteBusinessConnectionSessionStore,
     credential_service: PlatformCredentialService,
     connection_mode_store: ChengfengConnectionModeStore,
+    contract_subject_store: SqliteContractSubjectStore,
     browser_control: BrowserControlStore,
     browser_runtime: BrowserRuntime,
     browser_lifecycle: BrowserRuntimeLifecycle,
@@ -746,6 +857,7 @@ def build_platform_router(
     job_repository: SqliteJobRepository,
     daily_invocation_store: SqliteDailyInvocationStore,
     daily_operational_ocr_store: SqliteDailyOperationalOcrStore,
+    operational_review_link_store: SqliteOperationalReviewLinkStore,
     transient_progress_store: TransientBusinessProgressStore,
     selected_daily_contract: SelectedDailyReadContract | None,
     daily_execution_available: bool,
@@ -753,9 +865,7 @@ def build_platform_router(
     selected_settlement_contract: SelectedLiveReadContract | None,
     settlement_identity_context_sha256: str | None,
     settlement_capture_execution_available: bool,
-    verify_settlement_capture_prerequisites: (
-        Callable[[ShadowBatchTargetKind], object] | None
-    ),
+    verify_settlement_capture_prerequisites: (Callable[[ShadowBatchTargetKind], object] | None),
     notify_scheduler: Callable[[], None],
     runtime_log_store: RuntimeLogStore,
     instance_id: str,
@@ -763,7 +873,7 @@ def build_platform_router(
     require_session: Callable[..., None],
     require_write: Callable[..., str],
     load_settlement_ready_waybill_numbers: (
-        Callable[[], tuple[str, ...]] | None
+        Callable[..., tuple[str, ...]] | None
     ) = None,
     expose_internal_codes: bool = True,
 ) -> APIRouter:
@@ -785,9 +895,7 @@ def build_platform_router(
     def access_window_for_job(job_id: str, task_type: str) -> str:
         if task_type == "settlement_capture":
             if settlement_capture_store is None:
-                raise SettlementCaptureStoreConflictError(
-                    "settlement capture store is unavailable"
-                )
+                raise SettlementCaptureStoreConflictError("settlement capture store is unavailable")
             return settlement_capture_store.get_by_job(job_id).access_window_id
         if task_type == "daily":
             return daily_invocation_store.get_by_job(job_id).access_window_id
@@ -823,11 +931,13 @@ def build_platform_router(
                     job_id,
                     job.task_type,
                 )
-                current = browser_control.get(session_id)
-                if not (
-                    current.browser_control_mode == "human_login"
-                    and current.holder_id == access_window_id
-                ):
+                for start_attempt in range(2):
+                    current = browser_control.get(session_id)
+                    if (
+                        current.browser_control_mode == "human_login"
+                        and current.holder_id == access_window_id
+                    ):
+                        break
                     try:
                         start_human_login(
                             HumanLoginControlRequest(
@@ -835,10 +945,17 @@ def build_platform_router(
                                 expected_record_version=current.record_version,
                             ),
                             idempotency_key=(
-                                f"automatic-login-start:{job_id}:{attempt_id}"
+                                "automatic-login-start:"
+                                f"{job_id}:{attempt_id}:{start_attempt}"
                             ),
                         )
                     except ApiError as exc:
+                        if (
+                            exc.code == "browser_start_failed"
+                            and start_attempt == 0
+                            and not login_recovery_stop.wait(1.0)
+                        ):
+                            continue
                         runtime_log_store.append(
                             level="warning",
                             source="chengfeng-browser",
@@ -849,6 +966,7 @@ def build_platform_router(
                             job_id=job_id,
                         )
                         return
+                    break
 
                 while not login_recovery_stop.wait(1.0):
                     current = browser_control.get(session_id)
@@ -863,9 +981,7 @@ def build_platform_router(
                                 access_window_id=access_window_id,
                                 expected_record_version=current.record_version,
                             ),
-                            idempotency_key=(
-                                f"automatic-login-return:{job_id}:{attempt_id}"
-                            ),
+                            idempotency_key=(f"automatic-login-return:{job_id}:{attempt_id}"),
                         )
                     except ApiError as exc:
                         if exc.code == "human_login_pending":
@@ -913,6 +1029,12 @@ def build_platform_router(
             login_recovery_threads[job_id] = thread
             thread.start()
 
+    def schedule_business_browser_work(job_id: str) -> None:
+        """Wake the owner task without racing it for browser authority."""
+
+        notify_scheduler()
+        ensure_automatic_login(job_id)
+
     def resume_automatic_login_coordinators() -> None:
         for job in job_repository.list_jobs():
             if (
@@ -920,14 +1042,14 @@ def build_platform_router(
                 and job.run_mode == "operational"
                 and job.task_type in {"settlement_capture", "daily"}
             ):
-                ensure_automatic_login(job.job_id)
+                schedule_business_browser_work(job.job_id)
 
     def close_automatic_login_coordinators() -> None:
         login_recovery_stop.set()
         with login_recovery_lock:
-            threads = tuple(login_recovery_threads.values())
+            login_threads = tuple(login_recovery_threads.values())
         deadline = time.monotonic() + 1.0
-        for thread in threads:
+        for thread in login_threads:
             thread.join(max(0.0, deadline - time.monotonic()))
 
     router.add_event_handler("startup", resume_automatic_login_coordinators)
@@ -938,7 +1060,12 @@ def build_platform_router(
         payload: SettlementFilterHandoffRequest,
         _: str = Depends(require_write),
     ) -> dict[str, object]:
-        del payload
+        try:
+            contract_subject_code = require_contract_subject_code(
+                payload.contract_subject_code
+            )
+        except ContractSubjectError as exc:
+            raise ApiError(422, "contract_subject_invalid", str(exc)) from exc
         if not enabled:
             raise ApiError(
                 403,
@@ -948,8 +1075,7 @@ def build_platform_router(
         active_jobs = tuple(
             job
             for job in job_repository.list_jobs()
-            if not job.status.is_terminal
-            and job.task_type in {"settlement_capture", "daily"}
+            if not job.status.is_terminal and job.task_type in {"settlement_capture", "daily"}
         )
         if active_jobs:
             raise ApiError(
@@ -963,7 +1089,9 @@ def build_platform_router(
                 "settlement_handoff_unavailable",
                 "当前版本未启用批量筛选交接。",
             )
-        waybill_numbers = load_settlement_ready_waybill_numbers()
+        waybill_numbers = load_settlement_ready_waybill_numbers(
+            contract_subject_code=contract_subject_code
+        )
         if not waybill_numbers:
             raise ApiError(
                 409,
@@ -986,7 +1114,8 @@ def build_platform_router(
                 )
             try:
                 result = browser_runtime.prepare_settlement_filter_handoff(
-                    waybill_numbers
+                    waybill_numbers,
+                    contract_subject_code=contract_subject_code,
                 )
             except BrowserRuntimeError as exc:
                 raise ApiError(
@@ -998,12 +1127,10 @@ def build_platform_router(
         matched_count = int(result["matched_count"])
         missing_count = int(result["missing_count"])
         message = (
-            f"已在成丰筛选 {matched_count} 条可结算运单, "
-            "请在平台人工结算。"
+            f"已在成丰筛选 {matched_count} 条可结算运单, 请在平台人工结算。"
             if missing_count == 0
             else (
-                f"成功筛选 {matched_count}/{requested_count}, "
-                f"{missing_count} 条已不在可结算范围。"
+                f"成功筛选 {matched_count}/{requested_count}, {missing_count} 条已不在可结算范围。"
             )
         )
         return {
@@ -1034,18 +1161,68 @@ def build_platform_router(
             )
         transient = transient_progress_store.get(job_id)
         if job.task_type == "settlement_capture":
+            link = operational_review_link_store.get(job_id)
+            review_job = (
+                None
+                if link is None or link.review_job_id is None
+                else job_repository.get_job(link.review_job_id)
+            )
+            review_items = (
+                ()
+                if review_job is None
+                else tuple(
+                    sorted(
+                        job_repository.list_items(review_job.job_id),
+                        key=lambda item: item.item_index,
+                    )
+                )
+            )
+            expected_review_count = (
+                0 if link is None else link.eligible_item_count
+            )
+            visible_prefix, review_complete, review_failed = _review_progress(
+                review_items,
+                expected_count=expected_review_count,
+            )
             current = 0 if transient is None else transient.completed
             total = 0 if transient is None else transient.total
-            phase = "read" if transient is None else (
-                "download" if transient.phase == "image" else "read"
+            waiting_login = bool(
+                job.status in {JobStatus.PAUSED, JobStatus.WAITING_EXTERNAL, JobStatus.WAITING_USER}
+                and job.diagnostic_code
+                in {
+                    "CF-CREDENTIAL-REQUIRED",
+                    "CF-LOGIN-INTERVENTION-REQUIRED",
+                    "CF-LOGIN-REQUIRED",
+                }
             )
-            if job.status is JobStatus.SUCCEEDED:
-                phase, current = "complete", total
+            phase = (
+                "waiting_login"
+                if waiting_login
+                else "download"
+                if transient is not None and transient.phase == "image"
+                else "read"
+                if transient is not None
+                else "opening_browser"
+            )
+            if job.status is JobStatus.SUCCEEDED and link is not None:
+                total = link.eligible_item_count + link.missing_item_count
+                if review_job is None or review_complete:
+                    phase, current = "complete", total
+                elif review_failed or review_job.status in {
+                    JobStatus.FAILED,
+                    JobStatus.CANCELLED,
+                }:
+                    phase, current = "incomplete", visible_prefix
+                else:
+                    phase, current = "offline_review", visible_prefix
             elif job.status in {JobStatus.FAILED, JobStatus.CANCELLED}:
                 phase = "incomplete"
             labels = {
+                "opening_browser": "正在打开浏览器",
+                "waiting_login": "等待登录成丰",
                 "read": "正在读取运单",
                 "download": "正在下载磅单",
+                "offline_review": "正在离线审核",
                 "complete": "已完成",
                 "incomplete": "本次获取未完整",
             }
@@ -1057,6 +1234,25 @@ def build_platform_router(
                 "missing_fields": 0,
                 "technical_failed": 0,
                 "committed_batches": 0,
+                "source_job_id": job_id,
+                "source_record_version": job.record_version,
+                "capture_mode": (
+                    "batch_v1"
+                    if settlement_capture_store is None
+                    else settlement_capture_store.capture_strategy(job_id)
+                ),
+                "visible_prefix_count": visible_prefix,
+                "online_capture_complete": job.status is JobStatus.SUCCEEDED,
+                "review_job": (
+                    None
+                    if review_job is None
+                    else project_job(
+                        review_job,
+                        review_items,
+                        job_repository.runtime_projection(review_job.job_id),
+                        expose_internal_codes=expose_internal_codes,
+                    )
+                ),
                 "phase": phase,
                 "phase_label": labels[phase],
                 "progress_current": current,
@@ -1068,27 +1264,41 @@ def build_platform_router(
                     started_at=job.created_at,
                     phase_started_at=job.created_at,
                     updated_at=(
-                        job.updated_at
+                        review_job.updated_at
+                        if review_job is not None
+                        and phase in {"offline_review", "complete", "incomplete"}
+                        else job.updated_at
                         if transient is None
                         else transient.updated_at.isoformat()
                     ),
                     current=current,
                     total=total,
-                    is_terminal=job.status.is_terminal,
+                    is_terminal=phase in {"complete", "incomplete"},
                 )
             )
             return settlement_payload
-        progress = daily_operational_ocr_store.progress(
-            daily_job_id=job_id
+        progress = daily_operational_ocr_store.progress(daily_job_id=job_id)
+        whole_link = operational_review_link_store.get(job_id)
+        review_job = (
+            None
+            if whole_link is None or whole_link.review_job_id is None
+            else job_repository.get_job(whole_link.review_job_id)
         )
-        resolved = (
-            progress.recognized
-            + progress.missing_ticket
-            + progress.technical_failed
+        review_items = (
+            () if review_job is None else tuple(job_repository.list_items(review_job.job_id))
         )
+        expected_review_count = (
+            0 if whole_link is None else whole_link.eligible_item_count
+        )
+        _visible_review_prefix, review_complete, review_failed = _review_progress(
+            review_items,
+            expected_count=expected_review_count,
+        )
+        resolved = progress.recognized + progress.missing_ticket + progress.technical_failed
         complete = bool(
             job.status is JobStatus.SUCCEEDED
-            and resolved >= progress.total
+            and progress.recognized + progress.missing_ticket >= progress.total
+            and (review_job is None or review_complete)
         )
         if job.status in {JobStatus.FAILED, JobStatus.CANCELLED}:
             phase = "incomplete"
@@ -1098,16 +1308,54 @@ def build_platform_router(
             phase = "complete"
             phase_label = "已完成"
             current = progress.total
+        elif (
+            whole_link is not None
+            and review_job is not None
+            and (
+                review_failed
+                or review_job.status
+                in {
+                    JobStatus.FAILED,
+                    JobStatus.CANCELLED,
+                }
+            )
+        ):
+            phase = "incomplete"
+            phase_label = "本次获取未完整"
+            current = progress.visible_prefix_count
         elif progress.fetched < progress.total or progress.total == 0:
-            phase = "download" if progress.total else "read"
+            waiting_login = bool(
+                job.status in {JobStatus.PAUSED, JobStatus.WAITING_EXTERNAL, JobStatus.WAITING_USER}
+                and job.diagnostic_code
+                in {
+                    "CF-CREDENTIAL-REQUIRED",
+                    "CF-LOGIN-INTERVENTION-REQUIRED",
+                    "CF-LOGIN-REQUIRED",
+                }
+            )
+            phase = (
+                "waiting_login"
+                if waiting_login
+                else "download"
+                if progress.total
+                else "opening_browser"
+                if transient is None
+                else "read"
+            )
             phase_label = (
-                "正在下载磅单" if progress.total else "正在读取运单"
+                "等待登录成丰"
+                if phase == "waiting_login"
+                else "正在打开浏览器"
+                if phase == "opening_browser"
+                else "正在下载磅单"
+                if phase == "download"
+                else "正在读取运单"
             )
             current = min(progress.fetched, progress.total)
         elif resolved < progress.total:
-            phase = "recognize"
-            phase_label = "正在识别磅单"
-            current = min(resolved, progress.total)
+            phase = "offline_review"
+            phase_label = "正在离线审核"
+            current = progress.visible_prefix_count
         else:
             phase = "finalize"
             phase_label = "正在整理结果"
@@ -1119,14 +1367,12 @@ def build_platform_router(
         )
         if transient is not None and network_capture_active:
             phase = "download" if transient.phase == "image" else "read"
-            phase_label = (
-                "正在下载磅单" if phase == "download" else "正在读取运单"
-            )
+            phase_label = "正在下载磅单" if phase == "download" else "正在读取运单"
             current = transient.completed
             progress_total = transient.total
         phase_started_at = (
             progress.first_ocr_batch_at
-            if phase in {"recognize", "finalize", "complete"}
+            if phase in {"offline_review", "recognize", "finalize", "complete"}
             and progress.first_ocr_batch_at is not None
             else job.created_at
         )
@@ -1138,6 +1384,21 @@ def build_platform_router(
             "missing_fields": progress.missing_ticket,
             "technical_failed": progress.technical_failed,
             "committed_batches": progress.committed_batches,
+            "source_job_id": job_id,
+            "source_record_version": job.record_version,
+            "capture_mode": daily_invocation_store.capture_strategy(job_id),
+            "visible_prefix_count": min(progress.visible_prefix_count, progress.total),
+            "online_capture_complete": job.status is JobStatus.SUCCEEDED,
+            "review_job": (
+                None
+                if review_job is None
+                else project_job(
+                    review_job,
+                    review_items,
+                    job_repository.runtime_projection(review_job.job_id),
+                    expose_internal_codes=expose_internal_codes,
+                )
+            ),
             "phase": phase,
             "phase_label": phase_label,
             "progress_current": current,
@@ -1157,6 +1418,7 @@ def build_platform_router(
                 total=progress_total,
                 is_terminal=(
                     complete
+                    or phase == "incomplete"
                     or job.status in {JobStatus.FAILED, JobStatus.CANCELLED}
                 ),
             )
@@ -1177,39 +1439,49 @@ def build_platform_router(
             raise ApiError(409, "business_read_scope_invalid", "该任务不是业务读取任务。")
 
         def generate() -> Iterator[str]:
-            revision = max(0, after)
+            stream_revision = max(0, after)
+            transient_revision = 0
+            last_keepalive = time.monotonic()
             initial_payload = get_business_read_progress(job_id)
             raw_initial_revision = initial_payload.get("transient_revision", 0)
-            initial_revision = (
-                raw_initial_revision if type(raw_initial_revision) is int else 0
+            initial_revision = raw_initial_revision if type(raw_initial_revision) is int else 0
+            transient_revision = initial_revision
+            stream_revision = max(stream_revision, initial_revision)
+            initial_payload["transient_revision"] = stream_revision
+            last_signature = _progress_stream_signature(initial_payload)
+            data = json.dumps(
+                initial_payload,
+                ensure_ascii=False,
+                separators=(",", ":"),
             )
-            if initial_revision >= revision:
-                revision = initial_revision
-                data = json.dumps(
-                    initial_payload,
-                    ensure_ascii=False,
-                    separators=(",", ":"),
-                )
-                yield f"id: {revision}\nevent: progress\ndata: {data}\n\n"
-                if bool(initial_payload.get("is_terminal")):
-                    return
+            yield f"id: {stream_revision}\nevent: progress\ndata: {data}\n\n"
+            if bool(initial_payload.get("is_terminal")):
+                return
             while True:
-                event = transient_progress_store.wait_after(job_id, revision, 15.0)
-                if event is None:
-                    current_payload = get_business_read_progress(job_id)
-                    if bool(current_payload.get("is_terminal")):
-                        return
-                    yield ": keepalive\n\n"
-                    continue
-                revision = event.revision
+                event = transient_progress_store.wait_after(
+                    job_id,
+                    transient_revision,
+                    0.5,
+                )
+                if event is not None:
+                    transient_revision = event.revision
                 payload = get_business_read_progress(job_id)
-                payload["transient_revision"] = event.revision
+                signature = _progress_stream_signature(payload)
+                if event is None and signature == last_signature:
+                    if time.monotonic() - last_keepalive >= 15.0:
+                        last_keepalive = time.monotonic()
+                        yield ": keepalive\n\n"
+                    continue
+                stream_revision += 1
+                last_signature = signature
+                last_keepalive = time.monotonic()
+                payload["transient_revision"] = stream_revision
                 data = json.dumps(
                     payload,
                     ensure_ascii=False,
                     separators=(",", ":"),
                 )
-                yield f"id: {event.revision}\nevent: progress\ndata: {data}\n\n"
+                yield f"id: {stream_revision}\nevent: progress\ndata: {data}\n\n"
                 if bool(payload.get("is_terminal")):
                     return
 
@@ -1319,37 +1591,20 @@ def build_platform_router(
         if contract_validator is None:
             return False
         try:
-            return contract_validator.has_successful_validation(
-                build_sha256
-            )
+            return contract_validator.has_successful_validation(build_sha256)
         except LiveContractValidationError:
             return False
 
     def daily_invocation_authority() -> DailyInvocationAuthority:
-        if (
-            selected_daily_contract is None
-            or selected_settlement_contract is None
-        ):
-            raise DailyInvocationConflictError(
-                "formal daily authorities are unavailable"
-            )
+        if selected_daily_contract is None or selected_settlement_contract is None:
+            raise DailyInvocationConflictError("formal daily authorities are unavailable")
         return DailyInvocationAuthority(
             source_build_sha256=build_sha256,
-            daily_contract_sha256=(
-                selected_daily_contract.manifest.canonical_sha256
-            ),
-            daily_contract_file_sha256=(
-                selected_daily_contract.contract_file_sha256
-            ),
-            daily_contract_selection_sha256=(
-                selected_daily_contract.selection_sha256
-            ),
-            settlement_contract_sha256=(
-                selected_settlement_contract.manifest.canonical_sha256
-            ),
-            settlement_contract_selection_sha256=(
-                selected_settlement_contract.selection_sha256
-            ),
+            daily_contract_sha256=(selected_daily_contract.manifest.canonical_sha256),
+            daily_contract_file_sha256=(selected_daily_contract.contract_file_sha256),
+            daily_contract_selection_sha256=(selected_daily_contract.selection_sha256),
+            settlement_contract_sha256=(selected_settlement_contract.manifest.canonical_sha256),
+            settlement_contract_selection_sha256=(selected_settlement_contract.selection_sha256),
         )
 
     @router.get("/session")
@@ -1359,9 +1614,7 @@ def build_platform_router(
         now = datetime.now(UTC)
         record = browser_control.get(session_id)
         connection_mode = connection_mode_store.get()
-        business_session = business_session_store.latest(
-            platform_session_id=session_id
-        )
+        business_session = business_session_store.latest(platform_session_id=session_id)
         latest = access_repository.latest_for_session(session_id)
         closed_human_holder: str | None = None
         if (
@@ -1399,16 +1652,13 @@ def build_platform_router(
             and business_session is not None
             and business_session.status == "active"
             and business_session_store.owns_access_window(
-                business_session_id=(
-                    business_session.business_session_id
-                ),
+                business_session_id=(business_session.business_session_id),
                 access_window_id=closed_human_holder,
             )
         ):
             recovery_identity = hashlib.sha256(
                 (
-                    f"{business_session.business_session_id}:"
-                    f"{closed_human_holder}:browser_closed"
+                    f"{business_session.business_session_id}:{closed_human_holder}:browser_closed"
                 ).encode()
             ).hexdigest()
             with contextlib.suppress(
@@ -1416,36 +1666,24 @@ def build_platform_router(
                 IdempotencyConflictError,
             ):
                 business_session_store.close(
-                    business_session_id=(
-                        business_session.business_session_id
-                    ),
-                    expected_record_version=(
-                        business_session.record_version
-                    ),
+                    business_session_id=(business_session.business_session_id),
+                    expected_record_version=(business_session.record_version),
                     reason="browser_closed",
-                    idempotency_key=(
-                        f"business-browser-closed:{recovery_identity}"
-                    ),
+                    idempotency_key=(f"business-browser-closed:{recovery_identity}"),
                     request_hash=recovery_identity,
                     now=now,
                 )
             with contextlib.suppress(PlatformAccessConflictError):
-                closed_window, closed_window_version = (
-                    access_repository.get_with_version(
-                        closed_human_holder
-                    )
+                closed_window, closed_window_version = access_repository.get_with_version(
+                    closed_human_holder
                 )
                 if closed_window.consumed_at is None:
                     access_repository.retire(
                         access_window_id=closed_human_holder,
-                        expected_record_version=(
-                            closed_window_version
-                        ),
+                        expected_record_version=(closed_window_version),
                         now=now,
                     )
-            business_session = business_session_store.latest(
-                platform_session_id=session_id
-            )
+            business_session = business_session_store.latest(platform_session_id=session_id)
             latest = access_repository.latest_for_session(session_id)
         current_window = (
             latest
@@ -1471,9 +1709,7 @@ def build_platform_router(
         platform_waiting_job = None
         if current_window is not None:
             try:
-                candidate_job = job_repository.get_job(
-                    current_window[0].job_id
-                )
+                candidate_job = job_repository.get_job(current_window[0].job_id)
             except JobNotFoundError:
                 pass
             else:
@@ -1482,9 +1718,7 @@ def build_platform_router(
                     JobStatus.WAITING_EXTERNAL,
                 } and any(
                     item.status is WorkItemStatus.WAITING_EXTERNAL
-                    for item in job_repository.list_items(
-                        candidate_job.job_id
-                    )
+                    for item in job_repository.list_items(candidate_job.job_id)
                 ):
                     platform_waiting_job = candidate_job
         business_session_active = bool(
@@ -1496,22 +1730,16 @@ def build_platform_router(
         business_session_readable = bool(
             business_session_active
             and business_session is not None
-            and business_session.expires_at - now
-            >= timedelta(minutes=60)
+            and business_session.expires_at - now >= timedelta(minutes=60)
         )
         active_business_read_job_id = (
             None
             if business_session is None
             else business_session_store.active_read_job_id(
-                business_session_id=(
-                    business_session.business_session_id
-                )
+                business_session_id=(business_session.business_session_id)
             )
         )
-        active_jobs_present = any(
-            not job.status.is_terminal
-            for job in job_repository.list_jobs()
-        )
+        active_jobs_present = any(not job.status.is_terminal for job in job_repository.list_jobs())
         formal_validation_available = bool(
             enabled
             and contract_validator is not None
@@ -1544,9 +1772,7 @@ def build_platform_router(
             and current_window[0].purpose is AccessPurpose.PRODUCTION_SHADOW
         ):
             try:
-                daily_job = job_repository.get_job(
-                    current_window[0].job_id
-                )
+                daily_job = job_repository.get_job(current_window[0].job_id)
                 daily_items = job_repository.list_items(daily_job.job_id)
             except JobNotFoundError:
                 pass
@@ -1572,15 +1798,13 @@ def build_platform_router(
             elif record.browser_control_mode == "human_handoff":
                 waiting_reason = (
                     "business_platform_available"
-                    if connection_mode.mode
-                    is ChengfengConnectionMode.OPERATIONAL_COMPAT
+                    if connection_mode.mode is ChengfengConnectionMode.OPERATIONAL_COMPAT
                     else "contract_discovery_in_progress"
                 )
             elif platform_waiting_job is not None:
                 waiting_reason = (
                     "credential_required"
-                    if platform_waiting_job.diagnostic_code
-                    == "CF-CREDENTIAL-REQUIRED"
+                    if platform_waiting_job.diagnostic_code == "CF-CREDENTIAL-REQUIRED"
                     else "login_required"
                 )
             elif active_window and record.browser_lifecycle == "ready":
@@ -1597,21 +1821,21 @@ def build_platform_router(
             "enabled": enabled,
             "run_mode": (
                 "operational"
-                if connection_mode.mode
-                is ChengfengConnectionMode.OPERATIONAL_COMPAT
+                if connection_mode.mode is ChengfengConnectionMode.OPERATIONAL_COMPAT
                 else "shadow"
             ),
             "connection_mode": connection_mode.mode.value,
             "connection_mode_label": (
                 "业务连接"
-                if connection_mode.mode
-                is ChengfengConnectionMode.OPERATIONAL_COMPAT
+                if connection_mode.mode is ChengfengConnectionMode.OPERATIONAL_COMPAT
                 else "验证连接"
             ),
-            "connection_mode_record_version": (
-                connection_mode.record_version
+            "connection_mode_record_version": (connection_mode.record_version),
+            **_browser_payload(
+                record,
+                runtime=browser_runtime,
+                transient_progress_store=transient_progress_store,
             ),
-            **_browser_payload(record, runtime=browser_runtime),
             "access_window": window_payload,
             "business_session": (
                 None
@@ -1623,17 +1847,15 @@ def build_platform_router(
             ),
             "contract_candidate_selected": contract_validator is not None,
             "contract_selection_sha256": (
-                None
-                if contract_validator is None
-                else contract_validator.selection_sha256
+                None if contract_validator is None else contract_validator.selection_sha256
             ),
             "waiting_reason": waiting_reason,
+            "contract_subject": contract_subject_store.get().to_payload(),
             "available_actions": {
                 "start_business_session": {
                     "enabled": bool(
                         enabled
-                        and connection_mode.mode
-                        is ChengfengConnectionMode.OPERATIONAL_COMPAT
+                        and connection_mode.mode is ChengfengConnectionMode.OPERATIONAL_COMPAT
                         and not business_session_active
                         and record.browser_lifecycle == "stopped"
                         and record.browser_control_mode == "idle"
@@ -1645,8 +1867,7 @@ def build_platform_router(
                         None
                         if (
                             enabled
-                            and connection_mode.mode
-                            is ChengfengConnectionMode.OPERATIONAL_COMPAT
+                            and connection_mode.mode is ChengfengConnectionMode.OPERATIONAL_COMPAT
                             and not business_session_active
                             and record.browser_lifecycle == "stopped"
                             and record.browser_control_mode == "idle"
@@ -1660,8 +1881,7 @@ def build_platform_router(
                 "begin_business_read": {
                     "enabled": bool(
                         enabled
-                        and connection_mode.mode
-                        is ChengfengConnectionMode.OPERATIONAL_COMPAT
+                        and connection_mode.mode is ChengfengConnectionMode.OPERATIONAL_COMPAT
                         and business_session_readable
                         and settlement_capture_store is not None
                         and selected_settlement_contract is not None
@@ -1684,8 +1904,7 @@ def build_platform_router(
                             and business_session_readable
                             and browser_runtime.running
                             and active_business_read_job_id is None
-                            and record.browser_control_mode
-                            in {"idle", "human_handoff"}
+                            and record.browser_control_mode in {"idle", "human_handoff"}
                         )
                         else "business_read_not_ready"
                     ),
@@ -1731,12 +1950,10 @@ def build_platform_router(
                 "start_operational_capture": {
                     "enabled": bool(
                         enabled
-                        and connection_mode.mode
-                        is ChengfengConnectionMode.OPERATIONAL_COMPAT
+                        and connection_mode.mode is ChengfengConnectionMode.OPERATIONAL_COMPAT
                         and settlement_capture_store is not None
                         and selected_settlement_contract is not None
-                        and settlement_identity_context_sha256
-                        is not None
+                        and settlement_identity_context_sha256 is not None
                         and settlement_capture_execution_available
                         and not active_window
                         and not business_session_active
@@ -1747,12 +1964,10 @@ def build_platform_router(
                         None
                         if (
                             enabled
-                            and connection_mode.mode
-                            is ChengfengConnectionMode.OPERATIONAL_COMPAT
+                            and connection_mode.mode is ChengfengConnectionMode.OPERATIONAL_COMPAT
                             and settlement_capture_store is not None
                             and selected_settlement_contract is not None
-                            and settlement_identity_context_sha256
-                            is not None
+                            and settlement_identity_context_sha256 is not None
                             and settlement_capture_execution_available
                             and not active_window
                             and not business_session_active
@@ -1883,6 +2098,30 @@ def build_platform_router(
             },
         }
 
+    @router.put("/contract-subject")
+    def select_contract_subject(
+        payload: SelectContractSubjectRequest,
+        _: str = Depends(require_write),
+    ) -> dict[str, object]:
+        try:
+            state = contract_subject_store.select(
+                subject_code=payload.subject_code,
+                expected_record_version=payload.expected_record_version,
+            )
+        except ContractSubjectError as exc:
+            raise ApiError(
+                422,
+                "contract_subject_invalid",
+                "The contract subject is not supported.",
+            ) from exc
+        except RecordVersionConflictError as exc:
+            raise ApiError(
+                409,
+                "record_version_conflict",
+                "The selected contract subject changed. Refresh before retrying.",
+            ) from exc
+        return state.to_payload()
+
     @router.post("/business-session/start")
     def start_business_session(
         payload: StartBusinessSessionRequest,
@@ -1890,8 +2129,7 @@ def build_platform_router(
     ) -> dict[str, object]:
         if (
             not enabled
-            or connection_mode_store.get().mode
-            is not ChengfengConnectionMode.OPERATIONAL_COMPAT
+            or connection_mode_store.get().mode is not ChengfengConnectionMode.OPERATIONAL_COMPAT
         ):
             raise ApiError(
                 409,
@@ -1902,12 +2140,8 @@ def build_platform_router(
         try:
             confirmation = confirmation_sha256(
                 legacy_idle_confirmed=payload.legacy_idle_confirmed,
-                no_settlement_or_payment_confirmed=(
-                    payload.no_settlement_or_payment_confirmed
-                ),
-                same_account_session_risk_accepted=(
-                    payload.same_account_session_risk_accepted
-                ),
+                no_settlement_or_payment_confirmed=(payload.no_settlement_or_payment_confirmed),
+                same_account_session_risk_accepted=(payload.same_account_session_risk_accepted),
             )
         except BusinessConnectionSessionError as exc:
             raise ApiError(
@@ -1928,9 +2162,7 @@ def build_platform_router(
                     "business_browser_active",
                     "已有成丰窗口或读取任务正在使用，请先完成或关闭。",  # noqa: RUF001
                 )
-            key_sha256 = hashlib.sha256(
-                idempotency_key.encode("utf-8")
-            ).hexdigest()
+            key_sha256 = hashlib.sha256(idempotency_key.encode("utf-8")).hexdigest()
             request_hash = _request_hash(payload)
             try:
                 login_window, window_replay = access_repository.issue(
@@ -1947,21 +2179,15 @@ def build_platform_router(
                     request_hash=request_hash,
                     now=now,
                 )
-                business_session, session_replay = (
-                    business_session_store.start(
-                        platform_session_id=session_id,
-                        build_sha256=build_sha256,
-                        login_access_window_id=(
-                            login_window.access_window_id
-                        ),
-                        confirmation_sha256=confirmation,
-                        expires_at=now + BUSINESS_SESSION_DURATION,
-                        idempotency_key=(
-                            f"business-session:{key_sha256}"
-                        ),
-                        request_hash=request_hash,
-                        now=now,
-                    )
+                business_session, session_replay = business_session_store.start(
+                    platform_session_id=session_id,
+                    build_sha256=build_sha256,
+                    login_access_window_id=(login_window.access_window_id),
+                    confirmation_sha256=confirmation,
+                    expires_at=now + BUSINESS_SESSION_DURATION,
+                    idempotency_key=(f"business-session:{key_sha256}"),
+                    request_hash=request_hash,
+                    now=now,
                 )
             except (
                 BusinessConnectionSessionError,
@@ -1982,9 +2208,7 @@ def build_platform_router(
             "access_window": _window_payload(
                 login_window,
                 record_version=(
-                    access_repository.get_with_version(
-                        login_window.access_window_id
-                    )[1]
+                    access_repository.get_with_version(login_window.access_window_id)[1]
                 ),
                 idempotent_replay=window_replay,
             ),
@@ -2005,8 +2229,7 @@ def build_platform_router(
             or selected_settlement_contract is None
             or settlement_identity_context_sha256 is None
             or not settlement_capture_execution_available
-            or connection_mode_store.get().mode
-            is not ChengfengConnectionMode.OPERATIONAL_COMPAT
+            or connection_mode_store.get().mode is not ChengfengConnectionMode.OPERATIONAL_COMPAT
         ):
             raise ApiError(
                 409,
@@ -2014,15 +2237,12 @@ def build_platform_router(
                 "业务读取能力尚未准备完成。",
             )
         read_idempotency_key = (
-            "business-read:"
-            f"{hashlib.sha256(idempotency_key.encode()).hexdigest()}"
+            f"business-read:{hashlib.sha256(idempotency_key.encode()).hexdigest()}"
         )
         read_request_hash = _request_hash(payload)
         try:
             replayed_start = settlement_capture_store.replay_start(
-                target_kind=(
-                    ShadowBatchTargetKind.OPERATIONAL_COMPAT
-                ),
+                target_kind=(ShadowBatchTargetKind.OPERATIONAL_COMPAT),
                 idempotency_key=read_idempotency_key,
                 request_hash=read_request_hash,
                 business_session_id=payload.business_session_id,
@@ -2037,15 +2257,9 @@ def build_platform_router(
                 str(exc),
             ) from exc
         if replayed_start is not None:
-            replayed_session = business_session_store.get(
-                payload.business_session_id
-            )
-            replayed_job = job_repository.get_job(
-                replayed_start.job_id
-            )
-            replayed_items = job_repository.list_items(
-                replayed_start.job_id
-            )
+            replayed_session = business_session_store.get(payload.business_session_id)
+            replayed_job = job_repository.get_job(replayed_start.job_id)
+            replayed_items = job_repository.list_items(replayed_start.job_id)
             return {
                 "created": False,
                 "business_session": _business_session_payload(
@@ -2056,17 +2270,13 @@ def build_platform_router(
                 "job": project_job(
                     replayed_job,
                     replayed_items,
-                    job_repository.runtime_projection(
-                        replayed_start.job_id
-                    ),
+                    job_repository.runtime_projection(replayed_start.job_id),
                     expose_internal_codes=expose_internal_codes,
                 ),
             }
         now = datetime.now(UTC)
         try:
-            business_session = business_session_store.get(
-                payload.business_session_id
-            )
+            business_session = business_session_store.get(payload.business_session_id)
         except BusinessConnectionSessionError as exc:
             raise ApiError(
                 409,
@@ -2075,8 +2285,7 @@ def build_platform_router(
             ) from exc
         if (
             business_session.status != "active"
-            or business_session.record_version
-            != payload.expected_record_version
+            or business_session.record_version != payload.expected_record_version
             or business_session.platform_session_id != session_id
             or business_session.build_sha256 != build_sha256
             or business_session.is_expired(now=now)
@@ -2086,9 +2295,12 @@ def build_platform_router(
                 "business_session_stale",
                 "业务连接已变化或到期，请刷新后重试。",  # noqa: RUF001
             )
-        if business_session_store.active_read_job_id(
-            business_session_id=business_session.business_session_id
-        ) is not None:
+        if (
+            business_session_store.active_read_job_id(
+                business_session_id=business_session.business_session_id
+            )
+            is not None
+        ):
             raise ApiError(
                 409,
                 "business_read_already_active",
@@ -2096,10 +2308,7 @@ def build_platform_router(
             )
         with browser_lifecycle.hold():
             browser = browser_control.get(session_id)
-            if (
-                browser.record_version
-                != payload.expected_browser_record_version
-            ):
+            if browser.record_version != payload.expected_browser_record_version:
                 raise ApiError(
                     409,
                     "browser_control_conflict",
@@ -2112,14 +2321,9 @@ def build_platform_router(
                     "登录完成后请先将窗口交给程序读取。",
                 )
             if browser.browser_control_mode == "human_handoff":
-                if (
-                    browser.holder_id is None
-                    or not business_session_store.owns_access_window(
-                        business_session_id=(
-                            business_session.business_session_id
-                        ),
-                        access_window_id=browser.holder_id,
-                    )
+                if browser.holder_id is None or not business_session_store.owns_access_window(
+                    business_session_id=(business_session.business_session_id),
+                    access_window_id=browser.holder_id,
                 ):
                     raise ApiError(
                         409,
@@ -2127,17 +2331,15 @@ def build_platform_router(
                         "当前人工窗口不属于这个业务连接。",
                     )
                 try:
-                    returned, _ = (
-                        browser_control.return_human_session_control(
-                            session_id=session_id,
-                            human_session_id=browser.holder_id,
-                            expected_record_version=browser.record_version,
-                            idempotency_key=(
-                                f"business-return:{hashlib.sha256(idempotency_key.encode()).hexdigest()}"
-                            ),
-                            request_hash=_request_hash(payload),
-                            now=now,
-                        )
+                    returned, _ = browser_control.return_human_session_control(
+                        session_id=session_id,
+                        human_session_id=browser.holder_id,
+                        expected_record_version=browser.record_version,
+                        idempotency_key=(
+                            f"business-return:{hashlib.sha256(idempotency_key.encode()).hexdigest()}"
+                        ),
+                        request_hash=_request_hash(payload),
+                        now=now,
                     )
                     browser_runtime.close()
                     stopped, _ = browser_control.mark_stopped(
@@ -2174,10 +2376,8 @@ def build_platform_router(
                     "business_login_required",
                     "请先打开成丰并完成登录。",
                 )
-            login_window, login_version = (
-                access_repository.get_with_version(
-                    business_session.login_access_window_id
-                )
+            login_window, login_version = access_repository.get_with_version(
+                business_session.login_access_window_id
             )
             if login_window.consumed_at is None:
                 access_repository.retire(
@@ -2185,9 +2385,7 @@ def build_platform_router(
                     expected_record_version=login_version,
                     now=now,
                 )
-            remaining_minutes = int(
-                (business_session.expires_at - now).total_seconds() // 60
-            )
+            remaining_minutes = int((business_session.expires_at - now).total_seconds() // 60)
             if remaining_minutes < 60:
                 raise ApiError(
                     409,
@@ -2200,18 +2398,11 @@ def build_platform_router(
                     session_id=session_id,
                     source_build_sha256=build_sha256,
                     contract_canonical_sha256=(
-                        selected_settlement_contract
-                        .manifest.canonical_sha256
+                        selected_settlement_contract.manifest.canonical_sha256
                     ),
-                    contract_file_sha256=(
-                        selected_settlement_contract.contract_file_sha256
-                    ),
-                    contract_selection_sha256=(
-                        selected_settlement_contract.selection_sha256
-                    ),
-                    identity_context_sha256=(
-                        settlement_identity_context_sha256
-                    ),
+                    contract_file_sha256=(selected_settlement_contract.contract_file_sha256),
+                    contract_selection_sha256=(selected_settlement_contract.selection_sha256),
+                    identity_context_sha256=(settlement_identity_context_sha256),
                     duration_minutes=min(120, remaining_minutes),
                     legacy_idle_confirmed=True,
                     no_settlement_or_payment_confirmed=True,
@@ -2219,12 +2410,8 @@ def build_platform_router(
                     idempotency_key=read_idempotency_key,
                     request_hash=read_request_hash,
                     now=now,
-                    business_session_id=(
-                        business_session.business_session_id
-                    ),
-                    business_session_expected_record_version=(
-                        business_session.record_version
-                    ),
+                    business_session_id=(business_session.business_session_id),
+                    business_session_expected_record_version=(business_session.record_version),
                 )
             except (
                 ActiveScopeConflictError,
@@ -2237,9 +2424,7 @@ def build_platform_router(
                     str(exc),
                 ) from exc
         notify_scheduler()
-        updated_business_session = business_session_store.get(
-            business_session.business_session_id
-        )
+        updated_business_session = business_session_store.get(business_session.business_session_id)
         job = job_repository.get_job(started.job_id)
         items = job_repository.list_items(started.job_id)
         return {
@@ -2263,30 +2448,21 @@ def build_platform_router(
         idempotency_key: str = Depends(require_write),
     ) -> dict[str, object]:
         now = datetime.now(UTC)
-        close_identity = hashlib.sha256(
-            idempotency_key.encode()
-        ).hexdigest()
+        close_identity = hashlib.sha256(idempotency_key.encode()).hexdigest()
         close_idempotency_key = f"business-close:{close_identity}"
         close_request_hash = _request_hash(payload)
         try:
-            business_session = business_session_store.get(
-                payload.business_session_id
-            )
+            business_session = business_session_store.get(payload.business_session_id)
         except BusinessConnectionSessionError as exc:
             raise ApiError(409, "business_session_missing", str(exc)) from exc
         if (
-            business_session.record_version
-            != payload.expected_record_version
+            business_session.record_version != payload.expected_record_version
             or business_session.status != "active"
         ):
             try:
                 closed, replay = business_session_store.close(
-                    business_session_id=(
-                        business_session.business_session_id
-                    ),
-                    expected_record_version=(
-                        payload.expected_record_version
-                    ),
+                    business_session_id=(business_session.business_session_id),
+                    expected_record_version=(payload.expected_record_version),
                     reason="explicit",
                     idempotency_key=close_idempotency_key,
                     request_hash=close_request_hash,
@@ -2313,9 +2489,12 @@ def build_platform_router(
                     idempotent_replay=replay,
                 ),
             }
-        if business_session_store.active_read_job_id(
-            business_session_id=business_session.business_session_id
-        ) is not None:
+        if (
+            business_session_store.active_read_job_id(
+                business_session_id=business_session.business_session_id
+            )
+            is not None
+        ):
             raise ApiError(
                 409,
                 "business_read_in_progress",
@@ -2323,10 +2502,7 @@ def build_platform_router(
             )
         with browser_lifecycle.hold():
             browser = browser_control.get(session_id)
-            if (
-                browser.record_version
-                != payload.expected_browser_record_version
-            ):
+            if browser.record_version != payload.expected_browser_record_version:
                 raise ApiError(
                     409,
                     "browser_control_conflict",
@@ -2340,8 +2516,7 @@ def build_platform_router(
                 )
             stop_access_window_id = (
                 browser.holder_id
-                if browser.browser_control_mode
-                in {"human_login", "human_handoff"}
+                if browser.browser_control_mode in {"human_login", "human_handoff"}
                 and browser.holder_id is not None
                 else business_session.login_access_window_id
             )
@@ -2381,10 +2556,8 @@ def build_platform_router(
                     request_hash=_request_hash(payload),
                     now=now,
                 )
-            login_window, login_version = (
-                access_repository.get_with_version(
-                    business_session.login_access_window_id
-                )
+            login_window, login_version = access_repository.get_with_version(
+                business_session.login_access_window_id
             )
             if login_window.consumed_at is None:
                 access_repository.retire(
@@ -2394,12 +2567,8 @@ def build_platform_router(
                 )
             try:
                 closed, replay = business_session_store.close(
-                    business_session_id=(
-                        business_session.business_session_id
-                    ),
-                    expected_record_version=(
-                        business_session.record_version
-                    ),
+                    business_session_id=(business_session.business_session_id),
+                    expected_record_version=(business_session.record_version),
                     reason="explicit",
                     idempotency_key=close_idempotency_key,
                     request_hash=close_request_hash,
@@ -2435,16 +2604,11 @@ def build_platform_router(
             and latest[0].consumed_at is None
             and datetime.now(UTC) < latest[0].expires_at
         )
-        active_jobs = any(
-            not job.status.is_terminal
-            for job in job_repository.list_jobs()
-        )
+        active_jobs = any(not job.status.is_terminal for job in job_repository.list_jobs())
         try:
             state = connection_mode_store.switch(
                 mode=ChengfengConnectionMode(payload.mode),
-                expected_record_version=(
-                    payload.expected_record_version
-                ),
+                expected_record_version=(payload.expected_record_version),
                 idempotency_key=idempotency_key,
                 request_hash=_request_hash(payload),
                 switching_allowed=bool(
@@ -2482,16 +2646,11 @@ def build_platform_router(
                 control = browser_control.get(session_id)
                 stale_windows = tuple(
                     item
-                    for item in access_repository.unconsumed_for_session(
-                        session_id
-                    )
+                    for item in access_repository.unconsumed_for_session(session_id)
                     if item[0].build_sha256 != build_sha256
                 )
                 if stale_windows:
-                    if (
-                        control.browser_control_mode != "idle"
-                        or browser_runtime.running
-                    ):
+                    if control.browser_control_mode != "idle" or browser_runtime.running:
                         raise PlatformAccessConflictError(
                             "a prior-build access window still owns the browser session"
                         )
@@ -2509,20 +2668,14 @@ def build_platform_router(
                     build_sha256=build_sha256,
                     duration_minutes=payload.duration_minutes,
                     legacy_idle_confirmed=payload.legacy_idle_confirmed,
-                    no_settlement_or_payment_confirmed=(
-                        payload.no_settlement_or_payment_confirmed
-                    ),
-                    same_account_session_risk_accepted=(
-                        payload.same_account_session_risk_accepted
-                    ),
+                    no_settlement_or_payment_confirmed=(payload.no_settlement_or_payment_confirmed),
+                    same_account_session_risk_accepted=(payload.same_account_session_risk_accepted),
                     run_mode="shadow",
                     idempotency_key=idempotency_key,
                     request_hash=_request_hash(payload),
                     now=datetime.now(UTC),
                 )
-                _, record_version = access_repository.get_with_version(
-                    grant.access_window_id
-                )
+                _, record_version = access_repository.get_with_version(grant.access_window_id)
         except AccessWindowError as exc:
             raise ApiError(409, "access_window_rejected", str(exc)) from exc
         except PlatformAccessConflictError as exc:
@@ -2673,8 +2826,7 @@ def build_platform_router(
                 )
             if (
                 not started_runtime
-                and
-                record.browser_lifecycle == "ready"
+                and record.browser_lifecycle == "ready"
                 and record.browser_control_mode == "idle"
             ):
                 try:
@@ -2728,25 +2880,19 @@ def build_platform_router(
         batch_job_id: str | None = None
         if settlement_capture_store is not None:
             try:
-                if (
-                    settlement_capture_store.capture_strategy(
-                        access_grant.job_id
-                    )
-                    == "batch_v1"
-                ):
+                if settlement_capture_store.capture_strategy(access_grant.job_id) in {
+                    "batch_v1",
+                    "whole_run_v1",
+                }:
                     batch_job_id = access_grant.job_id
             except SettlementCaptureStoreConflictError:
                 batch_job_id = None
         if batch_job_id is None:
             try:
                 access_job = job_repository.get_job(access_grant.job_id)
-                if (
-                    access_job.task_type == "daily"
-                    and daily_invocation_store.capture_strategy(
-                        access_grant.job_id
-                    )
-                    == "batch_v1"
-                ):
+                if access_job.task_type == "daily" and daily_invocation_store.capture_strategy(
+                    access_grant.job_id
+                ) in {"batch_v1", "whole_run_v1"}:
                     batch_job_id = access_grant.job_id
             except (
                 DailyInvocationConflictError,
@@ -2781,24 +2927,19 @@ def build_platform_router(
                         "human_login_pending",
                         "请在成丰窗口完成登录，系统会自动继续。",  # noqa: RUF001
                     ) from exc
-                freeze_reason, freeze_diagnostic = (
-                    _SAFE_BROWSER_VALIDATION_FAILURES.get(
-                        exc.code,
-                        (
-                            "freeze_failed",
-                            "CF-BROWSER-FREEZE-FAILED",
-                        ),
-                    )
+                freeze_reason, freeze_diagnostic = _SAFE_BROWSER_VALIDATION_FAILURES.get(
+                    exc.code,
+                    (
+                        "freeze_failed",
+                        "CF-BROWSER-FREEZE-FAILED",
+                    ),
                 )
                 runtime_log_store.append(
                     level="warning",
                     source="chengfeng-browser",
                     event_code="human_login_freeze_failed",
                     stream="application",
-                    message=(
-                        "Controlled Chengfeng page freeze stopped safely "
-                        f"({freeze_reason})."
-                    ),
+                    message=(f"Controlled Chengfeng page freeze stopped safely ({freeze_reason})."),
                     diagnostic_code=freeze_diagnostic,
                 )
                 with contextlib.suppress(BrowserRuntimeError):
@@ -2827,12 +2968,6 @@ def build_platform_router(
             except BrowserControlError as exc:
                 raise ApiError(409, "browser_control_conflict", str(exc)) from exc
             if batch_job_id is not None:
-                browser_runtime.close()
-                updated = browser_control.mark_idle_runtime_missing(
-                    session_id=session_id,
-                    expected_record_version=updated.record_version,
-                    now=datetime.now(UTC),
-                )
                 job_repository.resume_platform_waiting_job(
                     job_id=batch_job_id,
                     allowed_diagnostic_codes=frozenset(
@@ -2961,10 +3096,7 @@ def build_platform_router(
                 source="chengfeng-browser",
                 event_code="settlement_view_probe_failed",
                 stream="application",
-                message=(
-                    "Chengfeng settlement view probe stopped safely "
-                    f"({reason})."
-                ),
+                message=(f"Chengfeng settlement view probe stopped safely ({reason})."),
                 diagnostic_code=diagnostic,
             )
             raise ApiError(
@@ -3002,9 +3134,7 @@ def build_platform_router(
                 "page_number": probe.page_number,
                 "page_size": probe.page_size,
                 "response_structure_sha256": {
-                    "settlement": (
-                        probe.settlement_response_structure_sha256
-                    ),
+                    "settlement": (probe.settlement_response_structure_sha256),
                     "credit": probe.credit_response_structure_sha256,
                 },
             },
@@ -3029,15 +3159,15 @@ def build_platform_router(
                 "business_read_unavailable",
                 "成丰业务连接尚未启用。",
             )
-        if (
-            connection_mode_store.get().mode
-            is not ChengfengConnectionMode.OPERATIONAL_COMPAT
-        ):
+        if connection_mode_store.get().mode is not ChengfengConnectionMode.OPERATIONAL_COMPAT:
             raise ApiError(
                 409,
                 "connection_mode_mismatch",
                 "请先切换到业务连接。",
             )
+        subject_code = require_contract_subject_code(
+            payload.contract_subject_code
+        )
 
         if payload.business_scope == "settlement":
             if (
@@ -3051,27 +3181,18 @@ def build_platform_router(
                     "business_read_unavailable",
                     "成丰待结算读取尚未准备完成。",
                 )
-            conflict_key = "settlement_capture:operational_compat"
+            conflict_key = f"settlement_capture:{subject_code}"
             try:
                 started = settlement_capture_store.create_start(
-                    target_kind=(
-                        ShadowBatchTargetKind.OPERATIONAL_COMPAT
-                    ),
+                    target_kind=(ShadowBatchTargetKind.OPERATIONAL_COMPAT),
                     session_id=session_id,
                     source_build_sha256=build_sha256,
                     contract_canonical_sha256=(
-                        selected_settlement_contract
-                        .manifest.canonical_sha256
+                        selected_settlement_contract.manifest.canonical_sha256
                     ),
-                    contract_file_sha256=(
-                        selected_settlement_contract.contract_file_sha256
-                    ),
-                    contract_selection_sha256=(
-                        selected_settlement_contract.selection_sha256
-                    ),
-                    identity_context_sha256=(
-                        settlement_identity_context_sha256
-                    ),
+                    contract_file_sha256=(selected_settlement_contract.contract_file_sha256),
+                    contract_selection_sha256=(selected_settlement_contract.selection_sha256),
+                    identity_context_sha256=(settlement_identity_context_sha256),
                     duration_minutes=720,
                     legacy_idle_confirmed=True,
                     no_settlement_or_payment_confirmed=True,
@@ -3079,14 +3200,17 @@ def build_platform_router(
                     idempotency_key=idempotency_key,
                     request_hash=_request_hash(payload),
                     now=datetime.now(UTC),
-                    capture_strategy="batch_v1",
+                    capture_strategy="whole_run_v1",
+                    contract_subject_code=subject_code,
                 )
                 job = job_repository.get_job(started.job_id)
                 created = started.created
-            except ActiveScopeConflictError:
-                existing = job_repository.active_job_for_conflict_key(
-                    conflict_key
+                contract_subject_store.bind_job(
+                    job_id=job.job_id,
+                    subject_code=subject_code,
                 )
+            except ActiveScopeConflictError:
+                existing = job_repository.active_job_for_conflict_key(conflict_key)
                 if existing is None:
                     raise ApiError(
                         409,
@@ -3107,9 +3231,9 @@ def build_platform_router(
                     "business_read_start_conflict",
                     str(exc),
                 ) from exc
+            schedule_business_browser_work(job.job_id)
+            job = job_repository.get_job(job.job_id)
             items = job_repository.list_items(job.job_id)
-            notify_scheduler()
-            ensure_automatic_login(job.job_id)
             return {
                 "created": created,
                 "attached": not created,
@@ -3137,13 +3261,13 @@ def build_platform_router(
                 "daily_business_date_unavailable",
                 "所选业务日尚未开始。请使用当前业务日或更早日期。",
             ) from exc
-        conflict_key = f"daily:{business_date.isoformat()}"
+        conflict_key = f"daily:{subject_code}:{business_date.isoformat()}"
         spec = ScheduledJobSpec(
             fixture_id=(
                 (
                     "daily-operational-network-only-v1:"
                     if payload.network_only_measurement
-                    else "daily-operational-batch-v1:"
+                    else "daily-operational-whole-run-v1:"
                 )
                 + business_date.isoformat()
             ),
@@ -3162,9 +3286,7 @@ def build_platform_router(
         )
         created = False
         try:
-            _active, start_version = (
-                job_repository.fixture_start_state(conflict_key)
-            )
+            _active, start_version = job_repository.fixture_start_state(conflict_key)
             job, created = job_repository.create_scheduled_job(
                 fixture=spec,
                 scope_label=spec.scope_label,
@@ -3172,10 +3294,12 @@ def build_platform_router(
                 request_hash=_request_hash(payload),
                 expected_record_version=start_version,
             )
-        except ActiveScopeConflictError:
-            existing = job_repository.active_job_for_conflict_key(
-                conflict_key
+            contract_subject_store.bind_job(
+                job_id=job.job_id,
+                subject_code=subject_code,
             )
+        except ActiveScopeConflictError:
+            existing = job_repository.active_job_for_conflict_key(conflict_key)
             if existing is None:
                 raise ApiError(
                     409,
@@ -3234,19 +3358,14 @@ def build_platform_router(
                         business_date=business_date,
                         receive_place="榆林",
                         now=daily_now,
-                        source_contract_sha256=(
-                            selected_daily_contract
-                            .manifest.canonical_sha256
-                        ),
+                        source_contract_sha256=(selected_daily_contract.manifest.canonical_sha256),
                         page_size=100,
                     ),
                     now=daily_now,
                 )
                 daily_invocation_store.complete_start(
                     idempotency_key=start_key,
-                    expected_record_version=(
-                        start_record.record_version
-                    ),
+                    expected_record_version=(start_record.record_version),
                     invocation_id=invocation.invocation_id,
                     now=daily_now,
                 )
@@ -3261,9 +3380,9 @@ def build_platform_router(
                 "business_read_start_conflict",
                 "装卸车任务未能完整建立。",
             ) from exc
+        schedule_business_browser_work(job.job_id)
+        job = job_repository.get_job(job.job_id)
         items = job_repository.list_items(job.job_id)
-        notify_scheduler()
-        ensure_automatic_login(job.job_id)
         return {
             "created": created,
             "attached": not created,
@@ -3280,11 +3399,7 @@ def build_platform_router(
         payload: CreateDailyJobRequest,
         idempotency_key: str = Depends(require_write),
     ) -> dict[str, object]:
-        if (
-            not enabled
-            or selected_daily_contract is None
-            or not daily_execution_available
-        ):
+        if not enabled or selected_daily_contract is None or not daily_execution_available:
             raise ApiError(
                 409,
                 "daily_capture_unavailable",
@@ -3379,8 +3494,7 @@ def build_platform_router(
         target_kind = ShadowBatchTargetKind(payload.target_kind)
         if (
             payload.source_scope == "settled_history"
-            and target_kind
-            is not ShadowBatchTargetKind.CURRENT_LOCKED_50
+            and target_kind is not ShadowBatchTargetKind.CURRENT_LOCKED_50
         ):
             raise ApiError(
                 409,
@@ -3388,14 +3502,8 @@ def build_platform_router(
                 "Only the locked set may use settled history.",
             )
         connection_mode = connection_mode_store.get().mode
-        is_operational = (
-            target_kind
-            is ShadowBatchTargetKind.OPERATIONAL_COMPAT
-        )
-        if is_operational and (
-            connection_mode
-            is not ChengfengConnectionMode.OPERATIONAL_COMPAT
-        ):
+        is_operational = target_kind is ShadowBatchTargetKind.OPERATIONAL_COMPAT
+        if is_operational and (connection_mode is not ChengfengConnectionMode.OPERATIONAL_COMPAT):
             raise ApiError(
                 409,
                 "connection_mode_mismatch",
@@ -3422,10 +3530,7 @@ def build_platform_router(
                     "settlement_capture_prerequisites_failed",
                     "The formal exclusion and contract authorities are not ready.",
                 ) from exc
-            if (
-                connection_mode
-                is not ChengfengConnectionMode.STRICT_SHADOW
-            ):
+            if connection_mode is not ChengfengConnectionMode.STRICT_SHADOW:
                 raise ApiError(
                     409,
                     "connection_mode_mismatch",
@@ -3435,15 +3540,9 @@ def build_platform_router(
             now = datetime.now(UTC)
             compatibility_confirmation = (
                 confirmation_sha256(
-                    legacy_idle_confirmed=(
-                        payload.legacy_idle_confirmed
-                    ),
-                    no_settlement_or_payment_confirmed=(
-                        payload.no_settlement_or_payment_confirmed
-                    ),
-                    same_account_session_risk_accepted=(
-                        payload.same_account_session_risk_accepted
-                    ),
+                    legacy_idle_confirmed=(payload.legacy_idle_confirmed),
+                    no_settlement_or_payment_confirmed=(payload.no_settlement_or_payment_confirmed),
+                    same_account_session_risk_accepted=(payload.same_account_session_risk_accepted),
                 )
                 if is_operational
                 else None
@@ -3453,37 +3552,20 @@ def build_platform_router(
                 source_scope=payload.source_scope,
                 session_id=session_id,
                 source_build_sha256=build_sha256,
-                contract_canonical_sha256=(
-                    selected_settlement_contract
-                    .manifest.canonical_sha256
-                ),
-                contract_file_sha256=(
-                    selected_settlement_contract.contract_file_sha256
-                ),
-                contract_selection_sha256=(
-                    selected_settlement_contract.selection_sha256
-                ),
-                identity_context_sha256=(
-                    settlement_identity_context_sha256
-                ),
+                contract_canonical_sha256=(selected_settlement_contract.manifest.canonical_sha256),
+                contract_file_sha256=(selected_settlement_contract.contract_file_sha256),
+                contract_selection_sha256=(selected_settlement_contract.selection_sha256),
+                identity_context_sha256=(settlement_identity_context_sha256),
                 duration_minutes=payload.duration_minutes,
                 legacy_idle_confirmed=payload.legacy_idle_confirmed,
-                no_settlement_or_payment_confirmed=(
-                    payload.no_settlement_or_payment_confirmed
-                ),
-                same_account_session_risk_accepted=(
-                    payload.same_account_session_risk_accepted
-                ),
+                no_settlement_or_payment_confirmed=(payload.no_settlement_or_payment_confirmed),
+                same_account_session_risk_accepted=(payload.same_account_session_risk_accepted),
                 idempotency_key=idempotency_key,
                 request_hash=_request_hash(payload),
                 now=now,
-                business_session_confirmation_sha256=(
-                    compatibility_confirmation
-                ),
+                business_session_confirmation_sha256=(compatibility_confirmation),
                 business_session_expires_at=(
-                    now + BUSINESS_SESSION_DURATION
-                    if is_operational
-                    else None
+                    now + BUSINESS_SESSION_DURATION if is_operational else None
                 ),
             )
             job = job_repository.get_job(started.job_id)
@@ -3512,9 +3594,7 @@ def build_platform_router(
         if not is_operational:
             notify_scheduler()
         compatibility_business_session = (
-            business_session_store.latest(
-                platform_session_id=session_id
-            )
+            business_session_store.latest(platform_session_id=session_id)
             if is_operational
             else None
         )
@@ -3553,9 +3633,7 @@ def build_platform_router(
             ),
         }
 
-    @router.post(
-        "/settlement-captures/{job_id}/access-window"
-    )
+    @router.post("/settlement-captures/{job_id}/access-window")
     def rebind_settlement_capture_access_window(
         job_id: str,
         payload: RebindSettlementCaptureAccessWindowRequest,
@@ -3578,22 +3656,15 @@ def build_platform_router(
                 rollover = settlement_capture_store.rebind_access_window(
                     job_id=job_id,
                     new_access_window_id=payload.access_window_id,
-                    expected_invocation_record_version=(
-                        payload.expected_record_version
-                    ),
+                    expected_invocation_record_version=(payload.expected_record_version),
                     expected_browser_record_version=browser.record_version,
                     session_id=session_id,
                     source_build_sha256=build_sha256,
                     contract_canonical_sha256=(
-                        selected_settlement_contract
-                        .manifest.canonical_sha256
+                        selected_settlement_contract.manifest.canonical_sha256
                     ),
-                    contract_file_sha256=(
-                        selected_settlement_contract.contract_file_sha256
-                    ),
-                    contract_selection_sha256=(
-                        selected_settlement_contract.selection_sha256
-                    ),
+                    contract_file_sha256=(selected_settlement_contract.contract_file_sha256),
+                    contract_selection_sha256=(selected_settlement_contract.selection_sha256),
                     idempotency_key=idempotency_key,
                     request_hash=_request_hash(payload),
                     now=datetime.now(UTC),
@@ -3625,13 +3696,9 @@ def build_platform_router(
                 expose_internal_codes=expose_internal_codes,
             ),
             "capture": {
-                "access_window_id": (
-                    rollover.invocation.access_window_id
-                ),
+                "access_window_id": (rollover.invocation.access_window_id),
                 "status": rollover.invocation.status,
-                "record_version": (
-                    rollover.invocation.record_version
-                ),
+                "record_version": (rollover.invocation.record_version),
             },
         }
 
@@ -3640,11 +3707,7 @@ def build_platform_router(
         payload: HumanLoginControlRequest,
         idempotency_key: str = Depends(require_write),
     ) -> dict[str, object]:
-        if (
-            not enabled
-            or selected_daily_contract is None
-            or not daily_execution_available
-        ):
+        if not enabled or selected_daily_contract is None or not daily_execution_available:
             raise ApiError(
                 409,
                 "daily_capture_unavailable",
@@ -3668,10 +3731,7 @@ def build_platform_router(
                 "daily_capture_job_invalid",
                 "The production-shadow window is not bound to a daily job.",
             ) from exc
-        if (
-            job.task_type != "daily"
-            or job.job_kind != "business"
-        ):
+        if job.task_type != "daily" or job.job_kind != "business":
             raise ApiError(
                 409,
                 "daily_capture_job_invalid",
@@ -3688,9 +3748,7 @@ def build_platform_router(
             ) from exc
         request_hash = _request_hash(payload)
         try:
-            start_record = daily_invocation_store.get_start(
-                idempotency_key
-            )
+            start_record = daily_invocation_store.get_start(idempotency_key)
         except DailyInvocationConflictError as exc:
             raise ApiError(
                 409,
@@ -3708,9 +3766,7 @@ def build_platform_router(
                 "This operation key belongs to another request.",
             )
         try:
-            existing_invocation = daily_invocation_store.get_by_job(
-                job.job_id
-            )
+            existing_invocation = daily_invocation_store.get_by_job(job.job_id)
         except DailyInvocationConflictError:
             existing_invocation = None
         if (
@@ -3736,8 +3792,7 @@ def build_platform_router(
             )
         if existing_invocation is not None:
             if (
-                existing_invocation.access_window_id
-                != payload.access_window_id
+                existing_invocation.access_window_id != payload.access_window_id
                 or existing_invocation.invocation_id != job.job_id
             ):
                 raise ApiError(
@@ -3753,14 +3808,12 @@ def build_platform_router(
                         "The daily job is no longer waiting to start.",
                     )
                 try:
-                    start_record, _ = (
-                        daily_invocation_store.reserve_start(
-                            idempotency_key=idempotency_key,
-                            request_hash=request_hash,
-                            job_id=job.job_id,
-                            access_window_id=payload.access_window_id,
-                            now=datetime.now(UTC),
-                        )
+                    start_record, _ = daily_invocation_store.reserve_start(
+                        idempotency_key=idempotency_key,
+                        request_hash=request_hash,
+                        job_id=job.job_id,
+                        access_window_id=payload.access_window_id,
+                        now=datetime.now(UTC),
                     )
                 except DailyInvocationConflictError as exc:
                     raise ApiError(
@@ -3770,15 +3823,11 @@ def build_platform_router(
                     ) from exc
             if start_record.status != "completed":
                 try:
-                    start_record = (
-                        daily_invocation_store.complete_start(
-                            idempotency_key=idempotency_key,
-                            expected_record_version=(
-                                start_record.record_version
-                            ),
-                            invocation_id=existing_invocation.invocation_id,
-                            now=datetime.now(UTC),
-                        )
+                    start_record = daily_invocation_store.complete_start(
+                        idempotency_key=idempotency_key,
+                        expected_record_version=(start_record.record_version),
+                        invocation_id=existing_invocation.invocation_id,
+                        now=datetime.now(UTC),
                     )
                 except DailyInvocationConflictError as exc:
                     raise ApiError(
@@ -3812,11 +3861,7 @@ def build_platform_router(
         )
         record = browser_control.get(session_id)
         if (
-            (
-                start_record is None
-                and record.record_version
-                != payload.expected_record_version
-            )
+            (start_record is None and record.record_version != payload.expected_record_version)
             or record.browser_lifecycle != "ready"
             or record.browser_control_mode != "idle"
             or not browser_runtime.running
@@ -3827,14 +3872,12 @@ def build_platform_router(
                 "Complete login and return browser control before capture.",
             )
         try:
-            start_record, start_replay = (
-                daily_invocation_store.reserve_start(
-                    idempotency_key=idempotency_key,
-                    request_hash=request_hash,
-                    job_id=job.job_id,
-                    access_window_id=payload.access_window_id,
-                    now=datetime.now(UTC),
-                )
+            start_record, start_replay = daily_invocation_store.reserve_start(
+                idempotency_key=idempotency_key,
+                request_hash=request_hash,
+                job_id=job.job_id,
+                access_window_id=payload.access_window_id,
+                now=datetime.now(UTC),
             )
         except DailyInvocationConflictError as exc:
             raise ApiError(
@@ -3855,9 +3898,7 @@ def build_platform_router(
                 ttl=timedelta(minutes=5),
             )
             if acquired.fencing_token is None:
-                raise BrowserControlError(
-                    "daily preflight has no fencing token"
-                )
+                raise BrowserControlError("daily preflight has no fencing token")
             observation = browser_runtime.prepare_daily()
             if not _daily_observation_matches_selection(
                 observation,
@@ -3907,9 +3948,7 @@ def build_platform_router(
                     business_date=business_date,
                     receive_place="榆林",
                     now=now,
-                    source_contract_sha256=(
-                        selected_daily_contract.manifest.canonical_sha256
-                    ),
+                    source_contract_sha256=(selected_daily_contract.manifest.canonical_sha256),
                     page_size=_FORMAL_DAILY_PAGE_SIZE,
                 ),
                 now=now,
@@ -3935,11 +3974,7 @@ def build_platform_router(
             "job_id": job.job_id,
             "invocation_id": invocation.invocation_id,
             "invocation_status": invocation.status,
-            "next_stage": (
-                None
-                if invocation.next_stage is None
-                else invocation.next_stage.value
-            ),
+            "next_stage": (None if invocation.next_stage is None else invocation.next_stage.value),
             "record_version": invocation.record_version,
             "browser_record_version": returned.record_version,
             "idempotent_replay": start_replay,
@@ -3968,12 +4003,8 @@ def build_platform_router(
                 rollover = daily_invocation_store.rebind_access_window(
                     job_id=job_id,
                     new_access_window_id=payload.access_window_id,
-                    expected_invocation_record_version=(
-                        payload.expected_record_version
-                    ),
-                    expected_browser_record_version=(
-                        browser.record_version
-                    ),
+                    expected_invocation_record_version=(payload.expected_record_version),
+                    expected_browser_record_version=(browser.record_version),
                     session_id=session_id,
                     authority=daily_invocation_authority(),
                     idempotency_key=idempotency_key,
@@ -4007,13 +4038,9 @@ def build_platform_router(
                 expose_internal_codes=expose_internal_codes,
             ),
             "capture": {
-                "access_window_id": (
-                    rollover.invocation.access_window_id
-                ),
+                "access_window_id": (rollover.invocation.access_window_id),
                 "status": rollover.invocation.status,
-                "record_version": (
-                    rollover.invocation.record_version
-                ),
+                "record_version": (rollover.invocation.record_version),
             },
         }
 
@@ -4029,12 +4056,8 @@ def build_platform_router(
                 "尚未选择经过封存的只读合同候选。",
             )
         try:
-            stored_grant, _ = access_repository.get_with_version(
-                payload.access_window_id
-            )
-            existing = contract_validator.existing_for_access_window(
-                payload.access_window_id
-            )
+            stored_grant, _ = access_repository.get_with_version(payload.access_window_id)
+            existing = contract_validator.existing_for_access_window(payload.access_window_id)
         except (
             LiveContractValidationError,
             PlatformAccessConflictError,
@@ -4122,9 +4145,7 @@ def build_platform_router(
         stopped: BrowserControlRecord | None = None
         try:
             try:
-                settlement_probe = browser_runtime.prepare_automated(
-                    scope="current"
-                )
+                settlement_probe = browser_runtime.prepare_automated(scope="current")
                 result = contract_validator.validate(
                     authority=authority,
                     access_window_id=payload.access_window_id,
@@ -4154,10 +4175,8 @@ def build_platform_router(
                 except Exception as exc:
                     cleanup_failure = exc
                 try:
-                    current_grant, window_version = (
-                        access_repository.get_with_version(
-                            payload.access_window_id
-                        )
+                    current_grant, window_version = access_repository.get_with_version(
+                        payload.access_window_id
                     )
                     if current_grant.consumed_at is None:
                         access_repository.consume(
@@ -4177,9 +4196,7 @@ def build_platform_router(
                             session_id=session_id,
                             access_window_id=payload.access_window_id,
                             expected_record_version=returned.record_version,
-                            idempotency_key=(
-                                f"{idempotency_key}:validation-stop"
-                            ),
+                            idempotency_key=(f"{idempotency_key}:validation-stop"),
                             request_hash=_request_hash(payload),
                             now=datetime.now(UTC),
                         )
@@ -4199,31 +4216,23 @@ def build_platform_router(
                     source="chengfeng-browser",
                     event_code="formal_read_browser_failed",
                     stream="application",
-                    message=(
-                        "Formal Chengfeng read stopped safely before completion "
-                        f"({reason})."
-                    ),
+                    message=(f"Formal Chengfeng read stopped safely before completion ({reason})."),
                     diagnostic_code=runtime_diagnostic,
                 )
             elif isinstance(validation_failure, LiveContractValidationError):
-                reason, validation_diagnostic = (
-                    _SAFE_CONTRACT_VALIDATION_FAILURES.get(
-                        validation_failure.code,
-                        (
-                            "validation_failed",
-                            "CF-CONTRACT-VALIDATION-FAILED",
-                        ),
-                    )
+                reason, validation_diagnostic = _SAFE_CONTRACT_VALIDATION_FAILURES.get(
+                    validation_failure.code,
+                    (
+                        "validation_failed",
+                        "CF-CONTRACT-VALIDATION-FAILED",
+                    ),
                 )
                 runtime_log_store.append(
                     level="warning",
                     source="chengfeng-validator",
                     event_code="formal_read_validation_failed",
                     stream="application",
-                    message=(
-                        "Formal Chengfeng read validation stopped safely "
-                        f"({reason})."
-                    ),
+                    message=(f"Formal Chengfeng read validation stopped safely ({reason})."),
                     diagnostic_code=validation_diagnostic,
                 )
             elif isinstance(validation_failure, ChengfengReadError):
@@ -4248,9 +4257,7 @@ def build_platform_router(
                         "Formal Chengfeng read stopped because its local "
                         "request-audit chain was invalid."
                     ),
-                    diagnostic_code=(
-                        "CF-PLATFORM-READ-AUDIT-INVALID"
-                    ),
+                    diagnostic_code=("CF-PLATFORM-READ-AUDIT-INVALID"),
                 )
             safe_discovery = (
                 getattr(validation_failure, "safe_discovery", ())
@@ -4260,10 +4267,7 @@ def build_platform_router(
             if safe_discovery:
                 try:
                     structure_evidence = discovery_evidence.seal(
-                        observations=[
-                            dict(observation)
-                            for observation in safe_discovery
-                        ],
+                        observations=[dict(observation) for observation in safe_discovery],
                         build_sha256=build_sha256,
                         access_window_id=payload.access_window_id,
                         captured_at=datetime.now(UTC),
@@ -4278,9 +4282,7 @@ def build_platform_router(
                             f"as development evidence "
                             f"({structure_evidence.canonical_sha256})."
                         ),
-                        diagnostic_code=(
-                            "CF-CONTRACT-REQUEST-STRUCTURE-CHANGED"
-                        ),
+                        diagnostic_code=("CF-CONTRACT-REQUEST-STRUCTURE-CHANGED"),
                     )
                 except DiscoveryEvidenceError:
                     runtime_log_store.append(
@@ -4288,13 +4290,8 @@ def build_platform_router(
                         source="chengfeng-validator",
                         event_code="request_structure_evidence_failed",
                         stream="application",
-                        message=(
-                            "Changed Chengfeng request structure could not "
-                            "be sealed."
-                        ),
-                        diagnostic_code=(
-                            "CF-CONTRACT-REQUEST-STRUCTURE-EVIDENCE-FAILED"
-                        ),
+                        message=("Changed Chengfeng request structure could not be sealed."),
+                        diagnostic_code=("CF-CONTRACT-REQUEST-STRUCTURE-EVIDENCE-FAILED"),
                     )
             diagnostic_code = (
                 validation_failure.diagnostic_code
@@ -4333,9 +4330,7 @@ def build_platform_router(
         idempotency_key: str = Depends(require_write),
     ) -> dict[str, object]:
         try:
-            stored_grant, _ = access_repository.get_with_version(
-                payload.access_window_id
-            )
+            stored_grant, _ = access_repository.get_with_version(payload.access_window_id)
             existing_evidence = discovery_evidence.existing_for_access_window(
                 payload.access_window_id
             )
@@ -4466,10 +4461,8 @@ def build_platform_router(
                 except Exception as exc:
                     cleanup_failure = exc
                 try:
-                    current_grant, window_version = (
-                        access_repository.get_with_version(
-                            payload.access_window_id
-                        )
+                    current_grant, window_version = access_repository.get_with_version(
+                        payload.access_window_id
                     )
                     if current_grant.consumed_at is None:
                         access_repository.consume(
@@ -4489,9 +4482,7 @@ def build_platform_router(
                             session_id=session_id,
                             access_window_id=payload.access_window_id,
                             expected_record_version=returned.record_version,
-                            idempotency_key=(
-                                f"{idempotency_key}:daily-contract-stop"
-                            ),
+                            idempotency_key=(f"{idempotency_key}:daily-contract-stop"),
                             request_hash=_request_hash(payload),
                             now=datetime.now(UTC),
                         )
@@ -4512,10 +4503,7 @@ def build_platform_router(
             if safe_discovery:
                 try:
                     structure_evidence = discovery_evidence.seal(
-                        observations=[
-                            dict(observation)
-                            for observation in safe_discovery
-                        ],
+                        observations=[dict(observation) for observation in safe_discovery],
                         build_sha256=build_sha256,
                         access_window_id=payload.access_window_id,
                         captured_at=datetime.now(UTC),
@@ -4530,9 +4518,7 @@ def build_platform_router(
                             "development evidence "
                             f"({structure_evidence.canonical_sha256})."
                         ),
-                        diagnostic_code=(
-                            "CF-DAILY-CONTRACT-STRUCTURE-CHANGED"
-                        ),
+                        diagnostic_code=("CF-DAILY-CONTRACT-STRUCTURE-CHANGED"),
                     )
                 except DiscoveryEvidenceError:
                     runtime_log_store.append(
@@ -4540,22 +4526,15 @@ def build_platform_router(
                         source="chengfeng-browser",
                         event_code="daily_contract_change_evidence_failed",
                         stream="application",
-                        message=(
-                            "Changed daily read structure could not be sealed."
-                        ),
-                        diagnostic_code=(
-                            "CF-DAILY-CONTRACT-STRUCTURE-EVIDENCE-FAILED"
-                        ),
+                        message=("Changed daily read structure could not be sealed."),
+                        diagnostic_code=("CF-DAILY-CONTRACT-STRUCTURE-EVIDENCE-FAILED"),
                     )
             runtime_log_store.append(
                 level="warning",
                 source="chengfeng-browser",
                 event_code="daily_contract_discovery_failed",
                 stream="application",
-                message=(
-                    "Daily read-contract discovery stopped safely before "
-                    "completion."
-                ),
+                message=("Daily read-contract discovery stopped safely before completion."),
                 diagnostic_code=diagnostic_code,
             )
             raise ApiError(
@@ -4563,12 +4542,7 @@ def build_platform_router(
                 "daily_contract_discovery_failed",
                 "Daily read-contract discovery did not pass its safety checks.",
             ) from discovery_failure
-        if (
-            cleanup_failure is not None
-            or stopped is None
-            or evidence is None
-            or frozen is None
-        ):
+        if cleanup_failure is not None or stopped is None or evidence is None or frozen is None:
             raise ApiError(
                 409,
                 "daily_contract_discovery_cleanup_failed",
@@ -4631,16 +4605,14 @@ def build_platform_router(
                 if not replay_candidate:
                     browser_runtime.start_discovery_capture()
                     started_capture = True
-                updated, replay = (
-                    browser_control.acquire_human_session_control(
-                        session_id=session_id,
-                        control_mode="human_handoff",
-                        human_session_id=payload.access_window_id,
-                        expected_record_version=record.record_version,
-                        idempotency_key=idempotency_key,
-                        request_hash=_request_hash(payload),
-                        now=datetime.now(UTC),
-                    )
+                updated, replay = browser_control.acquire_human_session_control(
+                    session_id=session_id,
+                    control_mode="human_handoff",
+                    human_session_id=payload.access_window_id,
+                    expected_record_version=record.record_version,
+                    idempotency_key=idempotency_key,
+                    request_hash=_request_hash(payload),
+                    now=datetime.now(UTC),
                 )
             except (BrowserRuntimeError, BrowserControlError) as exc:
                 if started_capture and browser_runtime.discovery_capturing:
@@ -4708,23 +4680,15 @@ def build_platform_router(
             with browser_lifecycle.hold():
                 record = browser_control.get(session_id)
                 if record.browser_control_mode == "human_handoff":
-                    record, _ = (
-                        browser_control.return_human_session_control(
-                            session_id=session_id,
-                            human_session_id=payload.access_window_id,
-                            expected_record_version=(
-                                payload.expected_record_version
-                            ),
-                            idempotency_key=f"{idempotency_key}:return",
-                            request_hash=_request_hash(payload),
-                            now=datetime.now(UTC),
-                        )
+                    record, _ = browser_control.return_human_session_control(
+                        session_id=session_id,
+                        human_session_id=payload.access_window_id,
+                        expected_record_version=(payload.expected_record_version),
+                        idempotency_key=f"{idempotency_key}:return",
+                        request_hash=_request_hash(payload),
+                        now=datetime.now(UTC),
                     )
-                grant, window_version = (
-                    access_repository.get_with_version(
-                        payload.access_window_id
-                    )
-                )
+                grant, window_version = access_repository.get_with_version(payload.access_window_id)
                 if grant.consumed_at is None:
                     access_repository.consume(
                         access_window_id=payload.access_window_id,
@@ -4766,48 +4730,30 @@ def build_platform_router(
     ) -> dict[str, object]:
         with browser_lifecycle.hold():
             try:
-                grant, window_version = (
-                    access_repository.get_with_version(
-                        payload.access_window_id
-                    )
-                )
-                if (
-                    grant.session_id != session_id
-                    or grant.build_sha256 != build_sha256
-                ):
-                    raise PlatformAccessConflictError(
-                        "access window does not match this session"
-                    )
+                grant, window_version = access_repository.get_with_version(payload.access_window_id)
+                if grant.session_id != session_id or grant.build_sha256 != build_sha256:
+                    raise PlatformAccessConflictError("access window does not match this session")
                 record = browser_control.get(session_id)
                 if record.browser_control_mode in {
                     "human_login",
                     "human_handoff",
                 }:
-                    record, _ = (
-                        browser_control.return_human_session_control(
-                            session_id=session_id,
-                            human_session_id=payload.access_window_id,
-                            expected_record_version=(
-                                payload.expected_record_version
-                            ),
-                            idempotency_key=f"{idempotency_key}:return",
-                            request_hash=_request_hash(payload),
-                            now=datetime.now(UTC),
-                        )
+                    record, _ = browser_control.return_human_session_control(
+                        session_id=session_id,
+                        human_session_id=payload.access_window_id,
+                        expected_record_version=(payload.expected_record_version),
+                        idempotency_key=f"{idempotency_key}:return",
+                        request_hash=_request_hash(payload),
+                        now=datetime.now(UTC),
                     )
                     stop_expected_version = record.record_version
                 else:
                     if (
                         grant.consumed_at is None
-                        and record.record_version
-                        != payload.expected_record_version
+                        and record.record_version != payload.expected_record_version
                     ):
-                        raise BrowserControlError(
-                            "browser control record version is stale"
-                        )
-                    stop_expected_version = (
-                        payload.expected_record_version
-                    )
+                        raise BrowserControlError("browser control record version is stale")
+                    stop_expected_version = payload.expected_record_version
                 if grant.consumed_at is None:
                     access_repository.consume(
                         access_window_id=payload.access_window_id,

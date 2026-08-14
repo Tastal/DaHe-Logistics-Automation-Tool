@@ -777,7 +777,10 @@ class SqliteLoop3ResourceStore:
                             == row["job_id"]
                         )
                     ).scalar_one_or_none()
-                    if strategy != "batch_v1":
+                    # Whole-run operational reads own browser startup inside
+                    # the scheduled task. Only the legacy capture path still
+                    # requires a pre-established ready browser session.
+                    if strategy not in {"batch_v1", "whole_run_v1"}:
                         control = (
                             connection.execute(
                                 text(

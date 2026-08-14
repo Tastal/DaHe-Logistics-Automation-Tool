@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import http.client
 import json
 import socket
@@ -13,6 +14,7 @@ from fastapi.testclient import TestClient
 
 from dahe import __version__
 from dahe.api.app import create_app
+from dahe.jobs.specs import ScheduledJobSpec, ScheduledWorkItemSpec
 
 PROJECT_ROOT = Path(__file__).parents[2]
 ORIGIN = "http://127.0.0.1:8877"
@@ -24,6 +26,37 @@ def _headers() -> dict[str, str]:
         "Origin": ORIGIN,
         "X-DaHe-Client-Version": __version__,
     }
+
+
+def _create_business_read(app: object, *, task_type: str, suffix: str) -> str:
+    repository = app.state.repository
+    fixture_id = f"shutdown-{task_type}:{suffix}"
+    job, created = repository.create_scheduled_job(
+        fixture=ScheduledJobSpec(
+            fixture_id=fixture_id,
+            job_kind="business",
+            task_type=task_type,
+            scope_label=f"shutdown {task_type}",
+            conflict_key=f"shutdown:{task_type}:{suffix}",
+            items=(
+                ScheduledWorkItemSpec(
+                    item_key=(
+                        f"daily:{suffix}"
+                        if task_type == "daily"
+                        else f"settlement:{suffix}"
+                    ),
+                    expected_outcome=None,
+                ),
+            ),
+            run_mode="operational",
+        ),
+        scope_label=f"shutdown {task_type}",
+        idempotency_key=f"shutdown:{fixture_id}",
+        request_hash=hashlib.sha256(fixture_id.encode()).hexdigest(),
+        expected_record_version=0,
+    )
+    assert created is True
+    return job.job_id
 
 
 def test_shutdown_is_local_versioned_idempotent_and_deferred(tmp_path: Path) -> None:
@@ -84,6 +117,117 @@ def test_shutdown_rejects_when_server_callback_is_unavailable(tmp_path: Path) ->
 
     assert response.status_code == 409
     assert response.json()["error"]["code"] == "application_shutdown_unavailable"
+
+
+def test_explicit_shutdown_cancels_business_reads_and_restart_keeps_timing_frozen(
+    tmp_path: Path,
+) -> None:
+    data_root = tmp_path / "shutdown-business-reads"
+    first_app = create_app(
+        data_root=data_root,
+        project_root=PROJECT_ROOT,
+        instance_id="shutdown-business-first",
+        auto_run_jobs=False,
+        stage_delay_seconds=0,
+    )
+    requested = Event()
+    first_app.state.request_shutdown = requested.set
+    with TestClient(first_app) as client:
+        job_ids = (
+            _create_business_read(
+                first_app,
+                task_type="settlement_capture",
+                suffix="2026-08-12",
+            ),
+            _create_business_read(
+                first_app,
+                task_type="daily",
+                suffix="2026-08-12",
+            ),
+        )
+        session = client.get("/api/v1/session", headers=_headers())
+        response = client.post(
+            "/api/v1/system/shutdown",
+            headers={
+                **_headers(),
+                "X-CSRF-Token": str(session.json()["csrf_token"]),
+                "Idempotency-Key": "shutdown-active-business-reads",
+            },
+        )
+        assert response.status_code == 202
+        assert requested.wait(timeout=1.0)
+        assert all(
+            first_app.state.repository.get_job(job_id).status.value
+            == "cancelled"
+            for job_id in job_ids
+        )
+
+    second_app = create_app(
+        data_root=data_root,
+        project_root=PROJECT_ROOT,
+        instance_id="shutdown-business-second",
+        auto_run_jobs=False,
+        stage_delay_seconds=0,
+    )
+    with TestClient(second_app) as client:
+        assert all(
+            second_app.state.repository.get_job(job_id).status.value
+            == "cancelled"
+            for job_id in job_ids
+        )
+        session = client.get("/api/v1/session", headers=_headers())
+        first = [
+            client.get(
+                f"/api/v1/platform/business-reads/{job_id}/progress",
+                headers=_headers(),
+            ).json()
+            for job_id in job_ids
+        ]
+        time.sleep(0.05)
+        second = [
+            client.get(
+                f"/api/v1/platform/business-reads/{job_id}/progress",
+                headers=_headers(),
+            ).json()
+            for job_id in job_ids
+        ]
+
+    for before, after in zip(first, second, strict=True):
+        assert before["is_terminal"] is True
+        assert before["finished_at"] is not None
+        assert after["elapsed_seconds"] == before["elapsed_seconds"]
+
+
+def test_restart_fails_business_read_interrupted_without_explicit_shutdown(
+    tmp_path: Path,
+) -> None:
+    data_root = tmp_path / "crashed-business-read"
+    first_app = create_app(
+        data_root=data_root,
+        project_root=PROJECT_ROOT,
+        instance_id="crashed-business-first",
+        auto_run_jobs=False,
+        stage_delay_seconds=0,
+    )
+    with TestClient(first_app):
+        job_id = _create_business_read(
+            first_app,
+            task_type="daily",
+            suffix="2026-08-11",
+        )
+
+    second_app = create_app(
+        data_root=data_root,
+        project_root=PROJECT_ROOT,
+        instance_id="crashed-business-second",
+        auto_run_jobs=False,
+        stage_delay_seconds=0,
+    )
+    with TestClient(second_app):
+        job = second_app.state.repository.get_job(job_id)
+
+    assert job.status.value == "failed"
+    assert job.diagnostic_code == "CF-BUSINESS-READ-INTERRUPTED"
 
 
 def test_shutdown_stops_the_owned_temporary_server(tmp_path: Path) -> None:

@@ -24,6 +24,7 @@ from dahe.adapters.sqlite.schema import (
     DAILY_RECORD_REVISIONS,
     JOBS,
     PLATFORM_ACCESS_WINDOWS,
+    PLATFORM_JOB_SUBJECTS,
     WORK_ITEMS,
 )
 from dahe.application.daily.capture import (
@@ -105,11 +106,26 @@ class SqliteDailyStore:
         )
         self._invocations = SqliteDailyInvocationStore(runtime)
 
+    @staticmethod
+    def _subject_for_job(connection: Any, job_id: str) -> str:
+        value = connection.execute(
+            select(PLATFORM_JOB_SUBJECTS.c.contract_subject_code).where(
+                PLATFORM_JOB_SUBJECTS.c.job_id == job_id
+            )
+        ).scalar_one_or_none()
+        if value is None:
+            return "shanxi_guienbo"
+        return str(value)
+
     def save_snapshot(
         self,
         snapshot: DailyCandidateSnapshot,
     ) -> DailySnapshotSaveResult:
         with self._commit_gate.transaction(self._engine) as connection:
+            subject_code = self._subject_for_job(
+                connection,
+                snapshot.snapshot_id,
+            )
             existing = (
                 connection.execute(
                     select(DAILY_CANDIDATE_SNAPSHOTS).where(
@@ -134,6 +150,7 @@ class SqliteDailyStore:
             connection.execute(
                 DAILY_CANDIDATE_SNAPSHOTS.insert().values(
                     snapshot_id=snapshot.snapshot_id,
+                    contract_subject_code=subject_code,
                     target_business_date=(
                         snapshot.target_business_date.isoformat()
                     ),
@@ -531,6 +548,7 @@ class SqliteDailyStore:
             if snapshot_row is None:
                 raise DailyStoreConflictError("daily snapshot does not exist")
             snapshot = _snapshot(snapshot_row)
+            subject_code = str(snapshot_row["contract_subject_code"])
             candidate_ids = {
                 candidate.platform_waybill_id
                 for candidate in snapshot.candidates
@@ -549,6 +567,7 @@ class SqliteDailyStore:
                     observation_id=observation.observation_id,
                     snapshot_id=observation.snapshot_id,
                     platform_waybill_id=observation.platform_waybill_id,
+                    contract_subject_code=subject_code,
                     waybill_number=observation.waybill_number,
                     source_detail_sha256=observation.source_detail_sha256,
                     loading_ticket_sha256=observation.loading_ticket_sha256,
@@ -565,6 +584,7 @@ class SqliteDailyStore:
             latest = self._latest_revision(
                 connection,
                 observation.platform_waybill_id,
+                subject_code,
             )
             if (
                 latest is not None
@@ -583,7 +603,9 @@ class SqliteDailyStore:
             )
             revision = DailyRecordRevision(
                 revision_id=revision_id_for(
-                    platform_waybill_id=observation.platform_waybill_id,
+                    platform_waybill_id=(
+                        f"{subject_code}:{observation.platform_waybill_id}"
+                    ),
                     revision_number=revision_number,
                     field_fingerprint=observation.field_fingerprint,
                 ),
@@ -603,6 +625,7 @@ class SqliteDailyStore:
                 DAILY_RECORD_REVISIONS.insert().values(
                     revision_id=revision.revision_id,
                     platform_waybill_id=revision.platform_waybill_id,
+                    contract_subject_code=subject_code,
                     revision_number=revision.revision_number,
                     observation_id=revision.observation_id,
                     field_fingerprint=revision.field_fingerprint,
@@ -620,6 +643,7 @@ class SqliteDailyStore:
     def list_revisions(
         self,
         platform_waybill_id: str,
+        contract_subject_code: str = "shanxi_guienbo",
     ) -> tuple[DailyRecordRevision, ...]:
         with self._engine.connect() as connection:
             rows = tuple(
@@ -627,7 +651,9 @@ class SqliteDailyStore:
                     select(DAILY_RECORD_REVISIONS)
                     .where(
                         DAILY_RECORD_REVISIONS.c.platform_waybill_id
-                        == platform_waybill_id
+                        == platform_waybill_id,
+                        DAILY_RECORD_REVISIONS.c.contract_subject_code
+                        == contract_subject_code,
                     )
                     .order_by(
                         DAILY_RECORD_REVISIONS.c.revision_number
@@ -641,6 +667,7 @@ class SqliteDailyStore:
         *,
         business_date: date,
         receive_place_keyword: str,
+        contract_subject_code: str = "shanxi_guienbo",
     ) -> tuple[DailyRecordRevision, ...]:
         keyword = receive_place_keyword.strip()
         if not keyword:
@@ -662,6 +689,8 @@ class SqliteDailyStore:
                     .where(
                         DAILY_CANDIDATE_SNAPSHOTS.c.target_business_date
                         == business_date.isoformat(),
+                        DAILY_CANDIDATE_SNAPSHOTS.c.contract_subject_code
+                        == contract_subject_code,
                         DAILY_CANDIDATE_SNAPSHOTS.c.payload_json.contains(
                             keyword
                         ),
@@ -682,6 +711,7 @@ class SqliteDailyStore:
         self,
         *,
         business_date: date,
+        contract_subject_code: str = "shanxi_guienbo",
     ) -> tuple[DailyRecordRevision, ...]:
         """Return the latest machine revision for every waybill in one day."""
 
@@ -701,7 +731,9 @@ class SqliteDailyStore:
                     )
                     .where(
                         DAILY_CANDIDATE_SNAPSHOTS.c.target_business_date
-                        == business_date.isoformat()
+                        == business_date.isoformat(),
+                        DAILY_CANDIDATE_SNAPSHOTS.c.contract_subject_code
+                        == contract_subject_code,
                     )
                     .order_by(
                         DAILY_RECORD_REVISIONS.c.platform_waybill_id,
@@ -719,13 +751,16 @@ class SqliteDailyStore:
     def _latest_revision(
         connection: Any,
         platform_waybill_id: str,
+        contract_subject_code: str,
     ) -> DailyRecordRevision | None:
         row: RowMapping | None = (
             connection.execute(
                 select(DAILY_RECORD_REVISIONS)
                 .where(
                     DAILY_RECORD_REVISIONS.c.platform_waybill_id
-                    == platform_waybill_id
+                    == platform_waybill_id,
+                    DAILY_RECORD_REVISIONS.c.contract_subject_code
+                    == contract_subject_code,
                 )
                 .order_by(
                     DAILY_RECORD_REVISIONS.c.revision_number.desc()

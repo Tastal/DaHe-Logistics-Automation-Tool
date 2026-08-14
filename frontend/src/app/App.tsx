@@ -13,7 +13,9 @@ import { Tooltip } from "../components/Tooltip";
 import type {
   AppServices,
   ConsoleSnapshot,
+  ContractSubjectCode,
   Loop3FixtureId,
+  PlatformSession,
   ResourceSummary,
   ServerAction,
   UpdateStatus,
@@ -204,8 +206,9 @@ export function App({ services }: AppProps) {
       : "settlement";
   });
   const [systemView, setSystemView] = useState<SystemView>(
-    recoverTemplateAtStartup ? "templates" : "status",
+    recoverTemplateAtStartup ? "templates" : "diagnostics",
   );
+  const [platformSession, setPlatformSession] = useState<PlatformSession | null>(null);
   const [snapshot, setSnapshot] = useState<ConsoleSnapshot | null>(null);
   const [resources, setResources] = useState<ResourceSummary[]>([]);
   const [workspaceRevision, setWorkspaceRevision] = useState(0);
@@ -228,6 +231,8 @@ export function App({ services }: AppProps) {
   const [showUpdateConfirm, setShowUpdateConfirm] = useState(false);
   const [updateStatus, setUpdateStatus] = useState<UpdateStatus | null>(null);
   const [updating, setUpdating] = useState(false);
+  const [updateManifestFile, setUpdateManifestFile] = useState<File | null>(null);
+  const [updateApplicationFile, setUpdateApplicationFile] = useState<File | null>(null);
   const [shuttingDown, setShuttingDown] = useState(false);
   const [applicationExited, setApplicationExited] = useState(false);
   const createPending = useRef(new Set<string>());
@@ -260,7 +265,7 @@ export function App({ services }: AppProps) {
       setPage(nextPage);
       window.localStorage.setItem("dahe:last-page", nextPage);
       if (nextPage === "system") {
-        setSystemView("status");
+        setSystemView("diagnostics");
       }
       if (nextPage !== "dispatch") {
         void services.recordBreadcrumb?.(nextPage);
@@ -383,6 +388,35 @@ export function App({ services }: AppProps) {
     };
   }, [applySnapshot, refreshResources, refreshSnapshot, services]);
 
+  useEffect(() => {
+    if (loading || !services.loadPlatformSession) return undefined;
+    let disposed = false;
+    const refreshPlatformSession = () => {
+      if (document.visibilityState === "hidden") return;
+      void services.loadPlatformSession?.().then(
+        (next) => { if (!disposed) setPlatformSession(next); },
+        () => {
+          if (!disposed) {
+            setPlatformSession((current) => current ?? null);
+          }
+        },
+      );
+    };
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") refreshPlatformSession();
+    };
+    refreshPlatformSession();
+    const timer = window.setInterval(refreshPlatformSession, 2000);
+    document.addEventListener("visibilitychange", handleVisibility);
+    window.addEventListener("focus", refreshPlatformSession);
+    return () => {
+      disposed = true;
+      window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", handleVisibility);
+      window.removeEventListener("focus", refreshPlatformSession);
+    };
+  }, [loading, services]);
+
   const executeStart = useCallback(
     async (
       actionId: string,
@@ -460,12 +494,8 @@ export function App({ services }: AppProps) {
     }
   }, [services, shuttingDown]);
 
-  const handleUpdateClick = useCallback(async () => {
+  const checkOnlineUpdate = useCallback(async () => {
     if (updating) return;
-    if (updateStatus?.updateAvailable) {
-      setShowUpdateConfirm(true);
-      return;
-    }
     if (!services.checkForUpdates) return;
     setUpdating(true);
     setMessage(null);
@@ -484,7 +514,20 @@ export function App({ services }: AppProps) {
     } finally {
       setUpdating(false);
     }
-  }, [services, updateStatus, updating]);
+  }, [services, updating]);
+
+  const handleUpdateClick = useCallback(() => {
+    if (updating) return;
+    if (services.importUpdatePackage) {
+      setShowUpdateConfirm(true);
+      return;
+    }
+    if (updateStatus?.updateAvailable) {
+      setShowUpdateConfirm(true);
+      return;
+    }
+    void checkOnlineUpdate();
+  }, [checkOnlineUpdate, services.importUpdatePackage, updateStatus, updating]);
 
   const installUpdate = useCallback(async () => {
     if (!services.installUpdate || updating) return;
@@ -502,6 +545,29 @@ export function App({ services }: AppProps) {
       setUpdating(false);
     }
   }, [services, updating]);
+
+  const importUpdate = useCallback(async () => {
+    if (
+      !services.importUpdatePackage ||
+      !updateManifestFile ||
+      !updateApplicationFile ||
+      updating
+    ) return;
+    setUpdating(true);
+    setMessage(null);
+    try {
+      const status = await services.importUpdatePackage(
+        updateManifestFile,
+        updateApplicationFile,
+      );
+      setUpdateStatus(status);
+      setMessage(`本地更新包 ${status.availableVersion} 已校验，可以安装。`);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "本地更新包校验失败。");
+    } finally {
+      setUpdating(false);
+    }
+  }, [services, updateApplicationFile, updateManifestFile, updating]);
 
   if (blockingVersionError) {
     return (
@@ -540,7 +606,36 @@ export function App({ services }: AppProps) {
   const businessNavigation = navigation.filter(
     (item) => item.group === "business",
   );
-  const otherNavigation = navigation.filter((item) => item.group === "other");
+  const connectionStatus = platformSession?.connectionStatus ?? {
+    code: "error" as const,
+    label: "连接异常" as const,
+  };
+  const contractSubjectCode =
+    platformSession?.contractSubject.currentSubjectCode ?? "shanxi_guienbo";
+  const contractSubjects = platformSession?.contractSubject.availableSubjects ?? [
+    { code: "shanxi_guienbo" as const, label: "山西贵恩博" },
+    { code: "shanghai_jinyisheng" as const, label: "上海晋亿晟" },
+  ];
+  const selectContractSubject = async (subjectCode: ContractSubjectCode) => {
+    if (
+      !platformSession ||
+      !services.selectContractSubject ||
+      subjectCode === contractSubjectCode
+    ) return;
+    setMessage(null);
+    try {
+      const next = await services.selectContractSubject(
+        subjectCode,
+        platformSession.contractSubject.recordVersion,
+      );
+      setPlatformSession((current) =>
+        current ? { ...current, contractSubject: next } : current,
+      );
+      setWorkspaceRevision((value) => value + 1);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "签约主体未能切换。");
+    }
+  };
   return (
     <div className="app-shell">
       <a className="skip-link" href="#main-content">
@@ -556,7 +651,22 @@ export function App({ services }: AppProps) {
           </span>
           <strong><span>大禾物流</span><span>自动化平台</span></strong>
         </div>
-        <span className="navigation-group-label">业务</span>
+        <div className="business-subject-heading">
+          <span className="navigation-group-label">业务</span>
+          <div className="contract-subject-switcher" aria-label="签约主体">
+            {contractSubjects.map((subject) => (
+              <button
+                className="contract-subject-button"
+                type="button"
+                key={subject.code}
+                aria-pressed={subject.code === contractSubjectCode}
+                onClick={() => void selectContractSubject(subject.code)}
+              >
+                {subject.label}
+              </button>
+            ))}
+          </div>
+        </div>
         <ul>
           {businessNavigation.map((item) => (
             <li key={item.id}>
@@ -577,36 +687,59 @@ export function App({ services }: AppProps) {
             </li>
           ))}
         </ul>
-        <ul className="navigation-secondary">
-          {otherNavigation.map((item) => (
-            <li key={item.id}>
-              <div className={item.id === "system" ? "system-nav-row" : undefined}>
-                <button
-                  type="button"
-                  disabled={
-                    page === "system" &&
-                    (systemView === "locked_set_review" ||
-                      systemView === "loop9_review") &&
-                    lockedSetReviewNavigation.saving
-                  }
-                  aria-current={page === item.id ? "page" : undefined}
-                  onClick={() => navigateToPage(item.id)}
-                >
-                  <item.icon aria-hidden="true" size={19} />
-                  <span>{item.label}</span>
-                </button>
-                {item.id === "system" ? (
-                  <div className="system-icon-actions">
-                    {services.checkForUpdates ? (
-                      <Tooltip content="检查更新">
+        <section className="platform-connection-summary" aria-labelledby="platform-connection-title">
+          <span className="navigation-group-label" id="platform-connection-title">成丰平台连接状态</span>
+          <span
+            className={`platform-connection-pill connection-${connectionStatus.code}`}
+            role="status"
+            aria-label={`成丰平台连接状态：${connectionStatus.label}`}
+          >
+            {connectionStatus.label}
+          </span>
+        </section>
+        <ul className="navigation-secondary utility-navigation" aria-label="工具">
+          <li>
+            <Tooltip content="系统设置">
+              <button
+                className="utility-icon-button settings-button"
+                type="button"
+                disabled={
+                  page === "system" &&
+                  (systemView === "locked_set_review" || systemView === "loop9_review") &&
+                  lockedSetReviewNavigation.saving
+                }
+                aria-current={page === "system" ? "page" : undefined}
+                aria-label="系统设置"
+                onClick={() => navigateToPage("system")}
+              >
+                <Settings aria-hidden="true" size={20} />
+              </button>
+            </Tooltip>
+          </li>
+          <li>
+            <Tooltip content="历史数据">
+              <button
+                className="utility-icon-button history-button"
+                type="button"
+                aria-current={page === "history" ? "page" : undefined}
+                aria-label="历史数据"
+                onClick={() => navigateToPage("history")}
+              >
+                <Archive aria-hidden="true" size={20} />
+              </button>
+            </Tooltip>
+          </li>
+          {services.checkForUpdates ? (
+            <li>
+              <Tooltip content="版本更新">
                         <button
-                          className="system-icon-button update-button"
+                  className="utility-icon-button update-button"
                           type="button"
                           disabled={updating}
                           aria-label={
                             updateStatus?.updateAvailable
-                              ? `有新版本 ${updateStatus.availableVersion}，检查更新`
-                              : "检查更新"
+                      ? `有新版本 ${updateStatus.availableVersion}，版本更新`
+                      : "版本更新"
                           }
                           onClick={() => void handleUpdateClick()}
                         >
@@ -615,25 +748,23 @@ export function App({ services }: AppProps) {
                             <span className="update-dot" aria-hidden="true" />
                           ) : null}
                         </button>
-                      </Tooltip>
-                    ) : null}
-                    {services.shutdownApplication ? (
-                      <Tooltip content="退出程序">
+              </Tooltip>
+            </li>
+          ) : null}
+          {services.shutdownApplication ? (
+            <li>
+              <Tooltip content="退出程序">
                         <button
-                          className="system-icon-button power-button"
+                  className="utility-icon-button power-button"
                           type="button"
                           aria-label="退出程序"
                           onClick={() => setShowShutdownConfirm(true)}
                         >
                           <Power aria-hidden="true" size={18} />
                         </button>
-                      </Tooltip>
-                    ) : null}
-                  </div>
-                ) : null}
-              </div>
+              </Tooltip>
             </li>
-          ))}
+          ) : null}
         </ul>
       </nav>
 
@@ -647,14 +778,22 @@ export function App({ services }: AppProps) {
         {page === "settlement" ? (
           <div className="business-page">
             <AuditReviewQueue
+              key={`settlement:${contractSubjectCode}`}
               services={services}
               jobs={snapshot?.jobs ?? []}
               workspaceRevision={workspaceRevision}
+              contractSubjectCode={contractSubjectCode}
             />
           </div>
         ) : null}
 
-        {page === "history" ? <WaybillHistory services={services} /> : null}
+        {page === "history" ? (
+          <WaybillHistory
+            key={`history:${contractSubjectCode}`}
+            services={services}
+            contractSubjectCode={contractSubjectCode}
+          />
+        ) : null}
 
         {page === "system" &&
         systemView !== "locked_set_review" &&
@@ -671,7 +810,7 @@ export function App({ services }: AppProps) {
               systemView === "templates" && !productionReadOnly ? (
                 <TemplateStudio
                   services={services}
-                  onBack={() => setSystemView("status")}
+                  onBack={() => setSystemView("diagnostics")}
                 />
               ) : undefined
             }
@@ -711,7 +850,7 @@ export function App({ services }: AppProps) {
         {page === "system" && systemView === "locked_set_review" ? (
           <LockedSetReview
             services={services}
-            onBack={() => setSystemView("status")}
+            onBack={() => setSystemView("diagnostics")}
             onNavigationStateChange={setLockedSetReviewNavigation}
           />
         ) : null}
@@ -719,7 +858,7 @@ export function App({ services }: AppProps) {
         {page === "system" && systemView === "loop9_review" ? (
           <Loop9HumanReview
             services={services}
-            onBack={() => setSystemView("status")}
+            onBack={() => setSystemView("diagnostics")}
             onNavigationStateChange={setLockedSetReviewNavigation}
           />
         ) : null}
@@ -727,10 +866,12 @@ export function App({ services }: AppProps) {
         {page === "daily" ? (
           <div className="business-page">
             <DailyWorkspace
+              key={`daily:${contractSubjectCode}`}
               services={services}
               jobs={snapshot?.jobs ?? []}
               productionReadOnly={productionReadOnly}
               workspaceRevision={workspaceRevision}
+              contractSubjectCode={contractSubjectCode}
             />
           </div>
         ) : null}
@@ -751,8 +892,44 @@ export function App({ services }: AppProps) {
             aria-modal="true"
             aria-labelledby="update-title"
           >
-            <h2 id="update-title">安装 {updateStatus?.availableVersion} 更新？</h2>
-            <p>程序会先确认没有未完成任务，再退出当前版本并安装。</p>
+            <h2 id="update-title">
+              {updateStatus?.updateAvailable
+                ? `安装 ${updateStatus.availableVersion} 更新？`
+                : "软件更新"}
+            </h2>
+            <p>
+              {updateStatus?.updateAvailable
+                ? "程序会先确认没有未完成任务，再退出当前版本并安装。"
+                : "可以在线检查更新，或导入已下载的正式更新包。"}
+            </p>
+            {services.importUpdatePackage ? (
+              <div className="update-import-fields">
+                <label>
+                  <span>更新清单</span>
+                  <input
+                    type="file"
+                    accept="application/json,.json"
+                    onChange={(event) => setUpdateManifestFile(event.target.files?.[0] ?? null)}
+                  />
+                </label>
+                <label>
+                  <span>应用 ZIP</span>
+                  <input
+                    type="file"
+                    accept="application/zip,.zip"
+                    onChange={(event) => setUpdateApplicationFile(event.target.files?.[0] ?? null)}
+                  />
+                </label>
+                <button
+                  className="button"
+                  type="button"
+                  disabled={updating || !updateManifestFile || !updateApplicationFile}
+                  onClick={() => void importUpdate()}
+                >
+                  导入更新包
+                </button>
+              </div>
+            ) : null}
             <div className="dialog-actions">
               <button
                 className="button"
@@ -762,14 +939,25 @@ export function App({ services }: AppProps) {
               >
                 取消
               </button>
-              <button
-                className="button primary"
-                type="button"
-                disabled={updating}
-                onClick={() => void installUpdate()}
-              >
-                {updating ? "正在准备…" : "安装更新"}
-              </button>
+              {updateStatus?.updateAvailable ? (
+                <button
+                  className="button primary"
+                  type="button"
+                  disabled={updating}
+                  onClick={() => void installUpdate()}
+                >
+                  {updating ? "正在准备…" : "安装更新"}
+                </button>
+              ) : (
+                <button
+                  className="button primary"
+                  type="button"
+                  disabled={updating || !services.checkForUpdates}
+                  onClick={() => void checkOnlineUpdate()}
+                >
+                  {updating ? "正在检查…" : "检查更新"}
+                </button>
+              )}
             </div>
           </section>
         </div>
@@ -784,7 +972,7 @@ export function App({ services }: AppProps) {
           >
             <h2 id="shutdown-title">退出大禾物流自动化平台？</h2>
             <p>
-              退出后正在进行的任务会停止，未完成部分下次启动时重新处理。
+              退出会取消正在进行的运费结算或装卸车读取；重启后不会自动继续。
             </p>
             <div className="dialog-actions">
               <button

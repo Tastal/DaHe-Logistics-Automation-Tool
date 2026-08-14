@@ -184,18 +184,14 @@ def test_runtime_upgrades_0001_with_backup_and_preserves_data(
 
     runtime = _runtime(data_root, project_root, instance_id="upgrade-0001-test")
     try:
-        assert runtime.current_revision() == (
-            "0039_network_batch_default"
-        )
+        assert runtime.current_revision() == ("0041_contract_subject_scope")
         assert runtime.pre_migration_backup_path is not None
         backup_path = runtime.pre_migration_backup_path
         manifest = json.loads((backup_path / "manifest.json").read_text(encoding="utf-8"))
         backup_database = backup_path / "dahe.sqlite3"
 
         assert manifest["from_revision"] == "0001_loop4"
-        assert manifest["to_revision"] == (
-            "0039_network_batch_default"
-        )
+        assert manifest["to_revision"] == ("0041_contract_subject_scope")
         assert (
             manifest["database_sha256"] == hashlib.sha256(backup_database.read_bytes()).hexdigest()
         )
@@ -243,6 +239,151 @@ def test_runtime_upgrades_0001_with_backup_and_preserves_data(
             ) in lease_foreign_keys
     finally:
         runtime.close()
+
+
+def test_upgrade_0040_replaces_date_only_report_uniqueness(
+    tmp_path: Path,
+    project_root: Path,
+) -> None:
+    data_root = tmp_path / "upgrade-from-0040-with-report"
+    database_path = data_root / "database" / "dahe.sqlite3"
+    database_path.parent.mkdir(parents=True)
+    config = _migration_config(project_root, database_path)
+    command.upgrade(config, "0040_whole_run_capture")
+    created_at = "2026-08-14T00:00:00+00:00"
+    report_values = (
+        "legacy-shanxi-report",
+        "2026-08-13",
+        "confirmed",
+        1,
+        "C:/reports",
+        "legacy.xlsx",
+        "a" * 64,
+        "b" * 64,
+        "[]",
+        0,
+        "0.00",
+        1,
+        created_at,
+        created_at,
+        0,
+    )
+    with sqlite3.connect(database_path) as connection:
+        connection.execute(
+            """
+            INSERT INTO daily_reports (
+                report_id, business_date, status, settings_record_version,
+                output_directory, file_name, file_sha256,
+                data_snapshot_sha256, data_json, row_count,
+                loading_net_total, record_version, created_at, confirmed_at,
+                stale
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            report_values,
+        )
+        connection.execute(
+            """
+            INSERT INTO daily_reports (
+                report_id, business_date, status, settings_record_version,
+                output_directory, file_name, file_sha256,
+                data_snapshot_sha256, data_json, row_count,
+                loading_net_total, record_version, created_at, confirmed_at,
+                stale
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                "legacy-stale-shanxi-report",
+                *report_values[1:-1],
+                1,
+            ),
+        )
+        connection.commit()
+
+    command.upgrade(config, "head")
+
+    with sqlite3.connect(database_path) as connection:
+        assert connection.execute(
+            "SELECT contract_subject_code FROM daily_reports "
+            "WHERE report_id = 'legacy-shanxi-report'"
+        ).fetchone() == ("shanxi_guienbo",)
+        for table_name in (
+            "operational_capture_runs",
+            "settlement_capture_invocations",
+            "daily_capture_invocations",
+            "daily_candidate_snapshots",
+            "daily_observations",
+            "daily_record_revisions",
+            "daily_manual_revisions",
+        ):
+            subject_column = next(
+                row
+                for row in connection.execute(f"PRAGMA table_info('{table_name}')")
+                if row[1] == "contract_subject_code"
+            )
+            assert subject_column[3] == 1
+            assert str(subject_column[4]).strip("'") == "shanxi_guienbo"
+        connection.execute(
+            """
+            INSERT INTO daily_reports (
+                report_id, business_date, contract_subject_code, status,
+                settings_record_version, output_directory, file_name,
+                file_sha256, data_snapshot_sha256, data_json, row_count,
+                loading_net_total, record_version, created_at, confirmed_at,
+                stale
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                "new-shanghai-report",
+                "2026-08-13",
+                "shanghai_jinyisheng",
+                *report_values[2:],
+            ),
+        )
+        connection.commit()
+        assert connection.execute(
+            "SELECT count(*) FROM daily_reports WHERE business_date = '2026-08-13'"
+        ).fetchone() == (3,)
+        with pytest.raises(sqlite3.IntegrityError):
+            connection.execute(
+                """
+                INSERT INTO daily_reports (
+                    report_id, business_date, contract_subject_code, status,
+                    settings_record_version, output_directory, file_name,
+                    file_sha256, data_snapshot_sha256, data_json, row_count,
+                    loading_net_total, record_version, created_at, confirmed_at,
+                    stale
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    "duplicate-current-shanxi-report",
+                    "2026-08-13",
+                    "shanxi_guienbo",
+                    *report_values[2:],
+                ),
+            )
+        connection.rollback()
+        connection.execute(
+            """
+            INSERT INTO daily_reports (
+                report_id, business_date, contract_subject_code, status,
+                settings_record_version, output_directory, file_name,
+                file_sha256, data_snapshot_sha256, data_json, row_count,
+                loading_net_total, record_version, created_at, confirmed_at,
+                stale
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                "another-stale-shanxi-report",
+                "2026-08-13",
+                "shanxi_guienbo",
+                *report_values[2:-1],
+                1,
+            ),
+        )
+        connection.commit()
+        assert connection.execute(
+            "SELECT count(*) FROM daily_reports WHERE business_date = '2026-08-13'"
+        ).fetchone() == (4,)
 
 
 def test_upgrade_0020_preserves_settlement_identity_children(
@@ -430,8 +571,7 @@ def test_upgrade_0020_preserves_settlement_identity_children(
             ),
         )
         connection.execute(
-            "CREATE TABLE loop9_exclusion_authority_anchors_v2 "
-            "(failed_attempt_marker INTEGER)"
+            "CREATE TABLE loop9_exclusion_authority_anchors_v2 (failed_attempt_marker INTEGER)"
         )
         connection.commit()
 
@@ -439,9 +579,9 @@ def test_upgrade_0020_preserves_settlement_identity_children(
 
     with sqlite3.connect(database_path) as connection:
         connection.execute("PRAGMA foreign_keys=ON")
-        assert connection.execute(
-            "SELECT version_num FROM alembic_version"
-        ).fetchone() == ("0039_network_batch_default",)
+        assert connection.execute("SELECT version_num FROM alembic_version").fetchone() == (
+            "0041_contract_subject_scope",
+        )
         assert connection.execute(
             """
             SELECT invocation_id, item_identity_sha256, platform_waybill_id,
@@ -471,16 +611,11 @@ def test_upgrade_0020_preserves_settlement_identity_children(
             (2, "e" * 64),
         ]
         with pytest.raises(sqlite3.IntegrityError, match="immutable"):
-            connection.execute(
-                "UPDATE loop9_exclusion_authority_anchors "
-                "SET sequence = sequence"
-            )
+            connection.execute("UPDATE loop9_exclusion_authority_anchors SET sequence = sequence")
         connection.rollback()
         invocation_columns = {
             str(row[1])
-            for row in connection.execute(
-                "PRAGMA table_info('settlement_capture_invocations')"
-            )
+            for row in connection.execute("PRAGMA table_info('settlement_capture_invocations')")
         }
         assert {
             "selection_manifest_sha256",
@@ -532,9 +667,7 @@ def test_daily_capture_tables_reference_existing_access_windows(
             ):
                 columns = {
                     str(row[1]): str(row[2]).upper()
-                    for row in connection.exec_driver_sql(
-                        f'PRAGMA table_info("{table_name}")'
-                    )
+                    for row in connection.exec_driver_sql(f'PRAGMA table_info("{table_name}")')
                 }
                 foreign_keys = {
                     (

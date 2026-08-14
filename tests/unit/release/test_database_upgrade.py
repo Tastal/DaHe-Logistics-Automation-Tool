@@ -13,7 +13,7 @@ from dahe.release.database_upgrade import (
 )
 
 PROJECT_ROOT = Path(__file__).parents[3]
-REVISION = "0039_network_batch_default"
+REVISION = "0041_contract_subject_scope"
 
 
 def _database(data_root: Path) -> Path:

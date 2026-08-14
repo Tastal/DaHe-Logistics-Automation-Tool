@@ -22,6 +22,7 @@ from dahe.adapters.sqlite.schema import (
     OPERATIONAL_CAPTURE_RUNS,
     OPERATIONAL_EVIDENCE_REUSE,
     OUTBOX,
+    PLATFORM_JOB_SUBJECTS,
 )
 from dahe.application.chengfeng.durable_capture import (
     CaptureCheckpointError,
@@ -145,6 +146,7 @@ def _operational_run(row: object) -> OperationalCaptureRun:
         ),
         status=str(mapping["status"]),  # type: ignore[index]
         record_version=int(mapping["record_version"]),  # type: ignore[index]
+        capture_mode=str(mapping["capture_mode"]),  # type: ignore[index]
         metadata_checked_count=int(
             mapping["metadata_checked_count"]  # type: ignore[index]
         ),
@@ -413,6 +415,7 @@ class SqliteChengfengCaptureStore:
         job_id: str,
         scope: str,
         items: tuple[WaybillSummary, ...],
+        capture_mode: str,
         batch_size: int,
         detail_concurrency: int,
         image_concurrency: int,
@@ -424,7 +427,15 @@ class SqliteChengfengCaptureStore:
             )
         if (
             not scope
-            or batch_size not in {15, 20, 50, 100}
+            or capture_mode not in {"batch_v1", "whole_run_v1"}
+            or (
+                capture_mode == "batch_v1"
+                and batch_size not in {15, 20, 50, 100}
+            )
+            or (
+                capture_mode == "whole_run_v1"
+                and batch_size != max(1, len(items))
+            )
             or not 1 <= detail_concurrency <= 4
             or not 1 <= image_concurrency <= 6
             or len({item.platform_waybill_id for item in items})
@@ -456,6 +467,7 @@ class SqliteChengfengCaptureStore:
                 if (
                     run.scope != scope
                     or run.items != items
+                    or run.capture_mode != capture_mode
                     or run.batch_size != batch_size
                     or run.detail_concurrency != detail_concurrency
                     or run.image_concurrency != image_concurrency
@@ -465,15 +477,26 @@ class SqliteChengfengCaptureStore:
                     )
                 return run
             self._authorize_commit(connection, authority)
+            subject_code = connection.execute(
+                select(PLATFORM_JOB_SUBJECTS.c.contract_subject_code).where(
+                    PLATFORM_JOB_SUBJECTS.c.job_id == job_id
+                )
+            ).scalar_one_or_none()
+            if subject_code is None:
+                raise CaptureCheckpointError(
+                    "operational capture has no contract subject"
+                )
             connection.execute(
                 OPERATIONAL_CAPTURE_RUNS.insert().values(
                     job_id=job_id,
                     scope=scope,
+                    contract_subject_code=str(subject_code),
                     total=len(items),
                     items_json=items_json,
                     items_sha256=items_sha256,
                     next_item_index=0,
                     committed_batch_count=0,
+                    capture_mode=capture_mode,
                     batch_size=batch_size,
                     detail_concurrency=detail_concurrency,
                     image_concurrency=image_concurrency,
@@ -698,6 +721,9 @@ class SqliteChengfengCaptureStore:
                 checkpoint=checkpoint,
                 images=images,
                 source_revisions=source_revisions,
+                contract_subject_code=str(
+                    current_run_row["contract_subject_code"]
+                ),
             )
             updated = connection.execute(
                 update(OPERATIONAL_CAPTURE_RUNS)
@@ -767,6 +793,7 @@ class SqliteChengfengCaptureStore:
         self,
         *,
         summaries: tuple[WaybillSummary, ...],
+        contract_subject_code: str = "shanxi_guienbo",
     ) -> tuple[WaybillReuseCandidate, ...]:
         if not summaries:
             return ()
@@ -777,6 +804,8 @@ class SqliteChengfengCaptureStore:
             rows = (
                 connection.execute(
                     select(OPERATIONAL_EVIDENCE_REUSE).where(
+                        OPERATIONAL_EVIDENCE_REUSE.c.contract_subject_code
+                        == contract_subject_code,
                         OPERATIONAL_EVIDENCE_REUSE.c.platform_waybill_id.in_(
                             identities
                         )
@@ -831,6 +860,7 @@ class SqliteChengfengCaptureStore:
         checkpoint: DurableCaptureCheckpoint,
         images: tuple[DownloadedTicketImage, ...],
         source_revisions: dict[str, str],
+        contract_subject_code: str = "shanxi_guienbo",
     ) -> None:
         image_by_ref = {image.ticket_ref: image for image in images}
         for detail in checkpoint.details:
@@ -840,6 +870,7 @@ class SqliteChengfengCaptureStore:
             if source_revision is None or not detail.tickets:
                 continue
             payload: dict[str, object | None] = {
+                "contract_subject_code": contract_subject_code,
                 "platform_waybill_id": detail.platform_waybill_id,
                 "source_revision_sha256": source_revision,
                 "loading_sha256": None,
@@ -867,6 +898,8 @@ class SqliteChengfengCaptureStore:
                 select(
                     OPERATIONAL_EVIDENCE_REUSE.c.platform_waybill_id
                 ).where(
+                    OPERATIONAL_EVIDENCE_REUSE.c.contract_subject_code
+                    == contract_subject_code,
                     OPERATIONAL_EVIDENCE_REUSE.c.platform_waybill_id
                     == detail.platform_waybill_id
                 )
@@ -879,6 +912,8 @@ class SqliteChengfengCaptureStore:
                 connection.execute(
                     update(OPERATIONAL_EVIDENCE_REUSE)
                     .where(
+                        OPERATIONAL_EVIDENCE_REUSE.c.contract_subject_code
+                        == contract_subject_code,
                         OPERATIONAL_EVIDENCE_REUSE.c.platform_waybill_id
                         == detail.platform_waybill_id
                     )

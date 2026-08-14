@@ -34,7 +34,7 @@ describe("BrowserAppServices", () => {
       .mockResolvedValueOnce(
         new Response(
           JSON.stringify({
-            application_version: "1.0.0",
+            application_version: "1.1.0",
             csrf_token: "csrf-production",
           }),
           { status: 200, headers: { "Content-Type": "application/json" } },
@@ -73,7 +73,7 @@ describe("BrowserAppServices", () => {
       .mockResolvedValueOnce(
         new Response(
           JSON.stringify({
-            application_version: "1.0.0",
+            application_version: "1.1.0",
             csrf_token: "csrf-loop9",
           }),
           { status: 200, headers: { "Content-Type": "application/json" } },
@@ -94,6 +94,22 @@ describe("BrowserAppServices", () => {
             runtime_running: false,
             selected_browser: null,
             discovery_capturing: false,
+            visible_browser_running: false,
+            control_mode: "idle",
+            human_handoff_ready: false,
+            login_state: "unavailable",
+            active_job_id: null,
+            warm_session_reusable: false,
+            connection_status: { code: "browser_closed", label: "浏览器关闭" },
+            contract_subject: {
+              available_subjects: [
+                { code: "shanxi_guienbo", label: "山西贵恩博" },
+                { code: "shanghai_jinyisheng", label: "上海晋亿晟" },
+              ],
+              current_subject_code: "shanxi_guienbo",
+              record_version: 1,
+              updated_at: "2026-08-14T00:00:00+08:00",
+            },
             contract_candidate_selected: false,
             contract_selection_sha256: null,
             access_window: null,
@@ -322,7 +338,7 @@ describe("BrowserAppServices", () => {
       .mockResolvedValueOnce(
         new Response(
           JSON.stringify({
-            application_version: "1.0.0",
+            application_version: "1.1.0",
             csrf_token: "csrf-loop3",
           }),
           {
@@ -364,7 +380,7 @@ describe("BrowserAppServices", () => {
       .mockResolvedValueOnce(
         new Response(
           JSON.stringify({
-            application_version: "1.0.0",
+            application_version: "1.1.0",
             csrf_token: "csrf-loop3",
           }),
           {
@@ -440,7 +456,7 @@ describe("BrowserAppServices", () => {
       .mockResolvedValueOnce(
         new Response(
           JSON.stringify({
-            application_version: "1.0.0",
+            application_version: "1.1.0",
             csrf_token: "csrf-loop3",
           }),
           {

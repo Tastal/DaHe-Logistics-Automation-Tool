@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import hashlib
 import json
@@ -10,6 +10,8 @@ from types import SimpleNamespace
 import pytest
 
 from dahe.adapters.chengfeng.browser_runtime import (
+    PREPARE_DAILY_WORKER_TIMEOUT_SECONDS,
+    PREPARE_OPERATIONAL_WORKER_TIMEOUT_SECONDS,
     BrowserReadPayload,
     BrowserRuntimeError,
     IsolatedBrowserRuntime,
@@ -44,6 +46,16 @@ class _FakeProcess:
         return json.dumps(response)
 
 
+class _TimeoutRecordingProcess(_FakeProcess):
+    def __init__(self, response: dict[str, object]) -> None:
+        super().__init__(response)
+        self.timeouts: list[float] = []
+
+    def request_line(self, line: str, *, timeout_seconds: float) -> str:
+        self.timeouts.append(timeout_seconds)
+        return super().request_line(line, timeout_seconds=timeout_seconds)
+
+
 class _SequenceProcess(_FakeProcess):
     def __init__(self, responses: list[dict[str, object]]) -> None:
         if not responses:
@@ -70,7 +82,7 @@ def _response(
     prepare_result: object = None,
 ) -> dict[str, object]:
     return {
-        "schema_version": 6,
+        "schema_version": 9,
         "request_id": "replaced",
         "ok": True,
         "selected_browser": "msedge",
@@ -138,6 +150,8 @@ def _daily_freshness_evidence() -> dict[str, object]:
         "fresh_query_response_observed": True,
         "page_count": 1,
         "route": "/wayBill",
+        "contract_subject_code": "shanxi_guienbo",
+        "contract_subject_confirmed": True,
     }
 
 
@@ -215,7 +229,15 @@ def test_parent_uses_dedicated_automated_daily_transition(
     process = _FakeProcess(
         _response(
             discovery=[_daily_observation()],
-            prepare_result=_daily_freshness_evidence(),
+            prepare_result={
+                key: value
+                for key, value in _daily_freshness_evidence().items()
+                if key
+                not in {
+                    "contract_subject_code",
+                    "contract_subject_confirmed",
+                }
+            },
         )
     )
     events: list[tuple[str, str]] = []
@@ -232,12 +254,12 @@ def test_parent_uses_dedicated_automated_daily_transition(
         process.requests[0]["command"]
         == "prepare_daily_from_automated"
     )
-    assert events == [
-        (
-            "browser_read_freshness_verified",
-            "scope=daily cache_refresh_count=1 page_count=1 route=/wayBill",
-        )
-    ]
+    assert events[0][0] == "browser_read_freshness_verified"
+    assert events[0][1].startswith(
+        "scope=daily cache_refresh_count=1 page_count=1 route=/wayBill "
+    )
+    assert "settlement_prepare_count=0" in events[0][1]
+    assert "settlement_list_request_count=0" in events[0][1]
 
 
 def test_parent_reuses_cached_operational_daily_authority(
@@ -274,14 +296,11 @@ def test_parent_keeps_frozen_daily_worker_alive_after_page_closes(
 def test_parent_builds_operational_daily_authority_through_page_transition(
     tmp_path: Path,
 ) -> None:
-    process = _SequenceProcess(
-        [
-            _response(prepare_result=_operational_probe()),
-            _response(
-                discovery=[_daily_observation()],
-                prepare_result=_daily_freshness_evidence(),
-            ),
-        ]
+    process = _FakeProcess(
+        _response(
+            discovery=[_daily_observation()],
+            prepare_result=_daily_freshness_evidence(),
+        )
     )
     runtime = _runtime(tmp_path, process)
 
@@ -289,10 +308,28 @@ def test_parent_builds_operational_daily_authority_through_page_transition(
 
     assert observation["path"] == "/api/hz/orderItem/queryOrderItemListPC"
     assert [request["command"] for request in process.requests] == [
-        "prepare_operational_compat",
-        "prepare_daily_from_automated",
+        "prepare_operational_daily",
     ]
     assert runtime._active_read_scope == "daily"
+
+
+def test_operational_daily_budget_matches_subject_switch_preparation(
+    tmp_path: Path,
+) -> None:
+    process = _TimeoutRecordingProcess(
+        _response(
+            discovery=[_daily_observation()],
+            prepare_result=_daily_freshness_evidence(),
+        )
+    )
+    runtime = _runtime(tmp_path, process)
+
+    runtime.prepare_operational_daily()
+
+    assert PREPARE_DAILY_WORKER_TIMEOUT_SECONDS == (
+        PREPARE_OPERATIONAL_WORKER_TIMEOUT_SECONDS
+    )
+    assert process.timeouts == [PREPARE_OPERATIONAL_WORKER_TIMEOUT_SECONDS]
 
 
 @pytest.mark.parametrize(

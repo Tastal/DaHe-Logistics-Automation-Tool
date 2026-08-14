@@ -53,11 +53,17 @@ describe("System runtime diagnostics", () => {
     expect(await screen.findByText("<script>alert(1)</script>")).toBeVisible();
     expect(container.querySelector("script")).toBeNull();
     expect(screen.getByRole("button", { name: "暂停" })).toBeVisible();
-    expect(screen.getByRole("button", { name: "复制可见日志" })).toBeVisible();
-    expect(screen.getByRole("link", { name: "导出全部日志" })).toHaveAttribute(
+    expect(screen.getByRole("button", { name: "复制日志" })).toBeVisible();
+    expect(screen.getByRole("link", { name: "导出日志" })).toHaveAttribute(
       "href",
       "/api/v1/diagnostics/logs/export",
     );
+    expect(screen.getByRole("button", { name: "导出诊断" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "打开目录" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "复制摘要" })).toBeVisible();
+    expect(screen.queryByText("最近问题")).toBeNull();
+    expect(screen.queryByRole("button", { name: "运行状态" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "数据管理" })).toBeNull();
     await waitFor(() => expect(api.subscribeRuntimeLogs).toHaveBeenCalled());
   });
 

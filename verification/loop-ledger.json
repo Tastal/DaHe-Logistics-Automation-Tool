@@ -1,44 +1,43 @@
 {
   "acceptance": null,
-  "current_loop": "loop-10",
+  "current_loop": "loop-14",
   "gate_results": [
     {
-      "evidence": "verification/loops/loop-10/20260810T210226+0800/gate-a-evidence.json",
-      "id": "loop-10-gate-a-current-machine-fix",
+      "evidence": "verification/loops/loop-14/20260814T075358+0800/gate-a-evidence.json",
+      "id": "loop-14-gate-a-dual-subject-and-ui",
       "status": "passed"
     },
     {
       "evidence": null,
-      "id": "loop-10-gate-b-install-update-schema",
+      "id": "loop-14-gate-b-update-build-and-install",
       "status": "pending"
     },
     {
       "evidence": null,
-      "id": "loop-10-gate-c-local-diagnostics-release",
+      "id": "loop-14-gate-c-github-release-and-final-deployment",
       "status": "pending"
     }
   ],
   "input_manifest": {
-    "path": "verification/loops/loop-10/20260810T210226+0800/input-manifest.json",
-    "sha256": "096c183f85e2aa8d5a920eda6a996ad2943909fa75cf2b9c8ffe75cfff783f0f"
+    "path": "verification/loops/loop-14/20260814T075358+0800/input-manifest.json",
+    "sha256": "7d1b8ff1395000e197da75367e24550f34f8f9a11aef596d27d93990026c7c21"
   },
-  "last_accepted_git_commit": "caeee5478ea22bc96538ca5a41886118e2b9fffd",
+  "last_accepted_git_commit": "157fa8763ed2a21a6dab8d96a3be2555c1ab8ded",
   "next_inputs": [
-    "Implement the ordinary-user one-folder installer and stable launcher in Gate B.",
-    "Implement the separate updater with hash, domain, active-job, schema preflight, readiness, and rollback gates.",
-    "Keep the current 0.8.1 installation and production data untouched until Gate B migration preflight passes.",
-    "Keep every Chengfeng business write disabled."
+    "Keep every Chengfeng business write disabled.",
+    "Complete the resumable and local-import updater acceptance before building 1.1.0.",
+    "Build exactly five 1.1.0 release assets from the sanitized public release commit.",
+    "Do not publish or install 1.1.0 until Gate B passes."
   ],
   "operational_acceptance": null,
   "project_id": "DaHeLogistics",
-  "revision": 44,
-  "run_id": "20260810T210226+0800",
+  "revision": 51,
+  "run_id": "20260814T075358+0800",
   "schema_version": 4,
   "status": "in_progress",
   "unresolved_risks": [
-    "Gate B installer, updater, and schema rollback are not implemented or accepted.",
-    "Gate C local diagnostics and v1.0.0 publication are not implemented or accepted.",
-    "A code-signing certificate is intentionally absent, so SmartScreen reputation prompts remain possible."
+    "Gate B and Gate C have not run; the installed release remains 1.0.0 on d1e058669c6c29f5319b26c7e7278eb2b08450ad.",
+    "Nine Windows symbolic-link safety tests remain skipped because this account lacks link-creation privilege; non-link path-safety coverage passed."
   ],
   "waiver": null
 }

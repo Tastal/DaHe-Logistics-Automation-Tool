@@ -23,6 +23,7 @@ from dahe.adapters.sqlite.audit_workflow import (
 )
 from dahe.adapters.sqlite.production_guard import ProductionReadOnlyGuardStore
 from dahe.api.errors import ApiError
+from dahe.application.chengfeng.contract_subject import require_contract_subject_code
 from dahe.diagnostics.runtime_log import RuntimeLogStore
 from dahe.ports.jobs import (
     IdempotencyConflictError,
@@ -193,14 +194,25 @@ def build_audit_workflow_router(
             "confirmed_problem",
             "normal_ready",
         ] = Query(default="all"),
+        contract_subject_code: str = Query(default="shanxi_guienbo"),
     ) -> dict[str, object]:
-        return repository.get_settlement_workspace(view=view)
+        return repository.get_settlement_workspace(
+            view=view,
+            contract_subject_code=require_contract_subject_code(
+                contract_subject_code
+            ),
+        )
 
     @router.get("/api/v1/settlement/ready-waybill-numbers")
     def get_ready_waybill_numbers(
         _: None = Depends(require_session),
+        contract_subject_code: str = Query(default="shanxi_guienbo"),
     ) -> dict[str, object]:
-        values = repository.list_latest_settlement_ready_waybill_numbers()
+        values = repository.list_latest_settlement_ready_waybill_numbers(
+            contract_subject_code=require_contract_subject_code(
+                contract_subject_code
+            )
+        )
         return {"count": len(values), "waybill_numbers": values}
 
     @router.get("/api/v1/audit/items/{work_item_id}")
@@ -480,11 +492,15 @@ def build_audit_workflow_router(
         _: None = Depends(require_session),
         q: str | None = Query(default=None, max_length=100),
         business_outcome: str | None = Query(default=None, max_length=50),
+        contract_subject_code: str = Query(default="shanxi_guienbo"),
     ) -> dict[str, object]:
         return {
             "items": repository.list_waybills(
                 query=q,
                 business_outcome=business_outcome,
+                contract_subject_code=require_contract_subject_code(
+                    contract_subject_code
+                ),
             )
         }
 
@@ -492,8 +508,14 @@ def build_audit_workflow_router(
     def get_history(
         waybill_id: str,
         _: None = Depends(require_session),
+        contract_subject_code: str = Query(default="shanxi_guienbo"),
     ) -> dict[str, object]:
-        matches = repository.list_waybills(query=waybill_id)
+        matches = repository.list_waybills(
+            query=waybill_id,
+            contract_subject_code=require_contract_subject_code(
+                contract_subject_code
+            ),
+        )
         exact = next(
             (item for item in matches if item["waybill_id"] == waybill_id),
             None,

@@ -7,6 +7,37 @@ fresh cache-disabled reads, a versioned installer and updater, Schema preflight
 and rollback, and bounded local diagnostics. The Ledger is execution evidence;
 it does not replace the durable product and development contracts.
 
+Loop 12 converges the operational daily workspace and console shell. Business
+date changes clear the previous date immediately and accept only the newest
+matching response; manual save confirms every current issue, including an
+explicit blank. Daily browser preparation goes directly to `/wayBill` and must
+not prepare or query the settlement page. The sidebar shows one backend-owned
+Chengfeng connection state, and the operator system view contains diagnostics,
+templates and settings only.
+
+Loop 13 makes each new business read one atomic whole run. Platform pagination
+only enumerates the authoritative list; details and images are read without
+50-item business batches, published once after full reconciliation, and handed
+to exactly one offline review Job. The UI binds to the new source Job, shows
+`正在离线审核 n/总数`, and appends only the contiguous completed prefix in frozen
+waybill order. Old `batch_v1` records remain read-only compatible.
+
+Loop 14 scopes every Chengfeng business identity by contract subject. The
+operator can select `山西贵恩博` or `上海晋亿晟` without navigating the idle browser;
+the selected subject is verified only when a settlement or daily read starts,
+and its tasks, reviews, history, reuse index and reports remain isolated. Schema
+`0041_contract_subject_scope` assigns all pre-existing records to Shanxi. The
+1.1.0 updater keeps GitHub as the only online source, adds validated resumable
+application-ZIP downloads and supports an equally validated local package
+import for unstable networks.
+
+The committed development checkout is the authoritative latest implementation.
+Run and verify it only through `.venv\Scripts\python.exe`. An installed build is
+a frozen release and is updated only when the user explicitly requests a new
+package; development work must never patch the installed directory in place.
+Every handoff reports the source HEAD, the executable identity currently bound
+to port 8877, and the installed release identity separately.
+
 ## Bootstrap
 
 Run from a normal Command Prompt:
@@ -26,6 +57,31 @@ Run every project check through the project virtual environment:
 ```powershell
 .\.venv\Scripts\python.exe tools\check.py
 ```
+
+The authoritative command currently runs roughly 3,000 Python tests and can
+take more than ten minutes on Windows. Do not treat an outer command timeout as
+a test failure or replace the full run with only targeted checks. Loop 13's
+narrow preflight is:
+
+```powershell
+.\.venv\Scripts\python.exe -m pytest `
+  tests\unit\application\chengfeng\test_fast_operational_capture.py `
+  tests\unit\application\chengfeng\test_browser_readiness.py `
+  tests\unit\application\daily\test_fast_operational_daily_capture.py `
+  tests\integration\test_daily_items_api.py `
+  tests\integration\test_daily_operational_progress_api.py `
+  tests\integration\test_loop8_audit_workflow_repository.py `
+  tests\integration\test_loop9_daily_live_execution.py `
+  tests\unit\platform\test_loop9_daily_browser_runtime.py `
+  tests\unit\platform\test_loop9_live_connector_runtime.py `
+  tests\unit\verification\test_loop9_request_audit.py `
+  tests\unit\adapters\test_browser_runtime.py -q
+npm.cmd --prefix frontend run check
+```
+
+These commands do not replace `tools/check.py`. The capture, migration, and
+projection tests use temporary databases; never exercise write acceptance
+against the formal data root.
 
 Run the offline startup preflight against a temporary data directory:
 
@@ -208,11 +264,13 @@ The archive URLs, license sources and SHA-256 pins are checked in under
 `%LOCALAPPDATA%\DaHeLogistics\development-tools\windows-release` and are never a
 production runtime dependency.
 
-Build the five formal assets only from a clean committed `1.0.0` checkout after
-the authoritative checks and frontend build pass:
+Build the five formal assets only from a clean committed checkout whose source
+version matches the intended release after the authoritative checks and
+frontend build pass. Keep the local archive under `dist/releases/<version>`;
+the binaries are ignored by Git while `dist/README.md` documents the layout:
 
 ```powershell
-$releaseOutput = "$env:LOCALAPPDATA\DaHeLogistics\release-output\1.0.0"
+$releaseOutput = Join-Path $PWD "dist\releases\1.1.0"
 .\.venv\Scripts\python.exe tools\build_formal_release.py `
   --output-root $releaseOutput `
   --browser-runtime-root "$env:LOCALAPPDATA\DaHeLogistics\runtimes\browser" `
@@ -226,9 +284,9 @@ UPX disabled, builds separate stable launcher and updater executables, packages
 CPU OCR in the installer and GPU OCR as an optional add-on, compiles a per-user
 NSIS installer, and writes exactly:
 
-- `DaHe-Logistics-Automation-Tool-1.0.0-Setup.exe`
-- `DaHe-Logistics-Automation-Tool-1.0.0-win-x64.zip`
-- `DaHe-Logistics-Automation-Tool-1.0.0-gpu-addon-win-x64.zip`
+- `DaHe-Logistics-Automation-Tool-<version>-Setup.exe`
+- `DaHe-Logistics-Automation-Tool-<version>-win-x64.zip`
+- `DaHe-Logistics-Automation-Tool-<version>-gpu-addon-win-x64.zip`
 - `update-manifest.json`
 - `SHA256SUMS.txt`
 
@@ -237,6 +295,12 @@ local Microsoft Defender installation; verify the source commit, manifest,
 five asset hashes, installed current pointer and readiness identity are equal.
 The installer uses normal-user scope and retains product data on uninstall.
 See ADR-041 and ADR-067.
+
+The application ZIP carries the updater for that version. The installed
+application prefers this versioned updater; the stable root updater remains as
+the compatibility entry for the first upgrade from an older release. The
+1.1.0 manifest accepts Schema `0039_network_batch_default` and migrates to
+`0041_contract_subject_scope`.
 
 The three source runtime arguments must point to already qualified browser,
 CPU OCR and GPU OCR environments. The builder does not publish their virtual

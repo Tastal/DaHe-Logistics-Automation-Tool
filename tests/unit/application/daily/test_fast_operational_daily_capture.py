@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
-from datetime import date, datetime, timedelta
+from datetime import date, datetime
 from types import SimpleNamespace
 
 import pytest
@@ -113,7 +113,7 @@ class DailyInvocation:
     checkpoint: DailyCaptureCheckpoint | None = None
 
 
-def test_daily_fast_capture_freezes_once_and_commits_twenty_item_batches() -> None:
+def test_daily_fast_capture_freezes_and_publishes_one_whole_run() -> None:
     adapter = FakeAdapter(total=21)
     batch_store = MemoryBatchStore()
     daily_store = MemoryDailyStore()
@@ -126,43 +126,18 @@ def test_daily_fast_capture_freezes_once_and_commits_twenty_item_batches() -> No
         daily_store=daily_store,
         clock=lambda: current_time[0],
     )
-    invocation = DailyInvocation()
-
-    first = coordinator.advance(
-        invocation=invocation,
-        authority=AUTHORITY,
-        list_port=daily_list,
-    )
-    invocation = replace(
-        invocation,
-        record_version=2,
-        checkpoint=first.checkpoint,
-    )
-    second = coordinator.advance(
-        invocation=invocation,
-        authority=AUTHORITY,
-        list_port=daily_list,
-    )
-    invocation = replace(
-        invocation,
-        record_version=3,
-        checkpoint=second.checkpoint,
-    )
-    current_time[0] = NOW + timedelta(seconds=1)
-    third = coordinator.advance(
-        invocation=invocation,
+    completed = coordinator.advance(
+        invocation=DailyInvocation(),
         authority=AUTHORITY,
         list_port=daily_list,
     )
 
-    assert first.has_more is True
-    assert second.has_more is True
-    assert third.has_more is False
+    assert completed.has_more is False
     assert daily_list.calls == [1]
-    assert batch_store.commit_calls == 2
+    assert batch_store.commit_calls == 1
     assert len(daily_store.observations) == 21
-    assert len(third.checkpoint.completed_observation_ids) == 21
-    assert third.checkpoint.revision == 3
+    assert len(completed.checkpoint.completed_observation_ids) == 21
+    assert completed.checkpoint.revision == 1
 
 
 def test_daily_fast_capture_preserves_platform_missing_ticket_as_missing_data() -> None:

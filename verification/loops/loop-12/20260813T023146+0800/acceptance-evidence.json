@@ -1,0 +1,132 @@
+{
+  "accepted_at": "2026-08-12T18:31:46.4338974Z",
+  "automated_checks": {
+    "authoritative_command": ".\\.venv\\Scripts\\python.exe tools\\check.py",
+    "edge_e2e_command": "npm.cmd --prefix frontend run test:e2e -- --workers=2",
+    "edge_e2e_tests_passed": 14,
+    "frontend": {
+      "build": "passed",
+      "test_files": 24,
+      "tests_passed": 143
+    },
+    "mypy_source_files": 356,
+    "mypy_status": "passed",
+    "python_tests_passed": 2960,
+    "python_tests_skipped": 9,
+    "ruff_status": "passed",
+    "skip_reason": "The current Windows account cannot create symbolic links."
+  },
+  "browser_contract": {
+    "connection_status_after_reads": "ready",
+    "daily_route": "/wayBill",
+    "settlement_route": "/billablewaybill",
+    "single_chengfeng_page": true,
+    "unrelated_browser_pages_managed": false,
+    "visible_window_preserved": true
+  },
+  "daily_read": {
+    "audit_evidence_sha256": "75d11f88bfe53dfa2aced1599e5845c94cd0c1d366a4dd3e7afa7317b5f4a344",
+    "business_date": "2026-08-12",
+    "business_job_id": "8efd9f614bf040218e9ad51bef2a0675",
+    "cache_refresh_count": 1,
+    "committed_batches": 2,
+    "direct_prepare_duration_ms": 4671,
+    "download_ticket_image_reads": 123,
+    "elapsed_seconds": 250,
+    "fetched_waybills": 64,
+    "get_waybill_detail_reads": 64,
+    "list_reads": 1,
+    "missing_ocr_results": 5,
+    "page_count": 1,
+    "platform_business_write_count": 0,
+    "recognized_ocr_results": 59,
+    "route": "/wayBill",
+    "settlement_list_request_count": 0,
+    "settlement_prepare_count": 0,
+    "status": "succeeded",
+    "technical_failures": 0,
+    "waybills": 64
+  },
+  "implementation_regression_correction": {
+    "failed_real_job_committed_batches": 0,
+    "failed_real_job_id": "e3d469a09dda4481be49f640098440cf",
+    "observed_failure": "The new prepare_operational_daily command was initially omitted from the Worker response whitelist and failed closed as browser_smoke_failed.",
+    "verified_fix": [
+      "The direct daily command now uses the same validated freshness and discovery response contract as the existing daily preparation command.",
+      "A dedicated red-green protocol regression test covers the safe response contract.",
+      "The corrected command completed the subsequent real read without settlement preparation or settlement list requests."
+    ]
+  },
+  "installed_release": {
+    "application_version": "1.0.0",
+    "build_git_commit": "d1e058669c6c29f5319b26c7e7278eb2b08450ad",
+    "changed_in_this_loop": false
+  },
+  "manual_review_contract": {
+    "all_unresolved_fields_submitted": true,
+    "authoritative_counts_returned": true,
+    "confirmed_null_supported": true,
+    "production_review_records_changed_for_acceptance": false,
+    "stale_business_date_and_record_version_rejected": true,
+    "temporary_database_checks_passed": true
+  },
+  "operator_ui": {
+    "backend_authoritative_connection_states_tested": 7,
+    "business_date_late_response_guard_tested": true,
+    "diagnostic_actions_converged": true,
+    "removed_panels_not_visible": true,
+    "scales_tested_percent": [
+      100,
+      125,
+      150,
+      200
+    ],
+    "sidebar_tool_icons": 4
+  },
+  "platform_request_audit": {
+    "daily": {
+      "allowed": 188,
+      "attempted": 188,
+      "denied": 0,
+      "redirects": 0,
+      "succeeded": 188
+    },
+    "forbidden_business_write_count": 0,
+    "settlement": {
+      "allowed": 40,
+      "attempted": 40,
+      "denied": 0,
+      "redirects": 0,
+      "succeeded": 40
+    }
+  },
+  "result": "passed",
+  "running_source_before_evidence_commit": {
+    "application_version": "1.0.0",
+    "browser_worker_source_sha256": "04b7f46b10a15ae879426dffa0872df8c2b58825653f3a072cc0151e6dd02d07",
+    "build_git_commit": "development",
+    "launch_interpreter": ".venv\\Scripts\\python.exe",
+    "readiness_http_status": 200,
+    "resource_sha256": "6c317c5f1f34c37f531385f03e6d92746d835da580f33a2439022cc28a38041c",
+    "schema_revision": "0039_network_batch_default",
+    "worker_matches_committed_source": true
+  },
+  "schema_version": 1,
+  "settlement_read": {
+    "audit_evidence_sha256": "18e0bc7fc8143cb542d6f84301c0c18bc88ef3f3227edf502077b81249341948",
+    "business_job_id": "955dab7e41cd4a50bf6a2ab93e080718",
+    "cache_refresh_count": 1,
+    "download_ticket_image_reads": 26,
+    "elapsed_seconds": 17,
+    "get_waybill_detail_reads": 13,
+    "list_reads": 1,
+    "page_count": 1,
+    "platform_business_write_count": 0,
+    "query_attempt_count": 1,
+    "route": "/billablewaybill",
+    "status": "succeeded",
+    "ticket_images": 26,
+    "waybills": 13
+  },
+  "source_commit": "224007857d7bd050f4726b6fc3c5dfd86d0c1b6e"
+}

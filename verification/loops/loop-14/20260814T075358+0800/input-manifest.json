@@ -1,0 +1,43 @@
+{
+  "allowed_external_resources": [
+    "https://pc.chengfengkuaiyun.com (read-only validation only)",
+    "https://github.com/Tastal/DaHe-Logistics-Automation-Tool",
+    "official CPython 3.12.10 embeddable package",
+    "official NSIS 3.12"
+  ],
+  "captured_at": "2026-08-13T23:53:58Z",
+  "chengfeng_contract": {
+    "allowed": [
+      "select the task contract subject as session context",
+      "read list and detail data",
+      "download ticket images"
+    ],
+    "contract_subjects": [
+      "shanxi_guienbo",
+      "shanghai_jinyisheng"
+    ],
+    "forbidden": [
+      "settlement confirmation",
+      "payment",
+      "receipt cancellation",
+      "dispatch",
+      "any other platform business write"
+    ],
+    "real_validation_authorized": true
+  },
+  "gate_order": [
+    "gate-a-dual-subject-and-ui",
+    "gate-b-update-build-and-install",
+    "gate-c-github-release-and-final-deployment"
+  ],
+  "kind": "loop_14_input_manifest",
+  "release_contract": {
+    "application_version": "1.1.0",
+    "public_history": "continue the independent sanitized public history",
+    "release_asset_count": 5,
+    "schema_revision": "0041_contract_subject_scope",
+    "user_data_separated": true
+  },
+  "schema_version": 1,
+  "source_baseline": "59d32935f24793e63ce35075d9235b605bc23f85"
+}

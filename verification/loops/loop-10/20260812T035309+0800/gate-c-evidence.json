@@ -1,0 +1,38 @@
+{
+  "accepted_at": "2026-08-11T19:53:09+00:00",
+  "diagnostics": {
+    "breadcrumb_count": 34,
+    "database_integrity": "ok",
+    "forbidden_content_hits": 0,
+    "maximum_age_days": 7,
+    "package_bytes": 859862,
+    "package_entries": [
+      "README.txt",
+      "breadcrumbs.jsonl",
+      "environment.json",
+      "runtime-logs.jsonl"
+    ],
+    "runtime_log_count": 71427
+  },
+  "github": {
+    "asset_count": 5,
+    "downloaded_asset_hashes_match_local": true,
+    "main_commit": "d1e058669c6c29f5319b26c7e7278eb2b08450ad",
+    "public_history_commit_count": 1,
+    "release_url": "https://github.com/Tastal/DaHe-Logistics-Automation-Tool/releases/tag/v1.0.0",
+    "repository": "Tastal/DaHe-Logistics-Automation-Tool",
+    "secret_scan_findings": 0,
+    "tag": "v1.0.0",
+    "tag_commit": "d1e058669c6c29f5319b26c7e7278eb2b08450ad"
+  },
+  "kind": "loop_10_gate_c_diagnostics_release_evidence",
+  "result": "passed",
+  "schema_version": 1,
+  "update_check": {
+    "available_version": null,
+    "current_version": "1.0.0",
+    "error_code": null,
+    "state": "up_to_date",
+    "update_available": false
+  }
+}

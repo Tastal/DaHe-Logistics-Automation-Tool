@@ -26,6 +26,9 @@ from dahe.adapters.sqlite.schema import (
     JOBS,
     OCR_RUN_GENERATIONS,
     OPERATIONAL_CAPTURE_RUNS,
+    OPERATIONAL_REVIEW_LINKS,
+    PLATFORM_JOB_SUBJECTS,
+    SETTLEMENT_CAPTURE_STRATEGIES,
     WORK_ITEMS,
 )
 from dahe.application.audit.layered_records import (
@@ -1075,6 +1078,7 @@ class SqliteAuditWorkflowRepository:
         self,
         *,
         view: str = "all",
+        contract_subject_code: str = "shanxi_guienbo",
     ) -> dict[str, object]:
         """Project one business fetch across its internal OCR batch jobs."""
 
@@ -1090,10 +1094,17 @@ class SqliteAuditWorkflowRepository:
             capture = (
                 connection.execute(
                     select(JOBS)
+                    .outerjoin(
+                        PLATFORM_JOB_SUBJECTS,
+                        PLATFORM_JOB_SUBJECTS.c.job_id == JOBS.c.job_id,
+                    )
                     .where(
                         JOBS.c.task_type == "settlement_capture",
-                        JOBS.c.conflict_key
-                        == "settlement_capture:operational_compat",
+                        func.coalesce(
+                            PLATFORM_JOB_SUBJECTS.c.contract_subject_code,
+                            "shanxi_guienbo",
+                        )
+                        == contract_subject_code,
                     )
                     .order_by(JOBS.c.created_sequence.desc())
                     .limit(1)
@@ -1114,6 +1125,16 @@ class SqliteAuditWorkflowRepository:
                 }
 
             capture_job_id = str(capture["job_id"])
+            whole_link = (
+                connection.execute(
+                    select(OPERATIONAL_REVIEW_LINKS).where(
+                        OPERATIONAL_REVIEW_LINKS.c.source_job_id
+                        == capture_job_id
+                    )
+                )
+                .mappings()
+                .one_or_none()
+            )
             links = tuple(
                 connection.execute(
                     select(IDEMPOTENCY_RECORDS)
@@ -1128,8 +1149,15 @@ class SqliteAuditWorkflowRepository:
                 )
                 .mappings()
             )
-            audit_job_ids = tuple(str(link["job_id"]) for link in links)
+            audit_job_ids = (
+                ()
+                if whole_link is not None and whole_link["review_job_id"] is None
+                else (str(whole_link["review_job_id"]),)
+                if whole_link is not None
+                else tuple(str(link["job_id"]) for link in links)
+            )
             latest_audit_job_update = None
+            review_job_status: str | None = None
             rows: tuple[Any, ...] = ()
             if audit_job_ids:
                 latest_audit_job_update = connection.execute(
@@ -1137,16 +1165,55 @@ class SqliteAuditWorkflowRepository:
                         JOBS.c.job_id.in_(audit_job_ids)
                     )
                 ).scalar_one()
+                if whole_link is not None:
+                    review_job_status = str(
+                        connection.execute(
+                            select(JOBS.c.status).where(
+                                JOBS.c.job_id == audit_job_ids[0]
+                            )
+                        ).scalar_one()
+                    )
                 rows = tuple(
                     connection.execute(
                         select(WORK_ITEMS)
                         .where(WORK_ITEMS.c.job_id.in_(audit_job_ids))
                         .order_by(
-                            WORK_ITEMS.c.ready_sequence,
+                            WORK_ITEMS.c.item_index
+                            if whole_link is not None
+                            else WORK_ITEMS.c.ready_sequence,
                             WORK_ITEMS.c.item_index,
                         )
                     ).mappings()
                 )
+                if whole_link is not None and review_job_status != "succeeded":
+                    visible_count = 0
+                    for row in rows:
+                        if str(row["status"]) not in {
+                            "succeeded",
+                            "failed",
+                            "waiting_user",
+                        }:
+                            break
+                        visible_count += 1
+                    rows = rows[:visible_count]
+            review_failed = bool(
+                whole_link is not None
+                and (
+                    review_job_status in {"failed", "cancelled"}
+                    or any(
+                        str(row["status"]) in {"failed", "cancelled"}
+                        for row in rows
+                    )
+                )
+            )
+            review_processing_complete = bool(
+                whole_link is not None
+                and len(rows) == int(whole_link["eligible_item_count"])
+                and all(
+                    str(row["status"]) in {"succeeded", "waiting_user"}
+                    for row in rows
+                )
+            )
             projected = tuple(
                 self._project_item(connection, row) for row in rows
             )
@@ -1159,6 +1226,11 @@ class SqliteAuditWorkflowRepository:
                 .mappings()
                 .one_or_none()
             )
+            capture_strategy = connection.execute(
+                select(SETTLEMENT_CAPTURE_STRATEGIES.c.strategy).where(
+                    SETTLEMENT_CAPTURE_STRATEGIES.c.job_id == capture_job_id
+                )
+            ).scalar_one_or_none()
 
         business_items = tuple(
             item
@@ -1225,8 +1297,18 @@ class SqliteAuditWorkflowRepository:
                 or str(capture_run["status"]) == "complete"
             )
         )
-        is_complete = capture_complete and recognized >= total
-        if capture_status in {"failed", "cancelled"}:
+        is_complete = bool(
+            capture_complete
+            and recognized >= total
+            and (
+                whole_link is None
+                or review_processing_complete
+            )
+        )
+        is_incomplete = bool(
+            capture_status in {"failed", "cancelled"} or review_failed
+        )
+        if is_incomplete:
             phase = "本次获取未完整"
             phase_code = "incomplete"
         elif is_complete:
@@ -1247,8 +1329,8 @@ class SqliteAuditWorkflowRepository:
             phase = "正在下载磅单" if total else "正在读取运单"
             phase_code = "download" if total else "read"
         elif recognized < total:
-            phase = "正在识别磅单"
-            phase_code = "recognize"
+            phase = f"正在离线审核 {recognized}/{total}"
+            phase_code = "offline_review"
         else:
             phase = "正在整理结果"
             phase_code = "finalize"
@@ -1263,7 +1345,7 @@ class SqliteAuditWorkflowRepository:
                 "complete"
                 if is_complete
                 else "incomplete"
-                if capture_status in {"failed", "cancelled"}
+                if is_incomplete
                 else "running"
             ),
             "is_complete": is_complete,
@@ -1293,10 +1375,22 @@ class SqliteAuditWorkflowRepository:
             "ocr_images_completed": ocr_images_completed,
             "ocr_images_total": len(rows) * 2,
             "finalized": len(projected),
+            "source_job_id": capture_job_id,
+            "source_record_version": int(capture["record_version"]),
+            "capture_mode": (
+                "batch_v1"
+                if capture_strategy is None
+                else str(capture_strategy)
+            ),
+            "visible_prefix_count": len(projected),
+            "online_capture_complete": capture_complete,
         }
         phase_started_at = capture["created_at"]
-        if phase_code in {"recognize", "finalize", "complete"} and links:
-            phase_started_at = min(str(link["created_at"]) for link in links)
+        if phase_code in {"offline_review", "finalize", "complete"}:
+            if whole_link is not None:
+                phase_started_at = str(whole_link["created_at"])
+            elif links:
+                phase_started_at = min(str(link["created_at"]) for link in links)
         latest_fetch.update(
             _progress_timing(
                 started_at=capture["created_at"],
@@ -1313,7 +1407,7 @@ class SqliteAuditWorkflowRepository:
                 total=progress_total,
                 is_terminal=(
                     is_complete
-                    or capture_status in {"failed", "cancelled"}
+                    or is_incomplete
                 ),
             )
         )
@@ -1321,12 +1415,28 @@ class SqliteAuditWorkflowRepository:
             "latest_fetch": latest_fetch,
             "items": items,
             "counts": counts,
+            "source_job_id": capture_job_id,
+            "source_record_version": int(capture["record_version"]),
+            "capture_mode": (
+                "batch_v1"
+                if capture_strategy is None
+                else str(capture_strategy)
+            ),
+            "visible_prefix_count": len(projected),
+            "online_capture_complete": capture_complete,
         }
 
-    def list_latest_settlement_ready_waybill_numbers(self) -> tuple[str, ...]:
+    def list_latest_settlement_ready_waybill_numbers(
+        self,
+        *,
+        contract_subject_code: str = "shanxi_guienbo",
+    ) -> tuple[str, ...]:
         """Return one stable, deduplicated list for the visible business handoff."""
 
-        workspace = self.get_settlement_workspace(view="normal_ready")
+        workspace = self.get_settlement_workspace(
+            view="normal_ready",
+            contract_subject_code=contract_subject_code,
+        )
         items = workspace["items"]
         assert isinstance(items, tuple)
         ordered: list[str] = []
@@ -1343,12 +1453,24 @@ class SqliteAuditWorkflowRepository:
         *,
         query: str | None = None,
         business_outcome: str | None = None,
+        contract_subject_code: str = "shanxi_guienbo",
     ) -> tuple[dict[str, object], ...]:
         self.sync_business_audit_results()
         statement = (
             select(WORK_ITEMS)
             .join(JOBS, JOBS.c.job_id == WORK_ITEMS.c.job_id)
+            .outerjoin(
+                PLATFORM_JOB_SUBJECTS,
+                PLATFORM_JOB_SUBJECTS.c.job_id == JOBS.c.job_id,
+            )
             .where(JOBS.c.task_type == "audit")
+            .where(
+                func.coalesce(
+                    PLATFORM_JOB_SUBJECTS.c.contract_subject_code,
+                    "shanxi_guienbo",
+                )
+                == contract_subject_code
+            )
             .order_by(
                 WORK_ITEMS.c.ready_sequence.desc(),
                 WORK_ITEMS.c.item_index,

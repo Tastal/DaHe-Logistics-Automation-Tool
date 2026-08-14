@@ -99,7 +99,7 @@ export interface SettlementLatestFetch {
   fetchedCount: number;
   recognizedCount: number;
   technicalFailureCount: number;
-  phase: "login" | "read" | "download" | "recognize" | "finalize" | "complete" | "incomplete";
+  phase: "opening_browser" | "waiting_login" | "login" | "read" | "download" | "recognize" | "offline_review" | "finalize" | "complete" | "incomplete";
   metadataChecked: number;
   reused: number;
   imagesDownloaded: number;
@@ -111,6 +111,11 @@ export interface SettlementLatestFetch {
 
 export interface SettlementWorkspaceResult extends AuditWorkspaceResult {
   latestFetch: SettlementLatestFetch | null;
+  sourceJobId?: string | null;
+  sourceRecordVersion?: number;
+  captureMode?: "batch_v1" | "whole_run_v1";
+  visiblePrefixCount?: number;
+  onlineCaptureComplete?: boolean;
 }
 
 export interface AuditDecisionInput {

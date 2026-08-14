@@ -345,11 +345,13 @@ def test_operational_batch_audits_private_detail_and_image_outcomes(
             *,
             detail_concurrency: int,
             image_concurrency: int,
+            contract_subject_code: str = "shanxi_guienbo",
             active_job_id: str | None = None,
             progress_callback: object | None = None,
         ) -> tuple[BrowserOperationalBatchItem, ...]:
             assert detail_concurrency == 4
             assert image_concurrency == 6
+            assert contract_subject_code == "shanxi_guienbo"
             assert active_job_id is None
             assert progress_callback is None
             assert [identity for identity, _request in requests] == ["101"]
@@ -438,6 +440,85 @@ def test_operational_batch_audits_private_detail_and_image_outcomes(
         },
     )
     assert audit.request_counts.succeeded == 3
+
+
+def test_operational_whole_run_uses_dedicated_browser_command(
+    tmp_path: Path,
+) -> None:
+    calls: list[str] = []
+
+    class WholeBrowser(_Browser):
+        def read_operational_whole_run(
+            self,
+            requests: tuple[tuple[str, LiveAuthorizedRequest], ...],
+            **kwargs: object,
+        ) -> tuple[BrowserOperationalBatchItem, ...]:
+            calls.append("whole")
+            assert kwargs["detail_concurrency"] == 4
+            assert kwargs["image_concurrency"] == 6
+            items: list[BrowserOperationalBatchItem] = []
+            for identity, _request in requests:
+                content = json.dumps(
+                    {
+                        "data": [{
+                            "id": identity,
+                            "sn": f"WB-{identity}",
+                            "carNumber": f"TEST-{identity}",
+                            "originalTon": "30.00",
+                            "currentTon": "29.80",
+                            "originalTonImageUrl": None,
+                            "image": None,
+                        }]
+                    }
+                ).encode()
+                items.append(
+                    BrowserOperationalBatchItem(
+                        platform_waybill_id=identity,
+                        source_revision_sha256="a" * 64,
+                        detail=BrowserReadPayload(
+                            content=content,
+                            sha256=hashlib.sha256(content).hexdigest(),
+                            media_type="application/json",
+                            byte_size=len(content),
+                            status_code=200,
+                        ),
+                        images=(),
+                    )
+                )
+            return tuple(items)
+
+    runtime = LiveConnectorRuntime(
+        browser=WholeBrowser(),  # type: ignore[arg-type]
+        manifest=_manifest(),
+        data_root=tmp_path,
+        authorizer=_Authorizer(),
+        build_sha256=BUILD_SHA,
+        contract_selection_sha256=CONTRACT_SELECTION_SHA,
+        clock=lambda: datetime(2026, 8, 13, 8, 0, tzinfo=UTC),
+    )
+    connector = VerifiedChengfengConnector(
+        runtime=runtime,
+        data_root=tmp_path,
+        authorizer=_Authorizer(),
+    )
+    summaries = tuple(
+        WaybillSummary(
+            platform_waybill_id=str(index),
+            waybill_number=f"WB-{index}",
+            vehicle_number=f"TEST-{index}",
+        )
+        for index in range(101)
+    )
+
+    result = connector.read_waybill_whole_run(
+        authority=_authority(),
+        summaries=summaries,
+        detail_concurrency=4,
+        image_concurrency=6,
+    )
+
+    assert calls == ["whole"]
+    assert len(result) == 101
 
 
 def test_live_runtime_decodes_the_distinct_historical_list_contract(

@@ -374,16 +374,12 @@ def test_repeated_operational_browser_close_stops_after_bounded_retries() -> Non
         work,
         diagnostic_code="CF-BROWSER-CLOSED",
     )
-    second = executor._operational_browser_recovery_execution(
-        work,
-        diagnostic_code="CF-BROWSER-CLOSED",
-    )
     exhausted = executor._operational_browser_recovery_execution(
         work,
         diagnostic_code="CF-BROWSER-CLOSED",
     )
 
-    assert first.outcome == second.outcome == "retry"
+    assert first.outcome == "retry"
     assert exhausted.outcome == "failed"
     assert exhausted.diagnostic_code == "CF-BROWSER-CLOSED"
 
@@ -502,13 +498,56 @@ class _OperationalBrowserRuntime:
         self.park_count += 1
 
 
+class _MissingOperationalRuntime(_OperationalBrowserRuntime):
+    running = False
+
+
+class _StaleAutomatedBrowserControl(_OperationalBrowserControl):
+    def __init__(self) -> None:
+        super().__init__()
+        self.recovery_calls: list[dict[str, object]] = []
+        self._record = SimpleNamespace(
+            browser_control_mode="automated",
+            browser_lifecycle="ready",
+            holder_kind="worker",
+            holder_id="old-attempt",
+            job_id="operational-job",
+            instance_id="old-instance",
+            worker_id="old-worker",
+            control_epoch=12,
+            record_version=7,
+        )
+
+    def get(self, session_id: str) -> SimpleNamespace:
+        assert session_id == "platform-session"
+        return self._record
+
+    def begin_automatic_recovery(self, **values: object) -> SimpleNamespace:
+        self.recovery_calls.append(values)
+        self._record = SimpleNamespace(
+            browser_control_mode="idle",
+            browser_lifecycle="recovering",
+            holder_kind=None,
+            holder_id=None,
+            job_id="operational-job",
+            instance_id=None,
+            worker_id=None,
+            control_epoch=13,
+            record_version=8,
+        )
+        return self._record
+
+
 class _OperationalPrepareRuntime:
     running = True
 
     def __init__(self) -> None:
         self.prepare_count = 0
 
-    def prepare_operational_compat(self) -> None:
+    def prepare_operational_compat(
+        self,
+        _contract_subject_code: str = "shanxi_guienbo",
+    ) -> None:
         self.prepare_count += 1
 
 
@@ -733,3 +772,28 @@ def test_stale_operational_terminal_cannot_close_a_new_browser_session() -> None
     assert runtime.handoff_count == 0
     assert runtime.close_count == 0
     assert control.acquired == []
+
+
+def test_terminal_operational_holder_with_missing_runtime_is_recovered() -> None:
+    runtime = _MissingOperationalRuntime()
+    executor, invocations, _control, materialized = (
+        _operational_terminal_executor(runtime=runtime)
+    )
+    control = _StaleAutomatedBrowserControl()
+    executor._browser_control = control
+    executor._pending_operational_handoffs.clear()
+    stopped: list[dict[str, object]] = []
+    executor._stop_browser = lambda **values: stopped.append(values)
+
+    executor.close_terminal_job("operational-job")
+
+    assert invocations.retired == ["operational-job"]
+    assert materialized == ["operational-job"]
+    assert len(control.recovery_calls) == 1
+    assert stopped == [
+        {
+            "access_window_id": "operational-window",
+            "job_id": "operational-job",
+            "expected_record_version": 8,
+        }
+    ]

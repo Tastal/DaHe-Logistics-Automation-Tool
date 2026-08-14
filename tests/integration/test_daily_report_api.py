@@ -156,7 +156,7 @@ def test_report_api_requires_confirmed_settings_and_idempotency(tmp_path: Path) 
         assert created.json()["report"]["row_count"] == 1
         assert created.json()["report"]["status"] == "confirmed"
         assert created.json()["report"]["file_name"] == (
-            "20260801-金鸡滩煤矿装卸车明细.xlsx"
+            "装卸车明细-山西贵恩博-2026-08-01.xlsx"
         )
         opened = client.post(
             f"/api/v1/daily/reports/{created.json()['report']['report_id']}/open-folder",

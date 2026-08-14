@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import json
 from pathlib import Path
@@ -28,7 +28,7 @@ class _FakeProcess:
         self.requests.append(request)
         return json.dumps(
             {
-                "schema_version": 6,
+                "schema_version": 9,
                 "request_id": request["request_id"],
                 "ok": True,
                 "selected_browser": "msedge",
@@ -75,6 +75,8 @@ def _probe() -> dict[str, object]:
 def _operational_probe() -> dict[str, object]:
     return {
         **_probe(),
+        "contract_subject_code": "shanxi_guienbo",
+        "contract_subject_confirmed": True,
         "query_trace": {
             "schema_version": 1,
             "query_attempt_id": "1" * 32,
@@ -83,7 +85,7 @@ def _operational_probe() -> dict[str, object]:
             "blocked_request_count": 2,
             "query_attempt_count": 1,
             "zero_retry_performed": False,
-            "cache_refresh_count": 1,
+            "cache_refresh_count": 2,
             "page_count": 1,
             "request_method": "POST",
             "request_path": (
@@ -96,6 +98,14 @@ def _operational_probe() -> dict[str, object]:
             "response_structure_sha256": "a" * 64,
             "duration_ms": 25,
         },
+    }
+
+
+def _probe_without_subject(value: dict[str, object]) -> dict[str, object]:
+    return {
+        key: item
+        for key, item in value.items()
+        if key not in {"contract_subject_code", "contract_subject_confirmed"}
     }
 
 
@@ -145,7 +155,7 @@ def test_parent_requests_operational_compat_without_contract_values(
         blocked_request_count=2,
         query_attempt_count=1,
         zero_retry_performed=False,
-        cache_refresh_count=1,
+        cache_refresh_count=2,
         page_count=1,
         request_method="POST",
         request_path=(
@@ -161,8 +171,9 @@ def test_parent_requests_operational_compat_without_contract_values(
     process = runtime._process
     assert isinstance(process, _FakeProcess)
     assert process.requests[-1] == {
-        "schema_version": 6,
+        "schema_version": 9,
         "command": "prepare_operational_compat",
+                    "contract_subject_code": "shanxi_guienbo",
         "request_id": process.requests[-1]["request_id"],
     }
     assert process.timeouts[-1] == PREPARE_OPERATIONAL_WORKER_TIMEOUT_SECONDS
@@ -190,7 +201,7 @@ def test_parent_never_reuses_operational_authority_after_worker_exit(
     runtime = _runtime(tmp_path, _operational_probe())
     runtime._active_read_scope = "settlement"
     runtime._operational_probe = SettlementListProbe.from_worker_payload(
-        _operational_probe(),
+        _probe_without_subject(_operational_probe()),
         require_query_trace=True,
     )
     runtime._process = _StoppedFakeProcess(  # type: ignore[assignment]
@@ -257,7 +268,7 @@ def test_parent_rejects_missing_or_unsafe_prepare_probe(
         {"approved_request_count": 2},
         {"query_attempt_count": 2},
         {"zero_retry_performed": True},
-        {"cache_refresh_count": 2},
+        {"cache_refresh_count": 3},
         {"blocked_request_count": -1},
         {"request_method": "GET"},
         {"request_path": "/api/private"},
@@ -287,7 +298,7 @@ def test_parent_rejects_prepare_probe_on_non_prepare_response(
     with pytest.raises(BrowserRuntimeError, match="command"):
         runtime._exchange(
             {
-                "schema_version": 6,
+                "schema_version": 9,
                 "command": "status",
                 "request_id": "status-with-probe",
             },

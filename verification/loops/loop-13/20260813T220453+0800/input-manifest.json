@@ -1,0 +1,30 @@
+{
+  "acceptance_gates": [
+    "one start request opens or rebuilds the visible Chengfeng browser and continues the same settlement or daily task",
+    "new settlement and daily reads publish one whole_run_v1 online result and create exactly one offline review job",
+    "platform pagination never creates a durable business batch and no partial online result is published",
+    "offline review remains non-terminal until the frozen total is reconciled and exposes only the contiguous completed prefix",
+    "a completed daily whole run projects every current-source observation even when unchanged fields reuse an append-only revision",
+    "daily capture calls /wayBill directly and performs zero settlement list requests",
+    "settlement and daily reads preserve one visible Chengfeng page after completion and perform zero platform business writes",
+    "the committed source, isolated browser Worker, Schema revision, frontend assets, and running development service are verified separately from the unchanged installed release"
+  ],
+  "allowed_external_resources": [
+    "https://pc.chengfengkuaiyun.com (read-only validation only)"
+  ],
+  "captured_at": "2026-08-13T14:04:53.6757633Z",
+  "fixture_policy": "Automated migration, atomicity, ordering, restart, cancellation, projection, and UI checks use temporary databases and fake platform adapters. Current live evidence reuses the two completed read-only business reads and their sealed request audits; the projection correction is verified against the completed local 136-waybill source without making another platform request.",
+  "forbidden_platform_operations": [
+    "settlement confirmation",
+    "payment",
+    "receipt cancellation",
+    "dispatch",
+    "any other platform business write"
+  ],
+  "installed_release_policy": "Do not build, install, update shortcuts, or publish a release in Loop 13.",
+  "kind": "loop_13_atomic_whole_run_convergence_input_manifest",
+  "replaces_run_id": "20260813T163158+0800",
+  "schema_version": 1,
+  "source_commit": "402033fcc4ac08bcae8e9111096043df06b5a35c",
+  "source_parent_acceptance_commit": "654567713862a38031b66d180632387b81add04d"
+}

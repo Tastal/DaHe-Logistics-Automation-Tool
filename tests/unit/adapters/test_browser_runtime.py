@@ -354,6 +354,35 @@ def test_headless_login_failure_rebuilds_a_visible_owned_context(
     assert runtime._headless is False
 
 
+def test_operational_worker_transport_accepts_whole_run_command_capacity(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    runtime = IsolatedBrowserRuntime(
+        project_root=tmp_path / "project",
+        data_root=tmp_path / "data",
+        runtime_root=tmp_path / "browser-runtime",
+    )
+    process = _RecordingProcess(_response())
+    captured: dict[str, object] = {}
+
+    def build_process(**kwargs: object) -> _RecordingProcess:
+        captured.update(kwargs)
+        return process
+
+    monkeypatch.setattr(runtime, "_validate_installation", lambda: None)
+    monkeypatch.setattr(
+        browser_runtime_module,
+        "SupervisedLineProcess",
+        build_process,
+    )
+
+    assert runtime.start_operational() == "msedge"
+
+    assert captured["max_request_bytes"] == 4 * 1024 * 1024
+    assert captured["max_response_bytes"] == 16 * 1024 * 1024
+
+
 def test_operational_handoff_uses_the_bounded_worker_command(
     tmp_path: Path,
 ) -> None:

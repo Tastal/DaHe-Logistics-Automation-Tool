@@ -10,6 +10,7 @@ const settlementItem = {
   business_outcome: "awaiting_review",
   decision: "review",
   review_reason: "numeric_mismatch",
+  review_highlight_roles: ["loading", "unloading"],
   diagnostic_code: null,
   platform_loading_net: "30.00",
   platform_unloading_net: "29.80",
@@ -102,10 +103,11 @@ async function installDailyRoutes(page: Page) {
     });
   });
   await page.route(/\/api\/v1\/daily\/items\?.*$/, async (route) => {
+    const requestedBusinessDate = new URL(route.request().url()).searchParams.get("business_date") ?? "2026-08-05";
     await route.fulfill({
       contentType: "application/json",
       body: JSON.stringify({
-        business_date: "2026-08-05",
+        business_date: requestedBusinessDate,
         counts: { all: 2, needs_review: 0, reviewed: 2 },
         items: [1, 2].map((index) => ({
           platform_waybill_id: `daily-${index}`,
@@ -153,7 +155,7 @@ test("latest freight-settlement workspace has one operation row and direct decis
   await expect(
     page.getByRole("navigation", { name: "主导航" }).getByText("运费结算", { exact: true }),
   ).toHaveCount(1);
-  const updateButton = page.getByRole("button", { name: /检查更新/ });
+  const updateButton = page.getByRole("button", { name: /版本更新/ });
   const exitButton = page.getByRole("button", { name: "退出程序" });
   const updateBox = await updateButton.boundingBox();
   const exitBox = await exitButton.boundingBox();
@@ -162,6 +164,50 @@ test("latest freight-settlement workspace has one operation row and direct decis
   expect(updateBox?.x ?? 0).toBeLessThan(exitBox?.x ?? 0);
   expect(updateBox?.width).toBe(exitBox?.width);
   expect(updateBox?.height).toBe(exitBox?.height);
+  const subjectButtons = page.locator(".contract-subject-button");
+  await expect(subjectButtons).toHaveCount(2);
+  const subjectBoxes = await subjectButtons.evaluateAll((buttons) =>
+    buttons.map((button) => {
+      const box = button.getBoundingClientRect();
+      return { height: Math.round(box.height), right: box.right, left: box.left };
+    }),
+  );
+  expect(subjectBoxes.map(({ height }) => height)).toEqual([20, 20]);
+  expect(subjectBoxes[0]?.right ?? 0).toBeLessThanOrEqual(subjectBoxes[1]?.left ?? 0);
+
+  const utilityButtons = page.locator(".utility-navigation .utility-icon-button");
+  await expect(utilityButtons).toHaveCount(4);
+  const utilityMetrics = await utilityButtons.evaluateAll((buttons) =>
+    buttons.map((button) => {
+      const style = getComputedStyle(button);
+      const box = button.getBoundingClientRect();
+      return {
+        width: Math.round(box.width),
+        height: Math.round(box.height),
+        borderWidth: style.borderTopWidth,
+        backgroundColor: style.backgroundColor,
+      };
+    }),
+  );
+  expect(utilityMetrics).toEqual([
+    { width: 44, height: 44, borderWidth: "0px", backgroundColor: "rgba(0, 0, 0, 0)" },
+    { width: 44, height: 44, borderWidth: "0px", backgroundColor: "rgba(0, 0, 0, 0)" },
+    { width: 44, height: 44, borderWidth: "0px", backgroundColor: "rgba(0, 0, 0, 0)" },
+    { width: 44, height: 44, borderWidth: "0px", backgroundColor: "rgba(0, 0, 0, 0)" },
+  ]);
+  const hoverColors: string[] = [];
+  for (let index = 0; index < 4; index += 1) {
+    await utilityButtons.nth(index).hover();
+    hoverColors.push(
+      await utilityButtons.nth(index).evaluate((button) => getComputedStyle(button).color),
+    );
+  }
+  expect(hoverColors.slice(0, 3)).toEqual([
+    "rgb(37, 99, 235)",
+    "rgb(21, 128, 61)",
+    "rgb(161, 98, 7)",
+  ]);
+  expect(new Set(hoverColors).size).toBe(4);
   await expect(page.locator("main h1:not(.visually-hidden)")).toHaveCount(0);
   await expect(page.getByText(/capture:|operational_compat|settlement_capture/)).toHaveCount(0);
 
@@ -187,26 +233,47 @@ test("daily workspace uses one progress projection and keeps field editing visib
   await expect(page.locator(".workspace-progress")).toHaveCount(1);
   const input = page.getByLabel("出矿净重（吨）").first();
   expect(await input.evaluate((element) => getComputedStyle(element).borderStyle)).toBe("solid");
+  const loadingTimeInputs = page.locator(".daily-item-row").first().locator(".segmented-datetime").first().locator("input");
+  await expect(loadingTimeInputs).toHaveCount(6);
+  const timeBoxes = await loadingTimeInputs.evaluateAll((inputs) =>
+    inputs.map((element) => {
+      const box = element.getBoundingClientRect();
+      return {
+        part: element.dataset.part,
+        width: Math.round(box.width),
+        height: Math.round(box.height),
+      };
+    }),
+  );
+  expect(timeBoxes).toEqual([
+    { part: "year", width: 66, height: 44 },
+    { part: "month", width: 44, height: 44 },
+    { part: "day", width: 44, height: 44 },
+    { part: "hour", width: 44, height: 44 },
+    { part: "minute", width: 44, height: 44 },
+    { part: "second", width: 44, height: 44 },
+  ]);
+  const loadingTicketBox = await page.locator(".daily-item-row").first().locator(".daily-ticket-thumb").first().boundingBox();
+  expect(loadingTicketBox?.width ?? 0).toBeGreaterThanOrEqual(280);
   await page.getByRole("button", { name: "装货磅单" }).first().click();
   await expect(page.getByRole("dialog", { name: "装货磅单" })).toBeVisible();
   await page.keyboard.press("Escape");
   await page.screenshot({ path: "../output/playwright/ux-v2/daily-1366x768.png", fullPage: true });
 });
 
-test("runtime log stays before the collapsed issue history", async ({ page }) => {
+test("runtime diagnostics keep all six actions with no recent-issues panel", async ({ page }) => {
   await page.setViewportSize({ width: 1366, height: 768 });
   await installSettlementRoutes(page);
   await page.goto("/");
-  await page.getByRole("button", { name: "系统" }).click();
-  await page.getByRole("button", { name: "运行诊断" }).click();
+  await page.getByRole("button", { name: "系统设置", exact: true }).click();
 
   const terminal = page.locator(".runtime-log-terminal");
-  const issues = page.locator(".collapsible-history");
   await expect(terminal).toBeVisible();
-  await expect(issues).not.toHaveAttribute("open", "");
-  const terminalBox = await terminal.boundingBox();
-  const issuesBox = await issues.boundingBox();
-  expect(issuesBox?.y ?? 0).toBeGreaterThan((terminalBox?.y ?? 0) + (terminalBox?.height ?? 0));
+  await expect(page.getByText("最近问题", { exact: true })).toHaveCount(0);
+  for (const action of ["导出诊断", "打开目录", "复制摘要", "暂停", "复制日志"]) {
+    await expect(page.getByRole("button", { name: action, exact: true })).toBeVisible();
+  }
+  await expect(page.getByRole("link", { name: "导出日志", exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: "运行诊断" })).toHaveCount(1);
   await page.screenshot({ path: "../output/playwright/ux-v2/diagnostics-1366x768.png", fullPage: true });
 });
@@ -244,24 +311,10 @@ for (const viewport of viewports) {
     await installDailyRoutes(page);
     await page.goto("/");
     await expect(page.locator(".settlement-workspace")).toBeVisible();
-    if (viewport.width <= 999) {
-      await expect(page.getByRole("button", { name: "更多" })).toBeVisible();
-      await expect(page.getByRole("button", { name: "暂停" })).not.toBeVisible();
-    } else {
-      await expect(page.getByRole("button", { name: "更多" })).toHaveCount(0);
-      await expect(page.getByRole("button", { name: "暂停" })).toBeVisible();
-    }
     expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
     await page.screenshot({ path: `../output/playwright/ux-v2/settlement-${viewport.label}.png`, fullPage: true });
 
     await page.getByRole("button", { name: "装卸车明细" }).click();
-    if (viewport.width <= 999) {
-      await expect(page.getByRole("button", { name: "更多" })).toBeVisible();
-      await expect(page.getByRole("button", { name: "生成报表" })).not.toBeVisible();
-    } else {
-      await expect(page.getByRole("button", { name: "更多" })).toHaveCount(0);
-      await expect(page.getByRole("button", { name: "生成报表" })).toBeVisible();
-    }
     expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
     await page.screenshot({ path: `../output/playwright/ux-v2/daily-${viewport.label}.png`, fullPage: true });
 
@@ -269,8 +322,7 @@ for (const viewport of viewports) {
     expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
     await page.screenshot({ path: `../output/playwright/ux-v2/history-${viewport.label}.png`, fullPage: true });
 
-    await page.getByRole("button", { name: "系统" }).click();
-    await page.getByRole("button", { name: "运行诊断" }).click();
+    await page.getByRole("button", { name: "系统设置", exact: true }).click();
     expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
     await page.screenshot({ path: `../output/playwright/ux-v2/system-${viewport.label}.png`, fullPage: true });
   });
@@ -284,8 +336,10 @@ for (const viewport of [
     await page.setViewportSize({ width: viewport.width, height: viewport.height });
     await installSettlementRoutes(page);
     await page.goto("/");
-    await page.getByRole("button", { name: "系统" }).click();
-    for (const section of ["运行状态", "运行诊断", "识别模板", "参数设置", "数据管理"]) {
+    await page.getByRole("button", { name: "系统设置", exact: true }).click();
+    await expect(page.getByRole("button", { name: "运行状态", exact: true })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "数据管理", exact: true })).toHaveCount(0);
+    for (const section of ["运行诊断", "识别模板", "参数设置"]) {
       const button = page.getByRole("button", { name: section, exact: true });
       if (await button.count()) {
         await button.click();

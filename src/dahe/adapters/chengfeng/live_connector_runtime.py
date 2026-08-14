@@ -231,6 +231,9 @@ class LiveConnectorRuntime:
         clock: Callable[[], datetime],
         runtime_log_store: RuntimeLogStore | None = None,
         request_audit_store: PlatformReadAuditEvidenceStore | None = None,
+        contract_subject_for_job: Callable[[str], str] = (
+            lambda _job_id: "shanxi_guienbo"
+        ),
     ) -> None:
         self._browser = browser
         self._manifest = manifest
@@ -240,6 +243,7 @@ class LiveConnectorRuntime:
         self._contract_selection_sha256 = contract_selection_sha256
         self._clock = clock
         self._runtime_log_store = runtime_log_store
+        self._contract_subject_for_job = contract_subject_for_job
         self._builder = ChengfengLiveRequestBuilder(manifest)
         self._image_policy = ImageReadCapabilityPolicy(
             allowed_origins=manifest.image_origins,
@@ -304,9 +308,32 @@ class LiveConnectorRuntime:
         active_job_id: str | None = None,
         progress_callback: Callable[[str, int, int], None] | None = None,
     ) -> tuple[OperationalWaybillEvidence, ...]:
-        """Run the non-formal operational batch without exporting private URLs."""
+        return self._read_waybill_capture_unit(
+            authority=authority,
+            summaries=summaries,
+            detail_concurrency=detail_concurrency,
+            image_concurrency=image_concurrency,
+            reuse_candidates=reuse_candidates,
+            active_job_id=active_job_id,
+            progress_callback=progress_callback,
+            whole_run=False,
+        )
 
-        if not summaries or len(summaries) > 100:
+    def _read_waybill_capture_unit(
+        self,
+        *,
+        authority: BrowserCommandAuthority,
+        summaries: tuple[WaybillSummary, ...],
+        detail_concurrency: int,
+        image_concurrency: int,
+        reuse_candidates: tuple[WaybillReuseCandidate, ...] = (),
+        active_job_id: str | None = None,
+        progress_callback: Callable[[str, int, int], None] | None = None,
+        whole_run: bool,
+    ) -> tuple[OperationalWaybillEvidence, ...]:
+        """Run one isolated online capture unit without exporting private URLs."""
+
+        if not summaries or len(summaries) > (2000 if whole_run else 100):
             raise ValueError("operational batch size is invalid")
         detail_audits = tuple(
             _RequestAuditLifecycle(
@@ -346,22 +373,33 @@ class LiveConnectorRuntime:
         for audit in detail_audits:
             audit.allowed()
         try:
+            browser_reader = (
+                self._browser.read_operational_whole_run
+                if whole_run
+                else self._browser.read_operational_batch
+            )
             if reuse_candidates:
-                browser_items = self._browser.read_operational_batch(
+                browser_items = browser_reader(
                     requests,
                     detail_concurrency=detail_concurrency,
                     image_concurrency=image_concurrency,
                     reuse_candidates=reuse_candidates,
                     active_job_id=active_job_id,
                     progress_callback=progress_callback,
+                    contract_subject_code=(
+                        self._contract_subject_for_job(authority.job_id)
+                    ),
                 )
             else:
-                browser_items = self._browser.read_operational_batch(
+                browser_items = browser_reader(
                     requests,
                     detail_concurrency=detail_concurrency,
                     image_concurrency=image_concurrency,
                     active_job_id=active_job_id,
                     progress_callback=progress_callback,
+                    contract_subject_code=(
+                        self._contract_subject_for_job(authority.job_id)
+                    ),
                 )
         except BrowserRuntimeError as error:
             for audit in detail_audits:
@@ -487,6 +525,26 @@ class LiveConnectorRuntime:
                 audit.failed_if_sent()
             raise
         return tuple(evidence)
+
+    def read_waybill_whole_run(
+        self,
+        *,
+        authority: BrowserCommandAuthority,
+        summaries: tuple[WaybillSummary, ...],
+        detail_concurrency: int,
+        image_concurrency: int,
+        active_job_id: str | None = None,
+        progress_callback: Callable[[str, int, int], None] | None = None,
+    ) -> tuple[OperationalWaybillEvidence, ...]:
+        return self._read_waybill_capture_unit(
+            authority=authority,
+            summaries=summaries,
+            detail_concurrency=detail_concurrency,
+            image_concurrency=image_concurrency,
+            active_job_id=active_job_id,
+            progress_callback=progress_callback,
+            whole_run=True,
+        )
 
     @staticmethod
     def _raise_operational_batch_error(error: BrowserRuntimeError) -> None:

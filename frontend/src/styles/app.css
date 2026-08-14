@@ -2271,10 +2271,81 @@ body {
 }
 
 .side-navigation .navigation-secondary {
-  margin-top: auto;
+  margin-top: var(--space-3);
   padding-top: var(--space-3);
   border-top: 1px solid var(--color-border);
 }
+
+.platform-connection-summary {
+  display: flex;
+  margin-top: auto;
+  flex-direction: column;
+  align-items: center;
+  opacity: 0.78;
+}
+
+.platform-connection-summary .navigation-group-label {
+  margin-top: 0;
+  font-weight: 400;
+  text-align: center;
+}
+
+.platform-connection-pill {
+  display: inline-flex;
+  min-height: 22px;
+  margin: 0;
+  padding: 0 8px;
+  align-items: center;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 999px;
+  color: var(--color-muted);
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.connection-ready { color: var(--color-accent); border-color: var(--color-accent); }
+.connection-reading,
+.connection-downloading,
+.connection-opening { color: var(--color-primary); border-color: var(--color-primary); }
+.connection-login_required { color: #9a6700; border-color: #b7791f; }
+.connection-error { color: var(--color-danger); border-color: var(--color-danger); }
+
+.side-navigation .utility-navigation {
+  display: grid;
+  grid-template-columns: repeat(4, 44px);
+  justify-content: space-between;
+  gap: 0;
+}
+
+.side-navigation .utility-navigation li,
+.side-navigation .utility-navigation .tooltip-anchor {
+  display: flex;
+}
+
+.side-navigation .utility-navigation .utility-icon-button {
+  position: relative;
+  display: flex;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  background: transparent;
+  color: var(--color-muted);
+  box-shadow: none;
+}
+
+.side-navigation .utility-navigation .settings-button:hover,
+.side-navigation .utility-navigation .settings-button:focus-visible { color: #2563eb; background: transparent; }
+.side-navigation .utility-navigation .history-button:hover,
+.side-navigation .utility-navigation .history-button:focus-visible { color: #15803d; background: transparent; }
+.side-navigation .utility-navigation .update-button:hover,
+.side-navigation .utility-navigation .update-button:focus-visible { color: #a16207; background: transparent; }
+.side-navigation .utility-navigation .power-button:hover,
+.side-navigation .utility-navigation .power-button:focus-visible { color: var(--color-danger); background: transparent; }
 
 .side-navigation button {
   width: 100%;
@@ -2298,6 +2369,65 @@ body {
   background: var(--color-surface);
   color: var(--color-ink);
   box-shadow: 0 1px 3px oklch(0 0 0 / 8%);
+}
+
+.side-navigation .utility-navigation .utility-icon-button[aria-current="page"] {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.business-subject-heading {
+  display: flex;
+  margin: var(--space-5) var(--space-3) var(--space-2);
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+}
+
+.business-subject-heading .navigation-group-label {
+  margin: 0;
+}
+
+.contract-subject-switcher {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.side-navigation .contract-subject-button {
+  position: relative;
+  width: auto;
+  min-width: 0;
+  min-height: 20px;
+  height: 20px;
+  padding: 0 5px;
+  gap: 0;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  background: #f1f5f9;
+  color: #64748b;
+  font-size: 10px;
+  font-weight: 400;
+  line-height: 18px;
+}
+
+.side-navigation .contract-subject-button::before {
+  position: absolute;
+  inset: -10px -1px;
+  content: "";
+}
+
+.side-navigation .contract-subject-button:hover {
+  background: #e2e8f0;
+  color: #475569;
+}
+
+.side-navigation .contract-subject-button[aria-pressed="true"] {
+  border-color: #bfdbfe;
+  background: #eff6ff;
+  color: #2563eb;
+  box-shadow: none;
 }
 
 .global-message {
@@ -4091,6 +4221,29 @@ a.button {
   margin-top: 24px;
 }
 
+.update-import-fields {
+  display: grid;
+  gap: 10px;
+  margin: 16px 0;
+  padding: 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: var(--color-surface-muted);
+}
+
+.update-import-fields label {
+  display: grid;
+  grid-template-columns: 76px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.update-import-fields input {
+  min-width: 0;
+  font: inherit;
+}
+
 .button.danger {
   color: #fff;
   border-color: var(--color-danger);
@@ -4163,6 +4316,7 @@ a.button {
 
 .business-secondary-actions {
   display: flex;
+  flex: 1;
   align-items: center;
   gap: var(--space-2);
 }
@@ -4196,6 +4350,10 @@ a.button {
 .business-more-panel .button {
   width: 100%;
   justify-content: flex-start;
+}
+
+.business-more-panel .business-operation-trailing {
+  display: contents;
 }
 
 .business-phase {
@@ -4719,8 +4877,23 @@ a.button {
   }
 
   .product-name,
-  .navigation-group-label {
+  .side-navigation > .navigation-group-label {
     display: none;
+  }
+
+  .platform-connection-summary {
+    margin: 0;
+    flex-direction: row;
+    align-items: center;
+  }
+
+  .platform-connection-summary .navigation-group-label {
+    display: none;
+  }
+
+  .platform-connection-pill {
+    margin: 0 var(--space-2);
+    white-space: nowrap;
   }
 
   .side-navigation ul,
@@ -4950,13 +5123,13 @@ a.button {
 }
 
 .daily-ticket-block {
-  grid-template-columns: minmax(210px, 0.9fr) minmax(310px, 1.1fr);
+  grid-template-columns: minmax(280px, 1.15fr) minmax(330px, 0.85fr);
   gap: 14px;
 }
 
 .daily-ticket-thumb {
   width: 100%;
-  height: clamp(190px, 16vw, 270px);
+  height: clamp(230px, 18vw, 320px);
 }
 
 .daily-ticket-fields {
@@ -5001,9 +5174,12 @@ a.button {
 }
 
 .segmented-datetime input {
-  width: 3.2ch;
-  min-height: 42px;
-  padding: 0 4px;
+  box-sizing: border-box;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
   border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-small);
   outline: 0;
@@ -5012,8 +5188,9 @@ a.button {
   text-align: center;
 }
 
-.segmented-datetime label:first-child input {
-  width: 5.2ch;
+.segmented-datetime input[data-part="year"] {
+  width: 66px;
+  min-width: 66px;
 }
 
 .segmented-datetime input:focus {

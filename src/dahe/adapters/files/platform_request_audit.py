@@ -620,6 +620,8 @@ class PlatformReadAuditEvidenceStore:
                     "platform read audit directory is unsafe"
                 )
         self._clock = clock
+        self._verified_event_cache: dict[str, tuple[_AuditEvent, ...]] = {}
+        self._verified_event_cache_shape: dict[str, tuple[int, str | None]] = {}
 
     @staticmethod
     def job_id_sha256(job_id: str) -> str:
@@ -970,6 +972,7 @@ class PlatformReadAuditEvidenceStore:
             events = self._load_events(
                 job_id=token.job_id,
                 expected_build_sha256=token.build_sha256,
+                allow_cached=True,
             )
             states = _request_states(events)
             state = states.get(token.request_token_sha256)
@@ -1019,6 +1022,7 @@ class PlatformReadAuditEvidenceStore:
         events = self._load_events(
             job_id=token.job_id,
             expected_build_sha256=token.build_sha256,
+            allow_cached=True,
         )
         binding_is_daily = token.operation == "list_daily_waybills"
         for existing in events:
@@ -1064,6 +1068,11 @@ class PlatformReadAuditEvidenceStore:
         self._atomic_write(
             target,
             _canonical_content(event.to_payload()),
+        )
+        self._verified_event_cache[token.job_id] = (*events, event)
+        self._verified_event_cache_shape[token.job_id] = (
+            sequence,
+            target.name,
         )
 
     @contextmanager
@@ -1217,11 +1226,31 @@ class PlatformReadAuditEvidenceStore:
         *,
         job_id: str,
         expected_build_sha256: str,
+        allow_cached: bool = False,
     ) -> tuple[_AuditEvent, ...]:
         build = _required_sha256(
             expected_build_sha256,
             label="build identity",
         )
+        cached = self._verified_event_cache.get(job_id)
+        if allow_cached and cached is not None:
+            if cached and any(event.build_sha256 != build for event in cached):
+                raise PlatformReadAuditError(
+                    "platform read audit event chain build changed"
+                )
+            root = self._event_job_root(job_id)
+            names = tuple(
+                sorted(
+                    path.name
+                    for path in root.iterdir()
+                    if path.suffix == ".json"
+                )
+            )
+            if self._verified_event_cache_shape.get(job_id) == (
+                len(names),
+                None if not names else names[-1],
+            ):
+                return cached
         root = self._event_job_root(job_id)
         if not root.exists():
             return ()
@@ -1261,7 +1290,15 @@ class PlatformReadAuditEvidenceStore:
             events.append(event)
             previous = event.event_sha256
         _request_states(tuple(events))
-        return tuple(events)
+        result = tuple(events)
+        self._verified_event_cache[job_id] = result
+        self._verified_event_cache_shape[job_id] = (
+            len(events),
+            None
+            if not events
+            else f"{events[-1].sequence:08d}-{events[-1].event_sha256}.json",
+        )
+        return result
 
     def _write_evidence(
         self,

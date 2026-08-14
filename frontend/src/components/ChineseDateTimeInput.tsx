@@ -152,6 +152,7 @@ export function ChineseDateTimeInput({
               <input
                 ref={(node) => { inputs.current[index] = node; }}
                 id={`${id}-${spec.name}`}
+                data-part={spec.name}
                 inputMode="numeric"
                 aria-label={spec.label}
                 aria-invalid={partInvalid(parts, spec)}

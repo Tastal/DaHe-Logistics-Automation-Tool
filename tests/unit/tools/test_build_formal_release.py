@@ -9,12 +9,18 @@ from pathlib import Path
 import pytest
 
 from tools.build_formal_release import (
+    GITHUB_RELEASE_ASSET_LIMIT_BYTES,
+    MINIMUM_SCHEMA_REVISION,
     _copy_browser_runtime,
     _copy_formal_pipeline_sources,
     _copy_source_tree,
+    _copy_updater_binaries,
     _cpu_only_qualification,
     _package_cpu_runtime_archive,
+    _require_github_release_asset_size,
+    _require_release_tag,
     _run_pyinstaller,
+    _source_application_version,
     _stage_installer_payload,
 )
 
@@ -38,6 +44,73 @@ def _embed_archive(path: Path) -> Path:
         bundle.writestr("python312.zip", b"stdlib")
         bundle.writestr("python312._pth", "python312.zip\n.\n#import site\n")
     return path
+
+
+def test_formal_release_reads_version_from_its_source_checkout(tmp_path: Path) -> None:
+    package = tmp_path / "source" / "src" / "dahe"
+    package.mkdir(parents=True)
+    (package / "__init__.py").write_text(
+        '"""Package."""\n\n__version__ = "1.1.0"\n',
+        encoding="utf-8",
+    )
+
+    assert _source_application_version(tmp_path / "source") == "1.1.0"
+    assert MINIMUM_SCHEMA_REVISION == "0039_network_batch_default"
+
+
+def test_updater_is_carried_by_stable_and_versioned_locations(tmp_path: Path) -> None:
+    updater = tmp_path / "build" / "DaHeUpdater.exe"
+    updater.parent.mkdir()
+    updater.write_bytes(b"versioned updater")
+    payload = tmp_path / "payload"
+    version_root = payload / "versions" / "1.1.0"
+    version_root.mkdir(parents=True)
+
+    _copy_updater_binaries(updater, payload=payload, version_root=version_root)
+
+    assert (payload / "DaHeUpdater.exe").read_bytes() == b"versioned updater"
+    assert (version_root / "DaHeUpdater.exe").read_bytes() == b"versioned updater"
+
+
+def test_formal_release_requires_the_exact_version_tag(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    calls: list[tuple[str, ...]] = []
+
+    def fake_git(_root: Path, *arguments: str) -> str:
+        calls.append(arguments)
+        return "v1.1.0"
+
+    monkeypatch.setattr("tools.build_formal_release._git", fake_git)
+
+    _require_release_tag(tmp_path, "1.1.0")
+
+    assert calls == [
+        ("describe", "--tags", "--exact-match", "--match", "v1.1.0", "HEAD")
+    ]
+
+
+def test_formal_release_rejects_assets_at_or_above_two_gib(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    asset = tmp_path / "asset.zip"
+    asset.write_bytes(b"small")
+
+    _require_github_release_asset_size(asset)
+    monkeypatch.setattr(
+        Path,
+        "stat",
+        lambda _path: type(
+            "StatResult",
+            (),
+            {"st_size": GITHUB_RELEASE_ASSET_LIMIT_BYTES},
+        )(),
+    )
+
+    with pytest.raises(RuntimeError, match="smaller than 2 GiB"):
+        _require_github_release_asset_size(asset)
 
 
 def test_browser_runtime_must_match_formal_release_source(tmp_path: Path) -> None:

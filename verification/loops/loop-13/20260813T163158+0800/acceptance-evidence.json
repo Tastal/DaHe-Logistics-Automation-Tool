@@ -1,0 +1,123 @@
+{
+  "accepted_at": "2026-08-13T08:31:58.4310334Z",
+  "automated_checks": {
+    "authoritative_command": ".\\.venv\\Scripts\\python.exe tools\\check.py",
+    "authoritative_elapsed_seconds": 716,
+    "edge_e2e_command": "npm.cmd --prefix frontend run test:e2e",
+    "edge_e2e_tests_passed": 14,
+    "frontend": {
+      "build": "passed",
+      "test_files": 24,
+      "tests_passed": 143
+    },
+    "mypy_source_files": 358,
+    "mypy_status": "passed",
+    "narrow_regression_command": ".\\.venv\\Scripts\\python.exe -m pytest tests/unit/application/chengfeng/test_fast_operational_capture.py tests/unit/application/chengfeng/test_browser_readiness.py tests/unit/application/daily/test_fast_operational_daily_capture.py tests/integration/test_daily_operational_progress_api.py tests/integration/test_loop8_audit_workflow_repository.py tests/integration/test_loop9_daily_live_execution.py tests/unit/platform/test_loop9_daily_browser_runtime.py tests/unit/platform/test_loop9_live_connector_runtime.py tests/unit/adapters/test_browser_runtime.py tests/unit/verification/test_loop9_request_audit.py -q",
+    "narrow_regression_tests_passed": 139,
+    "python_tests_passed": 2970,
+    "python_tests_skipped": 9,
+    "ruff_status": "passed",
+    "skip_reason": "The current Windows account cannot create symbolic links; non-link path-safety coverage passed."
+  },
+  "browser_contract": {
+    "daily_route": "/wayBill",
+    "settlement_route": "/billablewaybill",
+    "single_chengfeng_page_contract": true,
+    "same_task_login_recovery_observed": true,
+    "unrelated_browser_pages_managed": false,
+    "visible_window_preserved_after_daily_terminal": true,
+    "worker_rebuild_attempts_maximum": 1
+  },
+  "daily_read": {
+    "audit_evidence_sha256": "0d2d89d0a567a75f89d99102ecec8e730a1eff5a766b91065e0f246f26356a69",
+    "business_date": "2026-08-13",
+    "business_job_id": "b5dd3cf327f84f508ebc6cc1bf20bc70",
+    "cache_refresh_count": 1,
+    "capture_mode": "whole_run_v1",
+    "committed_batches": 0,
+    "download_ticket_image_reads": 12,
+    "elapsed_seconds": 15,
+    "fetched_waybills": 12,
+    "get_waybill_detail_reads": 12,
+    "list_daily_waybill_reads": 1,
+    "list_settlement_waybill_reads": 0,
+    "online_capture_complete": true,
+    "page_count": 1,
+    "platform_business_write_count": 0,
+    "redirect_count": 0,
+    "request_count": 25,
+    "route": "/wayBill",
+    "settlement_prepare_count": 0,
+    "status": "succeeded",
+    "technical_failures": 0,
+    "visible_browser_running_after_terminal": true,
+    "visible_prefix_count": 12,
+    "waybills": 12
+  },
+  "implementation_regression_correction": {
+    "failed_real_job_id": "683aaef0349e49d0a807bf695a75e444",
+    "observed_failure": "Daily terminal cleanup preserved the visible browser only for historical batch_v1 jobs and closed the runtime for the new whole_run_v1 strategy.",
+    "verified_fix": [
+      "A red test reproduced whole_run_v1 terminal cleanup changing browser lifecycle from ready to stopped.",
+      "Operational whole_run_v1 now uses the same warm visible-browser terminal policy as batch_v1.",
+      "The focused old/new cleanup tests passed and the subsequent real daily read ended with runtime_running and visible_browser_running both true."
+    ]
+  },
+  "installed_release": {
+    "application_version": "1.0.0",
+    "build_git_commit": "d1e058669c6c29f5319b26c7e7278eb2b08450ad",
+    "changed_in_this_loop": false,
+    "resource_sha256": "54eb5b4c3a8314f6288beda61ed719e8f4a4b3eb96decadd2ca9842d5c3bd8ad",
+    "schema_revision": "0039_network_batch_default"
+  },
+  "offline_review_contract": {
+    "complete_requires_frozen_total_reconciliation": true,
+    "contiguous_prefix_ordered_by_frozen_identity": true,
+    "one_review_job_per_capture": true,
+    "partial_results_never_terminal": true,
+    "settlement_live_prefix_observed": "17/35 before 35/35 terminal",
+    "waiting_user_counts_as_machine_review_complete": true
+  },
+  "production_backup_restore": {
+    "canonical_sha256": "89568ccd952db13a42f42f46e10a3a9364ce289f021e16688f4be84191e5cd84",
+    "evidence_file_sha256": "c3a216db74159b146e1ab09f1aa40b40dd32ce1e45edb2a4ffa12dbbc50843ad",
+    "integrity_check": "ok",
+    "path": "%LOCALAPPDATA%\\DaHeLogisticsAutomationTool\\verification\\loop13-production-backup-restore-20260813T142933+0800.json"
+  },
+  "result": "passed",
+  "running_source_before_evidence_commit": {
+    "application_version": "1.0.0",
+    "browser_worker_source_sha256": "2cc4d7486fb10453446e8de8c27268a860bfad72ec2eccfb30d11dda42becb91",
+    "implementation_commit": "654567713862a38031b66d180632387b81add04d",
+    "launch_interpreter": ".venv\\Scripts\\python.exe",
+    "readiness_http_status": 200,
+    "resource_sha256": "c824dd6f10e15b34779bbc7937c90354b854a7d9063b7411725d354fc09403f8",
+    "schema_revision": "0040_whole_run_capture",
+    "worker_matches_committed_source": true
+  },
+  "schema_version": 1,
+  "settlement_read": {
+    "audit_evidence_sha256": "bb5c6b3ddb5e501639ff60fbae983502efc7db590bbd76f1d2f20a455f5dee57",
+    "business_job_id": "7422c1f10e5047d18de4be98d6576d14",
+    "cache_refresh_count": 1,
+    "capture_mode": "whole_run_v1",
+    "committed_batches": 0,
+    "download_ticket_image_reads": 70,
+    "full_review_elapsed_seconds": 218,
+    "get_waybill_detail_reads": 35,
+    "list_reads": 1,
+    "offline_review_phase_observed": true,
+    "online_capture_elapsed_seconds": 102,
+    "online_capture_complete": true,
+    "page_count": 1,
+    "platform_business_write_count": 0,
+    "redirect_count": 0,
+    "request_count": 106,
+    "route": "/billablewaybill",
+    "status": "succeeded",
+    "technical_failures": 0,
+    "visible_prefix_count": 35,
+    "waybills": 35
+  },
+  "source_commit": "654567713862a38031b66d180632387b81add04d"
+}

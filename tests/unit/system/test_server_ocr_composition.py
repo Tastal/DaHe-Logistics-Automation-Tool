@@ -113,7 +113,7 @@ def test_app_builds_backend_only_after_database_migration(
         with sqlite3.connect(database) as connection:
             revision = connection.execute("SELECT version_num FROM alembic_version").fetchone()
         assert revision == (
-            "0039_network_batch_default",
+            "0041_contract_subject_scope",
         )
         return backend
 

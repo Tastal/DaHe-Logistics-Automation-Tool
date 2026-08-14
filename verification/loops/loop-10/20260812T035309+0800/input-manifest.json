@@ -1,0 +1,37 @@
+{
+  "allowed_external_resources": [
+    "https://pc.chengfengkuaiyun.com (read-only validation only)",
+    "https://github.com/Tastal/DaHe-Logistics-Automation-Tool",
+    "official CPython 3.12.10 embeddable package",
+    "official NSIS 3.12"
+  ],
+  "build_contract": {
+    "application_version": "1.0.0",
+    "public_history": "one sanitized root commit",
+    "release_asset_count": 5,
+    "runtime_layout": "PyInstaller one-folder with portable embedded Python runtimes",
+    "user_data_separated": true
+  },
+  "captured_at": "2026-08-11T19:53:09+00:00",
+  "chengfeng_contract": {
+    "allowed": "read-only query and document download",
+    "forbidden": [
+      "settlement confirmation",
+      "payment",
+      "receipt cancellation",
+      "dispatch",
+      "any other platform business write"
+    ],
+    "real_validation_authorized": true
+  },
+  "gate_order": [
+    "gate-a-current-platform-closure",
+    "gate-b-portable-install-update-schema",
+    "gate-c-local-diagnostics-public-release"
+  ],
+  "kind": "loop_10_final_input_manifest",
+  "local_final_code_commit": "20b430fda1ba8623bcc5f34e7646ff91bb4ffe04",
+  "public_release_commit": "d1e058669c6c29f5319b26c7e7278eb2b08450ad",
+  "schema_version": 1,
+  "supersedes_evidence": "verification/loops/loop-10/20260810T210226+0800/gate-a-evidence.json"
+}

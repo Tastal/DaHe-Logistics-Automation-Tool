@@ -1,7 +1,7 @@
 import { AlertTriangle, Check, Copy, ExternalLink, FileImage } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import type { AppServices, JobSummary } from "../../app/contracts";
+import type { AppServices, ContractSubjectCode, JobSummary } from "../../app/contracts";
 import type {
   AuditReviewItem,
   AuditWorkspaceCounts,
@@ -97,11 +97,13 @@ export function AuditReviewQueue({
   services,
   jobs = [],
   workspaceRevision = 0,
+  contractSubjectCode = "shanxi_guienbo",
 }: {
   services: AppServices;
   jobs?: JobSummary[];
   productionReadOnly?: boolean;
   workspaceRevision?: number;
+  contractSubjectCode?: ContractSubjectCode;
 }) {
   const { showToast } = useToast();
   const [workspace, setWorkspace] = useState<SettlementWorkspaceResult>({
@@ -115,6 +117,8 @@ export function AuditReviewQueue({
   const [revision, setRevision] = useState(0);
   const [viewer, setViewer] = useState<{ url: string; label: string } | null>(null);
   const [handoffPending, setHandoffPending] = useState(false);
+  const loadGeneration = useRef(0);
+  const activeSourceJobId = useRef<string | null>(null);
   const settlementRevision = useMemo(
     () =>
       jobs
@@ -127,20 +131,33 @@ export function AuditReviewQueue({
   const refresh = useCallback(async () => {
     if (!services.loadSettlementWorkspace) return;
     try {
-      setWorkspace(await services.loadSettlementWorkspace(view));
+      const result = await services.loadSettlementWorkspace(
+        view,
+        contractSubjectCode,
+      );
+      if (
+        activeSourceJobId.current !== null &&
+        result.sourceJobId !== activeSourceJobId.current
+      ) return;
+      setWorkspace(result);
       setMessage(null);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "运单结果暂时无法读取。");
     }
-  }, [services, view]);
+  }, [contractSubjectCode, services, view]);
 
   useEffect(() => {
     const load = services.loadSettlementWorkspace;
     if (!load) return;
     let active = true;
-    void load(view).then(
+    const generation = ++loadGeneration.current;
+    void load(view, contractSubjectCode).then(
       (result) => {
-        if (!active) return;
+        if (
+          !active ||
+          generation !== loadGeneration.current ||
+          (activeSourceJobId.current !== null && result.sourceJobId !== activeSourceJobId.current)
+        ) return;
         setWorkspace(result);
         setMessage(null);
       },
@@ -151,8 +168,9 @@ export function AuditReviewQueue({
     );
     return () => {
       active = false;
+      if (loadGeneration.current === generation) loadGeneration.current += 1;
     };
-  }, [revision, services, settlementRevision, view, workspaceRevision]);
+  }, [contractSubjectCode, revision, services, settlementRevision, view, workspaceRevision]);
 
   const decide = async (item: AuditReviewItem, decision: "normal" | "problem") => {
     const action = decision === "normal" ? item.availableActions.confirm_normal : item.availableActions.confirm_problem;
@@ -183,7 +201,9 @@ export function AuditReviewQueue({
     if (!services.loadReadySettlementWaybillNumbers) return;
     setHandoffPending(true);
     try {
-      const values = await services.loadReadySettlementWaybillNumbers();
+      const values = await services.loadReadySettlementWaybillNumbers(
+        contractSubjectCode,
+      );
       if (!values.length) throw new Error("当前没有可复制的运单号。");
       await copyText(values.join("\n"));
       showToast(`已复制 ${values.length} 个可结算运单号。`, "success");
@@ -197,7 +217,9 @@ export function AuditReviewQueue({
     if (!services.prepareSettlementFilterHandoff) return;
     setHandoffPending(true);
     try {
-      const result = await services.prepareSettlementFilterHandoff();
+      const result = await services.prepareSettlementFilterHandoff(
+        contractSubjectCode,
+      );
       showToast(result.message, result.missingCount > 0 ? "warning" : "success");
     } catch (error) {
       showToast(error instanceof Error ? error.message : "成丰批量筛选未完成。", "error");
@@ -221,14 +243,20 @@ export function AuditReviewQueue({
         jobs={jobs}
         latestFetch={workspace.latestFetch}
         onChanged={() => setRevision((value) => value + 1)}
-      />
-      <div className="business-filter-row">
-        <BusinessFilterTabs
-          items={filters.map((filter) => ({ ...filter, count: counts[filter.id] }))}
-          value={view}
-          onChange={setView}
-        />
-        {counts.normal_ready > 0 ? (
+        onStarted={(sourceJobId) => {
+          activeSourceJobId.current = sourceJobId;
+          setWorkspace({
+            items: [],
+            counts: { all: 0, waiting_review: 0, confirmed_problem: 0, normal_ready: 0 },
+            latestFetch: null,
+            sourceJobId,
+            sourceRecordVersion: 0,
+            captureMode: "whole_run_v1",
+            visiblePrefixCount: 0,
+            onlineCaptureComplete: false,
+          });
+        }}
+        trailing={counts.normal_ready > 0 ? (
           <div className="settlement-handoff-actions">
             <button
               className="button"
@@ -248,6 +276,14 @@ export function AuditReviewQueue({
             </button>
           </div>
         ) : null}
+        contractSubjectCode={contractSubjectCode}
+      />
+      <div className="business-filter-row">
+        <BusinessFilterTabs
+          items={filters.map((filter) => ({ ...filter, count: counts[filter.id] }))}
+          value={view}
+          onChange={setView}
+        />
       </div>
       {message ? <p className="inline-message" role="status">{message}</p> : null}
       <div className="settlement-waybills">

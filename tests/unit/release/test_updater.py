@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import io
 import json
 import shutil
 import sqlite3
@@ -18,7 +19,9 @@ from dahe.release.launcher import (
     read_version_pointer,
     write_version_pointer_atomic,
 )
+from dahe.release.update_manifest import ReleaseAsset
 from dahe.release.updater import (
+    GithubAssetDownloader,
     UpdateInstaller,
     UpdaterError,
     bootstrap_cpu_runtime,
@@ -27,8 +30,216 @@ from dahe.release.updater import (
 )
 
 PROJECT_ROOT = Path(__file__).parents[3]
-REVISION = "0039_network_batch_default"
-NEW_VERSION = "1.0.1"
+REVISION = "0041_contract_subject_scope"
+NEW_VERSION = "1.1.1"
+
+
+class _DownloadResponse(io.BytesIO):
+    def __init__(self, content: bytes, *, status: int, headers: dict[str, str]) -> None:
+        super().__init__(content)
+        self.status = status
+        self.headers = headers
+
+    def __enter__(self) -> _DownloadResponse:
+        return self
+
+    def __exit__(self, *_args: object) -> None:
+        self.close()
+
+
+class _DownloadOpener:
+    def __init__(self, responses: list[object]) -> None:
+        self.responses = list(responses)
+        self.requests: list[object] = []
+
+    def open(self, request: object, *, timeout: int) -> _DownloadResponse:
+        assert timeout == 30
+        self.requests.append(request)
+        response = self.responses.pop(0)
+        if isinstance(response, Exception):
+            raise response
+        assert isinstance(response, _DownloadResponse)
+        return response
+
+
+def _asset(content: bytes) -> ReleaseAsset:
+    return ReleaseAsset(
+        file_name="DaHe-Logistics-Automation-Tool-1.1.1-win-x64.zip",
+        sha256=hashlib.sha256(content).hexdigest(),
+        size=len(content),
+        url=(
+            "https://github.com/Tastal/DaHe-Logistics-Automation-Tool/"
+            "releases/download/v1.1.1/"
+            "DaHe-Logistics-Automation-Tool-1.1.1-win-x64.zip"
+        ),
+    )
+
+
+def _seed_partial(
+    *,
+    destination: Path,
+    asset: ReleaseAsset,
+    content: bytes,
+) -> Path:
+    partial = destination.with_name(f"{destination.name}.partial")
+    partial.write_bytes(content)
+    partial.with_name(f"{partial.name}.json").write_text(
+        json.dumps(
+            {
+                "file_name": asset.file_name,
+                "sha256": asset.sha256,
+                "size": asset.size,
+                "url": asset.url,
+            },
+            sort_keys=True,
+            separators=(",", ":"),
+        ),
+        encoding="utf-8",
+    )
+    return partial
+
+
+def test_asset_download_resumes_a_persistent_partial_file(tmp_path: Path) -> None:
+    content = b"abcdefghij"
+    destination = tmp_path / "application.zip"
+    asset = _asset(content)
+    partial = _seed_partial(
+        destination=destination,
+        asset=asset,
+        content=content[:4],
+    )
+    opener = _DownloadOpener(
+        [
+            _DownloadResponse(
+                content[4:],
+                status=206,
+                headers={
+                    "Content-Range": "bytes 4-9/10",
+                    "Content-Length": "6",
+                },
+            )
+        ]
+    )
+    downloader = GithubAssetDownloader(
+        opener=opener,
+        sleep=lambda _seconds: None,
+    )
+
+    downloader.download(asset, destination)
+
+    assert destination.read_bytes() == content
+    assert not partial.exists()
+    assert not partial.with_name(f"{partial.name}.json").exists()
+    request = opener.requests[0]
+    assert request.get_header("Range") == "bytes=4-"
+
+
+def test_asset_download_restarts_when_server_ignores_range(tmp_path: Path) -> None:
+    content = b"abcdefghij"
+    destination = tmp_path / "application.zip"
+    asset = _asset(content)
+    _seed_partial(destination=destination, asset=asset, content=content[:4])
+    opener = _DownloadOpener(
+        [
+            _DownloadResponse(
+                content,
+                status=200,
+                headers={"Content-Length": "10"},
+            )
+        ]
+    )
+
+    GithubAssetDownloader(opener=opener, sleep=lambda _seconds: None).download(
+        asset,
+        destination,
+    )
+
+    assert destination.read_bytes() == content
+
+
+def test_asset_download_rejects_wrong_content_range_and_keeps_partial(
+    tmp_path: Path,
+) -> None:
+    content = b"abcdefghij"
+    destination = tmp_path / "application.zip"
+    asset = _asset(content)
+    partial = _seed_partial(
+        destination=destination,
+        asset=asset,
+        content=content[:4],
+    )
+    opener = _DownloadOpener(
+        [
+            _DownloadResponse(
+                content[4:],
+                status=206,
+                headers={"Content-Range": "bytes 3-8/10"},
+            )
+            for _ in range(4)
+        ]
+    )
+
+    with pytest.raises(UpdaterError, match="range"):
+        GithubAssetDownloader(opener=opener, sleep=lambda _seconds: None).download(
+            asset,
+            destination,
+        )
+
+    assert partial.read_bytes() == content[:4]
+
+
+def test_asset_download_discards_partial_from_another_manifest(
+    tmp_path: Path,
+) -> None:
+    content = b"abcdefghij"
+    destination = tmp_path / "application.zip"
+    stale_asset = _asset(b"0123456789")
+    partial = _seed_partial(
+        destination=destination,
+        asset=stale_asset,
+        content=b"0123",
+    )
+    opener = _DownloadOpener(
+        [
+            _DownloadResponse(
+                content,
+                status=200,
+                headers={"Content-Length": "10"},
+            )
+        ]
+    )
+
+    GithubAssetDownloader(opener=opener, sleep=lambda _seconds: None).download(
+        _asset(content),
+        destination,
+    )
+
+    assert destination.read_bytes() == content
+    assert opener.requests[0].get_header("Range") is None
+    assert not partial.exists()
+    assert not partial.with_name(f"{partial.name}.json").exists()
+
+
+def test_asset_download_hash_error_removes_untrusted_partial(tmp_path: Path) -> None:
+    expected = b"abcdefghij"
+    destination = tmp_path / "application.zip"
+    opener = _DownloadOpener(
+        [
+            _DownloadResponse(
+                b"0123456789",
+                status=200,
+                headers={"Content-Length": "10"},
+            )
+        ]
+    )
+
+    with pytest.raises(UpdaterError, match="hash"):
+        GithubAssetDownloader(opener=opener, sleep=lambda _seconds: None).download(
+            _asset(expected),
+            destination,
+        )
+
+    assert not destination.with_name(f"{destination.name}.partial").exists()
 
 
 def _copy_migrations(target: Path) -> None:

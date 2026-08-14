@@ -509,7 +509,7 @@ def test_durable_alembic_schema_persists_all_scheduler_models(
         "daily_operational_ocr_batches",
     } <= tables
     assert migration_revision == (
-        "0039_network_batch_default",
+        "0041_contract_subject_scope",
     )
     assert resources == [
         ("cpu_ocr_slot", 1),
@@ -583,6 +583,67 @@ def test_identical_active_audit_job_can_be_linked_to_a_new_capture(
     assert link_created is True
     assert replayed.job_id == original.job_id
     assert replay_created is False
+    repository.close()
+
+
+def test_terminal_job_with_stale_active_conflict_key_can_restart(
+    tmp_path: Path,
+) -> None:
+    runtime = SqliteRuntime(
+        data_root=tmp_path,
+        project_root=PROJECT_ROOT,
+        instance_id="stale-terminal-conflict-test",
+    )
+    repository = SqliteJobRepository(
+        runtime,
+        scheduler_instance_id="stale-terminal-conflict-test",
+    )
+    spec = ScheduledJobSpec(
+        fixture_id="stale-terminal-conflict-v1",
+        job_kind="business",
+        task_type="daily",
+        scope_label="stale terminal conflict",
+        conflict_key="daily:2026-08-13",
+        items=(
+            ScheduledWorkItemSpec(
+                item_key="daily:2026-08-13",
+                expected_outcome=None,
+                required_resource="platform_browser",
+            ),
+        ),
+        run_mode="operational",
+    )
+    first, created = repository.create_scheduled_job(
+        fixture=spec,
+        scope_label=spec.scope_label,
+        idempotency_key="stale-terminal-first",
+        request_hash=sha256(b"stale-terminal-first").hexdigest(),
+        expected_record_version=0,
+    )
+    assert created is True
+    failed = repository.fail_job(first.job_id, "TEST-START-FAILED")
+    with runtime.engine.begin() as connection:
+        connection.exec_driver_sql(
+            "UPDATE conflict_keys SET active = 1 WHERE conflict_key = ?",
+            (spec.conflict_key,),
+        )
+
+    active, start_version = repository.fixture_start_state(
+        spec.conflict_key
+    )
+    assert active is False
+    assert start_version == failed.record_version
+    second, created = repository.create_scheduled_job(
+        fixture=spec,
+        scope_label=spec.scope_label,
+        idempotency_key="stale-terminal-second",
+        request_hash=sha256(b"stale-terminal-second").hexdigest(),
+        expected_record_version=start_version,
+    )
+
+    assert created is True
+    assert second.job_id != first.job_id
+    assert repository.fixture_start_state(spec.conflict_key)[0] is True
     repository.close()
 
 

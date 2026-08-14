@@ -9,11 +9,14 @@ from types import MappingProxyType
 from typing import Literal
 from urllib.parse import urlsplit
 
-PROTOCOL_VERSION = 6
+PROTOCOL_VERSION = 9
 _REQUEST_ID = re.compile(r"^[A-Za-z0-9_-]{1,100}$")
 _PARAMETER_NAME = re.compile(r"^[A-Za-z][A-Za-z0-9_]{0,99}$")
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
 _QUERY_ATTEMPT_ID = re.compile(r"^[0-9a-f]{32}$")
+_CONTRACT_SUBJECT_CODES = frozenset(
+    {"shanxi_guienbo", "shanghai_jinyisheng"}
+)
 _SETTLEMENT_LIST_PATH = (
     "/api/order-center-server/app/clientOrderItem/"
     "queryWaitSettlementOrderItemListPC"
@@ -125,12 +128,14 @@ class PrepareAutomatedCommand:
 @dataclass(frozen=True, slots=True)
 class PrepareOperationalCompatCommand:
     request_id: str
+    contract_subject_code: str = "shanxi_guienbo"
 
 
 @dataclass(frozen=True, slots=True)
 class PrepareSettlementFilterHandoffCommand:
     request_id: str
     waybill_numbers: tuple[str, ...]
+    contract_subject_code: str
 
 
 @dataclass(frozen=True, slots=True)
@@ -141,6 +146,12 @@ class PrepareDailyCommand:
 @dataclass(frozen=True, slots=True)
 class PrepareDailyFromAutomatedCommand:
     request_id: str
+
+
+@dataclass(frozen=True, slots=True)
+class PrepareOperationalDailyCommand:
+    request_id: str
+    contract_subject_code: str = "shanxi_guienbo"
 
 
 @dataclass(frozen=True, slots=True)
@@ -203,6 +214,12 @@ class ReadOperationalBatchCommand:
     details: tuple[OperationalBatchDetailCommand, ...]
     detail_concurrency: int
     image_concurrency: int
+    contract_subject_code: str = "shanxi_guienbo"
+
+
+@dataclass(frozen=True, slots=True)
+class CaptureOperationalWholeRunCommand(ReadOperationalBatchCommand):
+    """One all-or-nothing online capture after the authoritative list freeze."""
 
 
 BrowserCommand = (
@@ -224,10 +241,12 @@ BrowserCommand = (
     | PrepareSettlementFilterHandoffCommand
     | PrepareDailyCommand
     | PrepareDailyFromAutomatedCommand
+    | PrepareOperationalDailyCommand
     | ReadJsonCommand
     | ReadDailyJsonCommand
     | ReadImageCommand
     | ReadOperationalBatchCommand
+    | CaptureOperationalWholeRunCommand
 )
 
 
@@ -272,7 +291,6 @@ def parse_command(line: str) -> BrowserCommand:
         "handoff_operational_session",
         "park_operational_session",
         "probe_settlement_views",
-        "prepare_operational_compat",
         "prepare_daily",
         "prepare_daily_from_automated",
         "status",
@@ -290,9 +308,6 @@ def parse_command(line: str) -> BrowserCommand:
             ),
             "park_operational_session": ParkOperationalSessionCommand,
             "probe_settlement_views": ProbeSettlementViewsCommand,
-            "prepare_operational_compat": (
-                PrepareOperationalCompatCommand
-            ),
             "prepare_daily": PrepareDailyCommand,
             "prepare_daily_from_automated": (
                 PrepareDailyFromAutomatedCommand
@@ -300,6 +315,31 @@ def parse_command(line: str) -> BrowserCommand:
             "status": StatusCommand,
         }
         return command_types[command_name](request_id=request_id)
+    if command_name in {
+        "prepare_operational_compat",
+        "prepare_operational_daily",
+    }:
+        if set(raw) != {
+            "schema_version",
+            "command",
+            "request_id",
+            "contract_subject_code",
+        }:
+            raise ProtocolError(
+                "subject preparation fields do not match the protocol"
+            )
+        contract_subject_code = raw["contract_subject_code"]
+        if contract_subject_code not in _CONTRACT_SUBJECT_CODES:
+            raise ProtocolError("contract subject is invalid")
+        command_type = (
+            PrepareOperationalCompatCommand
+            if command_name == "prepare_operational_compat"
+            else PrepareOperationalDailyCommand
+        )
+        return command_type(
+            request_id=request_id,
+            contract_subject_code=contract_subject_code,
+        )
     if command_name == "prepare_automated":
         if set(raw) != {
             "schema_version",
@@ -323,6 +363,7 @@ def parse_command(line: str) -> BrowserCommand:
             "command",
             "request_id",
             "waybill_numbers",
+            "contract_subject_code",
         }:
             raise ProtocolError(
                 "settlement filter handoff fields do not match the protocol"
@@ -339,14 +380,19 @@ def parse_command(line: str) -> BrowserCommand:
             or len(set(values)) != len(values)
         ):
             raise ProtocolError("settlement filter waybills are invalid")
+        contract_subject_code = raw["contract_subject_code"]
+        if contract_subject_code not in _CONTRACT_SUBJECT_CODES:
+            raise ProtocolError("contract subject code is invalid")
         return PrepareSettlementFilterHandoffCommand(
             request_id=request_id,
             waybill_numbers=tuple(values),
+            contract_subject_code=contract_subject_code,
         )
-    if command_name == "read_operational_batch":
+    if command_name in {"read_operational_batch", "capture_operational_whole_run"}:
         return _parse_operational_batch_command(
             raw,
             request_id=request_id,
+            whole_run=command_name == "capture_operational_whole_run",
         )
     if command_name in {"read_json", "read_image", "read_daily_json"}:
         return _parse_read_command(raw, request_id=request_id)
@@ -459,11 +505,13 @@ def _parse_operational_batch_command(
     raw: dict[object, object],
     *,
     request_id: str,
+    whole_run: bool = False,
 ) -> ReadOperationalBatchCommand:
     if set(raw) != {
         "schema_version",
         "command",
         "request_id",
+        "contract_subject_code",
         "details",
         "detail_concurrency",
         "image_concurrency",
@@ -473,14 +521,16 @@ def _parse_operational_batch_command(
         )
     detail_concurrency = raw["detail_concurrency"]
     image_concurrency = raw["image_concurrency"]
+    contract_subject_code = raw["contract_subject_code"]
     raw_details = raw["details"]
     if (
-        type(detail_concurrency) is not int
+        contract_subject_code not in _CONTRACT_SUBJECT_CODES
+        or type(detail_concurrency) is not int
         or not 1 <= detail_concurrency <= 4
         or type(image_concurrency) is not int
         or not 1 <= image_concurrency <= 6
         or not isinstance(raw_details, list)
-        or not 1 <= len(raw_details) <= 100
+        or not 1 <= len(raw_details) <= (2000 if whole_run else 100)
     ):
         raise ProtocolError("operational batch limits are invalid")
     details: list[OperationalBatchDetailCommand] = []
@@ -521,8 +571,10 @@ def _parse_operational_batch_command(
                 reuse=reuse,
             )
         )
-    return ReadOperationalBatchCommand(
+    command_type = CaptureOperationalWholeRunCommand if whole_run else ReadOperationalBatchCommand
+    return command_type(
         request_id=request_id,
+        contract_subject_code=contract_subject_code,
         details=tuple(details),
         detail_concurrency=detail_concurrency,
         image_concurrency=image_concurrency,
@@ -941,36 +993,82 @@ def _validated_operational_query_trace(
     response_byte_size = value.get("response_byte_size")
     duration_ms = value.get("duration_ms")
     trace_digest = value.get("response_structure_sha256")
-    if (
-        value.get("schema_version") != 1
-        or not isinstance(query_attempt_id, str)
-        or _QUERY_ATTEMPT_ID.fullmatch(query_attempt_id) is None
-        or type(observed) is not int
-        or not 1 <= observed <= 10_000
-        or type(approved) is not int
-        or type(query_attempt_count) is not int
-        or query_attempt_count not in {1, 2}
-        or approved != query_attempt_count
-        or type(blocked) is not int
-        or blocked < 0
-        or observed != approved + blocked
-        or type(zero_retry_performed) is not bool
-        or zero_retry_performed != (query_attempt_count == 2)
-        or type(cache_refresh_count) is not int
-        or cache_refresh_count != query_attempt_count
-        or type(page_count) is not int
-        or page_count != 1
-        or value.get("request_method") != "POST"
-        or value.get("request_path") != _SETTLEMENT_LIST_PATH
-        or value.get("resource_type") not in {"fetch", "xhr"}
-        or value.get("response_status") != 200
-        or type(response_byte_size) is not int
-        or not 1 <= response_byte_size <= 2 * 1024 * 1024
-        or trace_digest != response_structure_sha256
-        or type(duration_ms) is not int
-        or not 0 <= duration_ms <= 120_000
-    ):
-        raise ProtocolError("operational query trace values are invalid")
+    invalid_fields = (
+        (value.get("schema_version") != 1, "schema_version"),
+        (
+            not isinstance(query_attempt_id, str)
+            or _QUERY_ATTEMPT_ID.fullmatch(query_attempt_id) is None,
+            "query_attempt_id",
+        ),
+        (
+            type(observed) is not int or not 1 <= observed <= 10_000,
+            "observed_request_count",
+        ),
+        (type(approved) is not int, "approved_request_count"),
+        (
+            type(query_attempt_count) is not int
+            or query_attempt_count not in {1, 2},
+            "query_attempt_count",
+        ),
+        (approved != query_attempt_count, "approved_request_count"),
+        (
+            type(blocked) is not int or blocked < 0,
+            "blocked_request_count",
+        ),
+        (
+            type(observed) is int
+            and type(approved) is int
+            and type(blocked) is int
+            and observed != approved + blocked,
+            "request_reconciliation",
+        ),
+        (
+            type(zero_retry_performed) is not bool
+            or zero_retry_performed != (query_attempt_count == 2),
+            "zero_retry_performed",
+        ),
+        (
+            type(cache_refresh_count) is not int
+            or type(query_attempt_count) is not int
+            or not query_attempt_count
+            <= cache_refresh_count
+            <= query_attempt_count + 1,
+            "cache_refresh_count",
+        ),
+        (
+            type(page_count) is not int or page_count != 1,
+            "page_count",
+        ),
+        (value.get("request_method") != "POST", "request_method"),
+        (
+            value.get("request_path") != _SETTLEMENT_LIST_PATH,
+            "request_path",
+        ),
+        (
+            value.get("resource_type") not in {"fetch", "xhr"},
+            "resource_type",
+        ),
+        (value.get("response_status") != 200, "response_status"),
+        (
+            type(response_byte_size) is not int
+            or not 1 <= response_byte_size <= 2 * 1024 * 1024,
+            "response_byte_size",
+        ),
+        (
+            trace_digest != response_structure_sha256,
+            "response_structure_sha256",
+        ),
+        (
+            type(duration_ms) is not int
+            or not 0 <= duration_ms <= 120_000,
+            "duration_ms",
+        ),
+    )
+    for invalid, field_name in invalid_fields:
+        if invalid:
+            raise ProtocolError(
+                f"operational query trace {field_name} is invalid"
+            )
     return {key: value[key] for key in expected}
 
 
@@ -987,6 +1085,7 @@ def _validated_prepare_result(
             PrepareOperationalCompatCommand,
             PrepareSettlementFilterHandoffCommand,
             PrepareDailyFromAutomatedCommand,
+            PrepareOperationalDailyCommand,
         ),
     )
     if value is None:
@@ -995,7 +1094,10 @@ def _validated_prepare_result(
         return None
     if not is_prepare or not ok or not isinstance(value, Mapping):
         raise ProtocolError("prepare result is not allowed for this response")
-    if isinstance(command, PrepareDailyFromAutomatedCommand):
+    if isinstance(
+        command,
+        (PrepareDailyFromAutomatedCommand, PrepareOperationalDailyCommand),
+    ):
         expected = {
             "schema_version",
             "evidence_kind",
@@ -1006,6 +1108,11 @@ def _validated_prepare_result(
             "page_count",
             "route",
         }
+        if isinstance(command, PrepareOperationalDailyCommand):
+            expected |= {
+                "contract_subject_code",
+                "contract_subject_confirmed",
+            }
         cache_refresh_count = value.get("cache_refresh_count")
         if (
             set(value) != expected
@@ -1018,6 +1125,14 @@ def _validated_prepare_result(
             or value.get("fresh_query_response_observed") is not True
             or value.get("page_count") != 1
             or value.get("route") != "/wayBill"
+            or (
+                isinstance(command, PrepareOperationalDailyCommand)
+                and (
+                    value.get("contract_subject_code")
+                    != command.contract_subject_code
+                    or value.get("contract_subject_confirmed") is not True
+                )
+            )
         ):
             raise ProtocolError("daily freshness evidence is invalid")
         return {key: value[key] for key in expected}
@@ -1052,7 +1167,11 @@ def _validated_prepare_result(
         "response_structure_sha256",
     }
     expected_fields = required_fields | (
-        {"query_trace"}
+        {
+            "query_trace",
+            "contract_subject_code",
+            "contract_subject_confirmed",
+        }
         if isinstance(command, PrepareOperationalCompatCommand)
         else set()
     )
@@ -1088,6 +1207,14 @@ def _validated_prepare_result(
         or (total_count == 0 and list_length != 0)
         or not isinstance(digest, str)
         or _SHA256.fullmatch(digest) is None
+        or (
+            isinstance(command, PrepareOperationalCompatCommand)
+            and (
+                value.get("contract_subject_code")
+                != command.contract_subject_code
+                or value.get("contract_subject_confirmed") is not True
+            )
+        )
     ):
         raise ProtocolError("prepare result values are invalid")
     result = {
@@ -1107,6 +1234,8 @@ def _validated_prepare_result(
             value.get("query_trace"),
             response_structure_sha256=digest,
         )
+        result["contract_subject_code"] = command.contract_subject_code
+        result["contract_subject_confirmed"] = True
     return result
 
 
@@ -1124,7 +1253,11 @@ def _validated_discovery(
         )
     is_daily_prepare = isinstance(
         command,
-        (PrepareDailyCommand, PrepareDailyFromAutomatedCommand),
+        (
+            PrepareDailyCommand,
+            PrepareDailyFromAutomatedCommand,
+            PrepareOperationalDailyCommand,
+        ),
     )
     is_daily_read = isinstance(command, ReadDailyJsonCommand)
     if not is_daily_prepare and not is_daily_read:

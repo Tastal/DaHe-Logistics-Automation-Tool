@@ -1,0 +1,45 @@
+{
+  "accepted_at": "2026-08-11T19:53:09+00:00",
+  "automated_checks": {
+    "browser_failure_and_visibility_regressions": "22 passed",
+    "frontend_review_highlight_contract": {
+      "image_border_highlights": 0,
+      "platform_weight_highlights": 0,
+      "review_items_without_recognition_highlight": 0
+    }
+  },
+  "browser_contract": {
+    "cache_disabled": true,
+    "chengfeng_tab_count": 1,
+    "forced_reload_ignore_cache": true,
+    "new_query_response_required": true,
+    "visible_edge_preserved_after_failure_or_cancel": true
+  },
+  "daily_detail_job": {
+    "cache_refresh_count": 1,
+    "job_id": "c90cd4f1f54a4199960de9bb3641e38d",
+    "ocr_results": "25/25",
+    "platform_business_write_count": 0,
+    "route": "/wayBill",
+    "status": "succeeded",
+    "waybills": 25
+  },
+  "freight_settlement_job": {
+    "cache_refresh_count": 1,
+    "job_id": "c0afb27df2594da68cb21a18dc15f22a",
+    "platform_business_write_count": 0,
+    "route": "/billablewaybill",
+    "status": "succeeded",
+    "waybills": 22
+  },
+  "kind": "loop_10_gate_a_current_platform_evidence",
+  "result": "passed",
+  "review_dom": {
+    "image_or_platform_red_highlights": 0,
+    "recognition_weight_red_highlights": 3,
+    "waiting_review_items": 3
+  },
+  "schema_version": 1,
+  "source_commit": "20b430fda1ba8623bcc5f34e7646ff91bb4ffe04",
+  "supersedes": "verification/loops/loop-10/20260810T210226+0800/gate-a-evidence.json"
+}

@@ -90,7 +90,7 @@ from dahe.verification.loop9_exclusion_authority import (
 # preparation have both completed.
 _CONTROL_TTL = timedelta(minutes=30)
 _MAX_TRANSIENT_SELECTION_RETRIES = 2
-_MAX_OPERATIONAL_BROWSER_RECOVERY_RETRIES = 2
+_MAX_OPERATIONAL_BROWSER_RECOVERY_RETRIES = 1
 _BLOCKED_SELECTION_DIAGNOSTICS = {
     "sealed capture has insufficient eligible waybills": (
         "SETTLEMENT-SELECTION-INSUFFICIENT"
@@ -129,6 +129,18 @@ _BROWSER_RUNTIME_DIAGNOSTICS = {
     "browser_context_closed": "CF-SETTLEMENT-BROWSER-CLOSED",
     "browser_worker_unavailable": "CF-SETTLEMENT-BROWSER-UNAVAILABLE",
     "browser_worker_timeout": "CF-SETTLEMENT-BROWSER-TIMEOUT",
+    "browser_contract_subject_control_unavailable": (
+        "CF-SETTLEMENT-SUBJECT-CONTROL-UNAVAILABLE"
+    ),
+    "browser_contract_subject_option_unavailable": (
+        "CF-SETTLEMENT-SUBJECT-OPTION-UNAVAILABLE"
+    ),
+    "browser_contract_subject_switch_failed": (
+        "CF-SETTLEMENT-SUBJECT-SWITCH-FAILED"
+    ),
+    "browser_contract_subject_confirmation_failed": (
+        "CF-SETTLEMENT-SUBJECT-CONFIRMATION-FAILED"
+    ),
     "browser_session_settlement_scope_control_unavailable": (
         "CF-SETTLEMENT-SCOPE-CONTROL-UNAVAILABLE"
     ),
@@ -156,12 +168,60 @@ _BROWSER_RUNTIME_DIAGNOSTICS = {
     "browser_operational_cache_refresh_failed": (
         "CF-SETTLEMENT-CACHE-REFRESH-FAILED"
     ),
+    "browser_operational_prepare_fields_invalid": (
+        "CF-SETTLEMENT-PREPARE-FIELDS-INVALID"
+    ),
+    "browser_operational_prepare_metrics_invalid": (
+        "CF-SETTLEMENT-PREPARE-METRICS-INVALID"
+    ),
+    "browser_operational_prepare_values_invalid": (
+        "CF-SETTLEMENT-PREPARE-VALUES-INVALID"
+    ),
+    "browser_operational_trace_fields_invalid": (
+        "CF-SETTLEMENT-TRACE-FIELDS-INVALID"
+    ),
+    "browser_operational_trace_values_invalid": (
+        "CF-SETTLEMENT-TRACE-VALUES-INVALID"
+    ),
+    "browser_operational_response_contract_failed": (
+        "CF-SETTLEMENT-RESPONSE-CONTRACT-FAILED"
+    ),
+    "browser_operational_unexpected_failed": (
+        "CF-SETTLEMENT-OPERATIONAL-UNEXPECTED-FAILED"
+    ),
+}
+
+_BROWSER_RUNTIME_TRACE_DIAGNOSTICS = {
+    "approved_request_count": "APPROVED-REQUEST-COUNT",
+    "blocked_request_count": "BLOCKED-REQUEST-COUNT",
+    "cache_refresh_count": "CACHE-REFRESH-COUNT",
+    "duration_ms": "DURATION",
+    "observed_request_count": "OBSERVED-REQUEST-COUNT",
+    "page_count": "PAGE-COUNT",
+    "query_attempt_count": "QUERY-ATTEMPT-COUNT",
+    "query_attempt_id": "QUERY-ATTEMPT-ID",
+    "request_method": "REQUEST-METHOD",
+    "request_path": "REQUEST-PATH",
+    "request_reconciliation": "REQUEST-RECONCILIATION",
+    "resource_type": "RESOURCE-TYPE",
+    "response_byte_size": "RESPONSE-BYTE-SIZE",
+    "response_status": "RESPONSE-STATUS",
+    "response_structure_sha256": "RESPONSE-STRUCTURE",
+    "schema_version": "SCHEMA-VERSION",
+    "zero_retry_performed": "ZERO-RETRY",
 }
 
 
 def _browser_runtime_diagnostic(error: BrowserRuntimeError) -> str:
     """Map only reviewed worker codes into durable, non-sensitive diagnostics."""
 
+    prefix = "browser_operational_trace_"
+    suffix = "_invalid"
+    if error.code.startswith(prefix) and error.code.endswith(suffix):
+        field_name = error.code[len(prefix) : -len(suffix)]
+        diagnostic_field = _BROWSER_RUNTIME_TRACE_DIAGNOSTICS.get(field_name)
+        if diagnostic_field is not None:
+            return f"CF-SETTLEMENT-TRACE-{diagnostic_field}-INVALID"
     return _BROWSER_RUNTIME_DIAGNOSTICS.get(
         error.code,
         "CF-SETTLEMENT-BROWSER-RUNTIME-FAILED",
@@ -203,6 +263,9 @@ class SettlementCaptureLiveStageExecutor:
             FastOperationalSettlementCaptureCoordinator | None
         ) = None,
         operational_materializer: Callable[[str], None] | None = None,
+        contract_subject_for_job: Callable[[str], str] = (
+            lambda _job_id: "shanxi_guienbo"
+        ),
         clock: Callable[[], datetime] = lambda: datetime.now(UTC),
     ) -> None:
         self._invocations = invocation_store
@@ -228,6 +291,7 @@ class SettlementCaptureLiveStageExecutor:
             fast_operational_coordinator
         )
         self._operational_materializer = operational_materializer
+        self._contract_subject_for_job = contract_subject_for_job
         self._materialized_operational_jobs: set[str] = set()
         self._pending_operational_handoffs: set[str] = set()
         self._operational_browser_recovery_counts: dict[str, int] = {}
@@ -239,7 +303,13 @@ class SettlementCaptureLiveStageExecutor:
         # The job survives a controlled browser restart.  Preparation caching
         # belongs to the runtime generation; this set only records that the
         # terminal job still requires its configured handoff or close action.
-        self._browser_runtime.prepare_operational_compat()
+        self._browser_runtime.prepare_operational_compat(
+            getattr(
+                self,
+                "_contract_subject_for_job",
+                lambda _job_id: "shanxi_guienbo",
+            )(job_id)
+        )
         self._pending_operational_handoffs.add(job_id)
 
     def __call__(
@@ -249,6 +319,7 @@ class SettlementCaptureLiveStageExecutor:
         invocation: SettlementCaptureInvocationRecord | None = None
         acquired: BrowserControlRecord | None = None
         is_operational = False
+        rebuild_operational_browser = False
         worker_id = f"settlement-capture-{work.stage_attempt_id}"
         try:
             invocation = self._invocations.get_by_job(work.job_id)
@@ -389,7 +460,7 @@ class SettlementCaptureLiveStageExecutor:
                     if callable(strategy_loader)
                     else "legacy"
                 )
-                if strategy == "batch_v1":
+                if strategy in {"batch_v1", "whole_run_v1"}:
                     if self._fast_operational_coordinator is None:
                         raise OperationalCaptureContractError(
                             "fast operational capture is unavailable"
@@ -449,7 +520,7 @@ class SettlementCaptureLiveStageExecutor:
                 total = checkpoints[0].page.total
                 list_read_count = (
                     max(1, (total + 49) // 50)
-                    if strategy == "batch_v1"
+                    if strategy in {"batch_v1", "whole_run_v1"}
                     else len(checkpoints)
                 )
                 self._request_audit_store.seal(
@@ -576,8 +647,10 @@ class SettlementCaptureLiveStageExecutor:
                 )
             if is_operational and exc.code in {
                 "browser_context_closed",
+                "browser_session_settlement_route_unavailable",
                 "browser_worker_unavailable",
             }:
+                rebuild_operational_browser = True
                 return self._operational_browser_recovery_execution(
                     work,
                     diagnostic_code=_browser_runtime_diagnostic(exc),
@@ -644,6 +717,15 @@ class SettlementCaptureLiveStageExecutor:
                     worker_id=worker_id,
                     is_operational=is_operational,
                 )
+            if rebuild_operational_browser:
+                self._pending_operational_handoffs.discard(work.job_id)
+                with contextlib.suppress(
+                    BrowserRuntimeError,
+                    OSError,
+                    RuntimeError,
+                    ValueError,
+                ):
+                    self._browser_runtime.close()
 
     @staticmethod
     def _purpose_for_target(
@@ -1160,6 +1242,10 @@ class SettlementCaptureLiveStageExecutor:
             now=self._clock(),
         )
         if target_kind is ShadowBatchTargetKind.OPERATIONAL_COMPAT:
+            self._recover_missing_operational_runtime(
+                job_id=job_id,
+                access_window_id=invocation.access_window_id,
+            )
             if job_id in self._pending_operational_handoffs:
                 binding_probe = getattr(
                     self._invocations,
@@ -1286,6 +1372,49 @@ class SettlementCaptureLiveStageExecutor:
             raise RuntimeError(
                 "settlement terminal cleanup did not complete"
             ) from failures[0]
+
+    def _recover_missing_operational_runtime(
+        self,
+        *,
+        job_id: str,
+        access_window_id: str,
+    ) -> bool:
+        """Release a terminal durable holder whose owned process is gone."""
+
+        with self._browser_lifecycle.hold():
+            control = self._browser_control.get(self._session_id)
+            if (
+                control.browser_control_mode != "automated"
+                or control.job_id != job_id
+                or self._browser_runtime.running
+            ):
+                return False
+            if control.instance_id is None or control.worker_id is None:
+                raise BrowserControlError(
+                    "settlement automated browser holder is incomplete"
+                )
+            recovering = self._browser_control.begin_automatic_recovery(
+                session_id=self._session_id,
+                instance_id=control.instance_id,
+                worker_id=control.worker_id,
+                job_id=job_id,
+                expected_control_epoch=control.control_epoch,
+                reason="operational_runtime_missing_after_terminal",
+                now=self._clock(),
+            )
+            with contextlib.suppress(
+                BrowserRuntimeError,
+                OSError,
+                RuntimeError,
+                ValueError,
+            ):
+                self._browser_runtime.close()
+            self._stop_browser(
+                access_window_id=access_window_id,
+                job_id=job_id,
+                expected_record_version=recovering.record_version,
+            )
+            return True
 
     def _handoff_operational_browser(
         self,

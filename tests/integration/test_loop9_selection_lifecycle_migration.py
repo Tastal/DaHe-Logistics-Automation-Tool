@@ -24,7 +24,7 @@ def test_current_head_preserves_append_only_formal_selection_lifecycle_anchor(
         revision = connection.execute(
             "SELECT version_num FROM alembic_version"
         ).fetchone()
-        assert revision == ("0039_network_batch_default",)
+        assert revision == ("0041_contract_subject_scope",)
         columns = {
             row[1]
             for row in connection.execute(

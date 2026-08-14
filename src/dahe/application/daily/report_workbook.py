@@ -230,11 +230,13 @@ def _sha256_file(path: Path) -> str:
 def _data_snapshot_sha256(
     *,
     business_date: date,
+    contract_subject_code: str,
     settings: DailyReportSettings,
     rows: tuple[DailyReportRow, ...],
 ) -> str:
     payload = {
         "business_date": business_date.isoformat(),
+        "contract_subject_code": contract_subject_code,
         "rows": [row.evidence_payload() for row in rows],
         "schema_version": 1,
         "settings": {
@@ -277,13 +279,15 @@ class DailyReportWorkbook:
         business_date: date,
         settings: DailyReportSettings,
         rows: tuple[DailyReportRow, ...],
+        contract_subject_code: str = "shanxi_guienbo",
+        contract_subject_label: str = "山西贵恩博",
     ) -> DailyReportWorkbookResult:
         if not settings.confirmed:
             raise DailyReportWorkbookError("report settings are not confirmed")
         output_directory = settings.output_directory.resolve()
         output_directory.mkdir(parents=True, exist_ok=True)
         final = output_directory / (
-            f"{business_date:%Y%m%d}-{settings.shipping_mine}装卸车明细.xlsx"
+            f"装卸车明细-{contract_subject_label}-{business_date:%Y-%m-%d}.xlsx"
         )
         temporary = output_directory / f".{final.name}.{uuid4().hex}.tmp.xlsx"
         loading_total = sum(
@@ -308,6 +312,7 @@ class DailyReportWorkbook:
             file_sha256=_sha256_file(final),
             data_snapshot_sha256=_data_snapshot_sha256(
                 business_date=business_date,
+                contract_subject_code=contract_subject_code,
                 settings=settings,
                 rows=rows,
             ),
@@ -321,6 +326,8 @@ class DailyReportWorkbook:
         business_date: date,
         settings: DailyReportSettings,
         rows: tuple[DailyReportRow, ...],
+        contract_subject_code: str = "shanxi_guienbo",
+        contract_subject_label: str = "山西贵恩博",
     ) -> DailyReportWorkbookResult:
         """Keep the historical method callable while using the formal flow."""
 
@@ -328,6 +335,8 @@ class DailyReportWorkbook:
             business_date=business_date,
             settings=settings,
             rows=rows,
+            contract_subject_code=contract_subject_code,
+            contract_subject_label=contract_subject_label,
         )
 
     def validate_existing(self, path: Path, *, row_count: int) -> None:

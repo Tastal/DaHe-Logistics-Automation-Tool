@@ -14,7 +14,10 @@ htmlcov/
 
 # Build outputs
 build/
-dist/
+dist/*
+!dist/README.md
+!dist/releases/
+dist/releases/*
 *.egg-info/
 
 # Frontend generated files

@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
@@ -142,7 +142,6 @@ function services(overrides: Partial<AppServices> = {}): AppServices {
 
 describe("B version multi-job controls", () => {
   it("controls the latest settlement capture without exposing audit batches", async () => {
-    const user = userEvent.setup();
     const runJobAction = vi.fn().mockResolvedValue(undefined);
     const captureJob = job("capture-latest", "运费结算数据获取", {
       taskType: "settlement_capture",
@@ -163,9 +162,8 @@ describe("B version multi-job controls", () => {
     );
 
     expect(screen.queryByRole("combobox", { name: "审核批次" })).toBeNull();
-    await user.click(await screen.findByRole("button", { name: "暂停" }));
-
-    expect(runJobAction).toHaveBeenCalledWith("capture-latest", "pause", 10);
+    expect(await screen.findByRole("button", { name: "暂停" })).toBeDisabled();
+    expect(runJobAction).not.toHaveBeenCalled();
   });
 
   it("keeps protected fixture actions in the System developer area", async () => {
@@ -176,7 +174,7 @@ describe("B version multi-job controls", () => {
     });
     render(<App services={services({ createFixtureJob })} />);
 
-    await user.click(await screen.findByRole("button", { name: "系统" }));
+    await user.click(await screen.findByRole("button", { name: "系统设置" }));
     await user.hover(
       screen.getByRole("button", { name: "启动装卸车调度演练" }),
     );
@@ -192,28 +190,19 @@ describe("B version multi-job controls", () => {
     expect(createFixtureJob).toHaveBeenCalledWith("loading-probe-001", 5);
   });
 
-  it("shows all jobs, waits, checkpoints and resources in System status", async () => {
+  it("does not expose scheduler jobs or local resources in the operator system view", async () => {
     const user = userEvent.setup();
     render(<App services={services()} />);
 
-    await user.click(await screen.findByRole("button", { name: "系统" }));
+    await user.click(await screen.findByRole("button", { name: "系统设置" }));
 
-    const tasks = screen.getByRole("region", { name: "任务" });
-    expect(within(tasks).getByText("并行审核演练（长批次）")).toBeVisible();
-    expect(within(tasks).getByText("并行审核演练（短批次）")).toBeVisible();
-    expect(within(tasks).getByText("装卸车并行调度探针")).toBeVisible();
-    expect(within(tasks).getByText(/公平队列/)).toBeVisible();
-    expect(within(tasks).getAllByText(/运单清单已经保存/).length).toBeGreaterThan(0);
-    const resources = screen.getByRole("region", { name: "本地资源" });
-    expect(within(resources).getByText("图像识别设备")).toBeVisible();
-    expect(
-      within(resources).getByText((_, element) =>
-        element?.textContent === "使用中，1/1",
-      ),
-    ).toBeVisible();
+    expect(screen.queryByRole("region", { name: "任务" })).toBeNull();
+    expect(screen.queryByRole("region", { name: "本地资源" })).toBeNull();
+    expect(screen.queryByText("并行审核演练（长批次）")).toBeNull();
+    expect(screen.queryByText("图像识别设备")).toBeNull();
   });
 
-  it("does not claim heavy resource occupancy for a waiting-user job", async () => {
+  it("keeps waiting-user scheduler details out of the operator system view", async () => {
     const user = userEvent.setup();
     const waitingUser = job("job-review", "等待人员判断的审核", {
       jobStatus: "waiting_user",
@@ -236,11 +225,9 @@ describe("B version multi-job controls", () => {
       />,
     );
 
-    await user.click(await screen.findByRole("button", { name: "系统" }));
-    expect(screen.getByText(/有 2 条运单需要人员判断/)).toBeVisible();
-    expect(screen.getByText("当前未占用自动处理资源")).toBeVisible();
-    await waitFor(() =>
-      expect(screen.getByText(/自动识别结果已经保存/)).toBeVisible(),
-    );
+    await user.click(await screen.findByRole("button", { name: "系统设置" }));
+    expect(screen.queryByText(/有 2 条运单需要人员判断/)).toBeNull();
+    expect(screen.queryByText("当前未占用自动处理资源")).toBeNull();
+    expect(screen.queryByText(/自动识别结果已经保存/)).toBeNull();
   });
 });

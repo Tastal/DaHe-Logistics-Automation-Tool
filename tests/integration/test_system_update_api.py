@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 from threading import Event
@@ -19,7 +20,7 @@ ORIGIN = "http://127.0.0.1:8877"
 
 
 def _manifest() -> bytes:
-    version = "1.0.1"
+    version = "1.1.1"
     root = "https://github.com/Tastal/DaHe-Logistics-Automation-Tool"
     payload = {
         "schema_version": 1,
@@ -48,8 +49,8 @@ def _manifest() -> bytes:
             ),
         },
         "minimum_schema_revision": "0039_network_batch_default",
-        "target_schema_revision": "0039_network_batch_default",
-        "alembic_revision": "0039_network_batch_default",
+        "target_schema_revision": "0041_contract_subject_scope",
+        "alembic_revision": "0041_contract_subject_scope",
         "minimum_updater_version": "1.0.0",
         "resource_sha256": "c" * 64,
     }
@@ -129,7 +130,7 @@ def test_readiness_exposes_exact_release_and_schema_without_a_session(
         "application_version": __version__,
         "build_git_commit": "d" * 40,
         "resource_sha256": "e" * 64,
-        "schema_revision": "0039_network_batch_default",
+        "schema_revision": "0041_contract_subject_scope",
     }
 
 
@@ -201,3 +202,71 @@ def test_waiting_review_results_do_not_block_an_update() -> None:
     ]
 
     assert api_app._count_update_blocking_jobs(jobs) == 4
+
+
+def test_local_update_import_streams_and_uses_the_same_install_action(
+    tmp_path: Path,
+) -> None:
+    launcher = Launcher()
+    app = _app(tmp_path, launcher)
+    app.state.request_shutdown = lambda: None
+    archive = b"verified local application zip"
+    manifest = json.loads(_manifest().decode())
+    manifest["application"]["size"] = len(archive)
+    manifest["application"]["sha256"] = hashlib.sha256(archive).hexdigest()
+    content = json.dumps(manifest).encode()
+    with TestClient(app) as client:
+        session = client.get("/api/v1/session", headers=_headers())
+        csrf = str(session.json()["csrf_token"])
+        created = client.post(
+            "/api/v1/system/updates/imports",
+            headers={**_headers(csrf=csrf), "Content-Type": "application/json"},
+            content=content,
+        )
+        assert created.status_code == 201, created.text
+        imported = created.json()
+        uploaded = client.put(
+            f"/api/v1/system/updates/imports/{imported['import_id']}",
+            headers={
+                **_headers(csrf=csrf),
+                "Content-Type": "application/octet-stream",
+                "X-DaHe-Update-File-Name": imported["application_file_name"],
+            },
+            content=archive,
+        )
+        installed = client.post(
+            "/api/v1/system/updates/install",
+            headers=_headers(csrf=csrf),
+        )
+
+    assert uploaded.status_code == 200, uploaded.text
+    assert uploaded.json()["state"] == "available"
+    assert installed.status_code == 202, installed.text
+    assert launcher.calls == 1
+
+
+def test_local_update_import_rejects_a_wrong_application_zip(
+    tmp_path: Path,
+) -> None:
+    app = _app(tmp_path, Launcher())
+    with TestClient(app) as client:
+        session = client.get("/api/v1/session", headers=_headers())
+        csrf = str(session.json()["csrf_token"])
+        created = client.post(
+            "/api/v1/system/updates/imports",
+            headers={**_headers(csrf=csrf), "Content-Type": "application/json"},
+            content=_manifest(),
+        )
+        imported = created.json()
+        uploaded = client.put(
+            f"/api/v1/system/updates/imports/{imported['import_id']}",
+            headers={
+                **_headers(csrf=csrf),
+                "Content-Type": "application/octet-stream",
+                "X-DaHe-Update-File-Name": imported["application_file_name"],
+            },
+            content=b"wrong",
+        )
+
+    assert uploaded.status_code == 422
+    assert uploaded.json()["error"]["code"] == "update_import_asset_invalid"

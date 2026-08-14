@@ -2,7 +2,8 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
-import type { AppServices, DailyItem } from "../../app/contracts";
+import type { AppServices, DailyItem, DailyItemsResult } from "../../app/contracts";
+import { ToastProvider } from "../../components/Toast";
 import { DailyWorkspace } from "./DailyWorkspace";
 import {
   businessDateForShanghaiClock,
@@ -50,6 +51,30 @@ describe("Daily workspace", () => {
     updatedAt: "2026-08-05T20:07:00+08:00",
   };
 
+  function result(
+    businessDate: string,
+    items: DailyItem[],
+  ): DailyItemsResult {
+    const needsReview = items.filter(
+      (entry) => entry.reviewState === "needs_review",
+    ).length;
+    return {
+      businessDate,
+      contractSubjectCode: "shanxi_guienbo",
+      items,
+      counts: {
+        all: items.length,
+        needsReview,
+        reviewed: items.length - needsReview,
+      },
+      sourceJobId: null,
+      sourceRecordVersion: 0,
+      captureMode: "batch_v1",
+      visiblePrefixCount: items.length,
+      onlineCaptureComplete: true,
+    };
+  }
+
   it("uses the 14:00 Shanghai business boundary for the default date", () => {
     expect(businessDateForShanghaiClock(new Date("2026-08-11T05:59:00Z"))).toBe("2026-08-10");
     expect(businessDateForShanghaiClock(new Date("2026-08-11T06:00:00Z"))).toBe("2026-08-11");
@@ -78,6 +103,7 @@ describe("Daily workspace", () => {
     expect(start).toHaveBeenCalledWith({
       businessScope: "daily",
       businessDate: "2026-08-01",
+      contractSubjectCode: "shanxi_guienbo",
       expectedRecordVersion: 0,
     });
     expect(screen.getByRole("status", { name: "尚未启动" })).toBeVisible();
@@ -101,31 +127,119 @@ describe("Daily workspace", () => {
     expect(screen.queryByText("该业务日暂无已保存的装卸车明细。")).toBeNull();
   });
 
-  it("saves only changed fields and preserves explicit manual blanks", async () => {
-    const save = vi.fn(async () => ({
+  it("saves every unresolved field including an unchanged explicit blank", async () => {
+    const unresolved = {
       ...item,
+      reviewState: "needs_review" as const,
+      effectiveFields: { ...item.effectiveFields, unloading_time: null },
+      fieldIssues: {
+        ...item.fieldIssues,
+        unloading_time: { hasIssue: true, message: "该字段尚未确认" },
+      },
+    };
+    const reviewed = {
+      ...unresolved,
       recordVersion: 2,
-      effectiveFields: { ...item.effectiveFields, loading_net_tonnes: null },
+      reviewState: "reviewed" as const,
+      fieldSources: { ...unresolved.fieldSources, unloading_time: "manual" as const },
+      fieldIssues: {
+        ...unresolved.fieldIssues,
+        unloading_time: { hasIssue: false, message: null },
+      },
+    };
+    const save = vi.fn(async () => ({
+      businessDate: "2026-08-05",
+      item: reviewed,
+      counts: { all: 1, needsReview: 0, reviewed: 1 },
     }));
     const services = {
-      loadDailyItems: vi.fn(async () => ({
-        businessDate: "2026-08-05",
-        items: [item],
-        counts: { all: 1, needsReview: 0, reviewed: 1 },
-      })),
+      loadDailyItems: vi.fn(async () => result("2026-08-05", [unresolved])),
       saveDailyItemRevision: save,
     } as unknown as AppServices;
+    localStorage.setItem("dahe:last-daily-business-date", "2026-08-05");
     render(<DailyWorkspace services={services} jobs={[]} />);
     const user = userEvent.setup();
 
-    const weight = await screen.findByLabelText("出矿净重（吨）");
-    expect(screen.getByRole("button", { name: "保存" })).toBeDisabled();
-    await user.clear(weight);
-    await user.click(screen.getByRole("button", { name: "保存" }));
+    const saveButton = await screen.findByRole("button", { name: "保存" });
+    expect(saveButton).toBeEnabled();
+    await user.click(saveButton);
 
-    await waitFor(() => expect(save).toHaveBeenCalledWith("platform-1", 1, {
-      loading_net_tonnes: null,
-    }));
+    await waitFor(() => expect(save).toHaveBeenCalledWith(
+      "platform-1",
+      "2026-08-05",
+      1,
+      { unloading_time: null },
+      "shanxi_guienbo",
+    ));
+  });
+
+  it("clears the previous business day immediately and ignores its late response", async () => {
+    let resolveSecond: (value: DailyItemsResult) => void = () => undefined;
+    const second = new Promise<DailyItemsResult>((resolve) => {
+      resolveSecond = resolve;
+    });
+    const load = vi
+      .fn<([businessDate]: [string]) => Promise<DailyItemsResult>>()
+      .mockResolvedValueOnce(result("2026-08-05", [item]))
+      .mockReturnValueOnce(second);
+    localStorage.setItem("dahe:last-daily-business-date", "2026-08-05");
+    render(<DailyWorkspace services={{ loadDailyItems: load } as unknown as AppServices} jobs={[]} />);
+    const user = userEvent.setup();
+    expect(await screen.findByText("YD-001")).toBeVisible();
+
+    await user.click(screen.getByRole("button", { name: /2026年8月5日/ }));
+    await user.click(
+      screen.getAllByRole("button", { name: "6" }).find(
+        (button) => !button.classList.contains("outside"),
+      )!,
+    );
+
+    expect(screen.queryByText("YD-001")).toBeNull();
+    expect(screen.getByRole("status", { name: "正在读取该业务日" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "全部 0" })).toBeVisible();
+    resolveSecond(result("2026-08-06", []));
+    expect(await screen.findByText("该业务日暂无已保存的装卸车明细。")).toBeVisible();
+  });
+
+  it("does not apply a completed save after the operator changes business date", async () => {
+    const unresolved = {
+      ...item,
+      reviewState: "needs_review" as const,
+      effectiveFields: { ...item.effectiveFields, unloading_time: null },
+      fieldIssues: {
+        ...item.fieldIssues,
+        unloading_time: { hasIssue: true, message: "该字段尚未确认" },
+      },
+    };
+    let resolveSave: (value: Awaited<ReturnType<NonNullable<AppServices["saveDailyItemRevision"]>>>) => void = () => undefined;
+    const save = vi.fn(() => new Promise((resolve) => { resolveSave = resolve; }));
+    const load = vi.fn(async (businessDate: string) =>
+      businessDate === "2026-08-05"
+        ? result(businessDate, [unresolved])
+        : result(businessDate, []));
+    localStorage.setItem("dahe:last-daily-business-date", "2026-08-05");
+    render(
+      <ToastProvider>
+        <DailyWorkspace services={{ loadDailyItems: load, saveDailyItemRevision: save } as unknown as AppServices} jobs={[]} />
+      </ToastProvider>,
+    );
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole("button", { name: "保存" }));
+    await user.click(screen.getByRole("button", { name: /2026年8月5日/ }));
+    await user.click(
+      screen.getAllByRole("button", { name: "6" }).find(
+        (button) => !button.classList.contains("outside"),
+      )!,
+    );
+    resolveSave({
+      businessDate: "2026-08-05",
+      contractSubjectCode: "shanxi_guienbo",
+      item: { ...unresolved, reviewState: "reviewed", recordVersion: 2 },
+      counts: { all: 1, needsReview: 0, reviewed: 1 },
+    });
+
+    expect(await screen.findByText("该业务日暂无已保存的装卸车明细。")).toBeVisible();
+    expect(screen.queryByText("YD-001")).toBeNull();
   });
 
   it("opens the full image viewer and closes it with Escape", async () => {
@@ -136,6 +250,7 @@ describe("Daily workspace", () => {
         counts: { all: 1, needsReview: 0, reviewed: 1 },
       })),
     } as unknown as AppServices;
+    localStorage.setItem("dahe:last-daily-business-date", "2026-08-05");
     render(<DailyWorkspace services={services} jobs={[]} />);
     const user = userEvent.setup();
 
@@ -157,12 +272,16 @@ describe("Daily workspace", () => {
       })),
       loadPlatformBusinessReadProgress: vi.fn(async () => ({
         jobId: "daily-job",
+        sourceJobId: "daily-job",
         total: 10,
         fetched: 10,
         recognized: 3,
         missingFields: 0,
         technicalFailed: 0,
         committedBatches: 1,
+        visiblePrefixCount: 3,
+        onlineCaptureComplete: true,
+        reviewJob: null,
       })),
     } as unknown as AppServices;
     const jobs = [{
@@ -183,7 +302,7 @@ describe("Daily workspace", () => {
     );
 
     expect(
-      await screen.findByRole("status", { name: "正在识别磅单 3/10" }),
+      await screen.findByRole("status", { name: "正在离线审核 3/10" }),
     ).toBeVisible();
     expect(screen.queryByRole("status", { name: "已完成 0/10" })).toBeNull();
   });

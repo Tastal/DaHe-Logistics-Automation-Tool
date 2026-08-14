@@ -9,7 +9,12 @@ from fastapi.testclient import TestClient
 from sqlalchemy import update
 
 from dahe import __version__
-from dahe.adapters.sqlite.schema import JOBS, OPERATIONAL_CAPTURE_RUNS, WORK_ITEMS
+from dahe.adapters.sqlite.schema import (
+    JOBS,
+    OPERATIONAL_CAPTURE_RUNS,
+    OPERATIONAL_REVIEW_LINKS,
+    WORK_ITEMS,
+)
 from dahe.api.app import create_app
 from dahe.jobs.specs import ScheduledJobSpec, ScheduledWorkItemSpec
 
@@ -287,6 +292,128 @@ def test_zero_result_success_freezes_terminal_timing(tmp_path: Path) -> None:
     assert first["estimate_state"] == "complete"
     assert first["estimated_remaining_seconds"] == 0
     assert second["elapsed_seconds"] == first["elapsed_seconds"]
+
+
+@pytest.mark.parametrize(
+    ("review_status", "item_status", "expected_phase"),
+    (
+        ("waiting_user", "waiting_user", "complete"),
+        ("failed", "failed", "incomplete"),
+    ),
+)
+def test_whole_run_daily_progress_distinguishes_human_review_from_failure(
+    tmp_path: Path,
+    review_status: str,
+    item_status: str,
+    expected_phase: str,
+) -> None:
+    app = create_app(
+        data_root=tmp_path,
+        project_root=PROJECT_ROOT,
+        instance_id=uuid4().hex,
+        auto_run_jobs=False,
+        stage_delay_seconds=0,
+    )
+    with TestClient(app) as client:
+        repository = app.state.repository
+        daily_job_id = _create_job(
+            repository,
+            ScheduledJobSpec(
+                fixture_id="daily-operational-whole-run-v1:2026-08-09",
+                job_kind="business",
+                task_type="daily",
+                scope_label="daily whole run",
+                conflict_key="daily:2026-08-09",
+                items=(
+                    ScheduledWorkItemSpec(
+                        item_key="daily:2026-08-09",
+                        expected_outcome=None,
+                    ),
+                ),
+                run_mode="operational",
+            ),
+        )
+        review_job_id = _create_job(
+            repository,
+            ScheduledJobSpec(
+                fixture_id="daily-observation-whole-run-v1:test",
+                job_kind="observation",
+                task_type="audit",
+                scope_label="daily review whole run",
+                conflict_key="daily-review:2026-08-09",
+                    items=(
+                        ScheduledWorkItemSpec(
+                            item_key="YD-WHOLE-001",
+                            expected_outcome=None,
+                            loading_image_sha256="a" * 64,
+                            unloading_image_sha256="b" * 64,
+                        ),
+                    ),
+                    pipeline_fingerprint="c" * 64,
+                    run_mode="operational",
+            ),
+        )
+        with app.state.sqlite_runtime.commit_gate.transaction(
+            app.state.sqlite_runtime.engine
+        ) as connection:
+            connection.execute(
+                update(JOBS)
+                .where(JOBS.c.job_id == daily_job_id)
+                .values(status="succeeded")
+            )
+            connection.execute(
+                update(JOBS)
+                .where(JOBS.c.job_id == review_job_id)
+                .values(status=review_status)
+            )
+            connection.execute(
+                update(WORK_ITEMS)
+                .where(WORK_ITEMS.c.job_id == review_job_id)
+                .values(status=item_status)
+            )
+            connection.execute(
+                OPERATIONAL_CAPTURE_RUNS.insert().values(
+                    job_id=daily_job_id,
+                    scope="daily:2026-08-09",
+                    total=1,
+                    items_json="[]",
+                    items_sha256="d" * 64,
+                    next_item_index=1,
+                    committed_batch_count=1,
+                    capture_mode="whole_run_v1",
+                    batch_size=1,
+                    detail_concurrency=4,
+                    image_concurrency=6,
+                    status="complete",
+                    record_version=2,
+                    metadata_checked_count=1,
+                    reused_count=0,
+                    images_downloaded_count=2,
+                    created_at="2026-08-09T10:00:00+00:00",
+                    updated_at="2026-08-09T10:01:00+00:00",
+                )
+            )
+            connection.execute(
+                OPERATIONAL_REVIEW_LINKS.insert().values(
+                    source_job_id=daily_job_id,
+                    business_kind="daily",
+                    review_job_id=review_job_id,
+                    eligible_item_count=1,
+                    missing_item_count=0,
+                    source_manifest_sha256="e" * 64,
+                    created_at="2026-08-09T10:01:00+00:00",
+                )
+            )
+        session = client.get("/api/v1/session", headers=_headers())
+        assert session.status_code == 200
+        payload = client.get(
+            f"/api/v1/platform/business-reads/{daily_job_id}/progress",
+            headers=_headers(),
+        ).json()
+
+    assert payload["phase"] == expected_phase
+    assert payload["is_terminal"] is True
+    assert payload["visible_prefix_count"] == 1
 
 
 @pytest.mark.parametrize("terminal_status", ("failed", "cancelled"))

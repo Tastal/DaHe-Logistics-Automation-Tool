@@ -359,6 +359,9 @@ class SqliteDailyInvocationStore:
                 "daily invocation job is unavailable"
             )
         return (
+            "whole_run_v1"
+            if str(fixture_id).startswith("daily-operational-whole-run-v1:")
+            else
             "batch_v1"
             if str(fixture_id).startswith(
                 (

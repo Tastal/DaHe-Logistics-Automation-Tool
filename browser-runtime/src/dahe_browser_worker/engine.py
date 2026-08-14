@@ -11,7 +11,7 @@ from concurrent.futures import FIRST_COMPLETED, Future, ThreadPoolExecutor, wait
 from contextlib import suppress
 from datetime import datetime, timedelta
 from pathlib import Path
-from threading import Event
+from threading import Event, Lock
 from time import monotonic
 from typing import Any
 from urllib.error import HTTPError, URLError
@@ -25,6 +25,7 @@ from uuid import uuid4
 
 from dahe_browser_worker.protocol import (
     CHENGFENG_IMAGE_HOSTS,
+    CaptureOperationalWholeRunCommand,
     InitializeCommand,
     InitializeHeadlessCommand,
     ReadDailyJsonCommand,
@@ -58,6 +59,12 @@ CHENGFENG_HISTORICAL_LIST_PATH = (
 CHENGFENG_DETAIL_PATH = "/api/order-center-server/app/clientOrderItem/getOrderItemDetailsByIdPC"
 CHENGFENG_DAILY_ENTRY = f"{_CHENGFENG_ORIGIN}/wayBill"
 CHENGFENG_DAILY_LIST_PATH = "/api/hz/orderItem/queryOrderItemListPC"
+CONTRACT_SUBJECT_OPTION_TEXT = {
+    "shanxi_guienbo": "山西贵恩博信息科技有限公司",
+    "shanghai_jinyisheng": "上海晋亿晟信息科技有限公司",
+}
+CONTRACT_SUBJECT_OPTION_TIMEOUT_MS = 10_000
+CONTRACT_SUBJECT_STABLE_POLL_COUNT = 8
 _DAILY_BOOTSTRAP_READ_PATHS = frozenset(
     {
         "/api/hz/evaluate/getEvaluateContent",
@@ -65,14 +72,8 @@ _DAILY_BOOTSTRAP_READ_PATHS = frozenset(
         "/api/hz/user/auth/getBusinessTaxSource",
         "/api/order-center-server/app/order/getPublicOrderConfig",
         "/api/order-center-server/userlimitconfig/queryUserLimitInfos",
-        (
-            "/api/statistics-center-server/order/statistics/"
-            "businessExportWeightPageButtonValidation"
-        ),
-        (
-            "/api/statistics-center-server/order/statistics/"
-            "selectBusinessLoadAdditionalStatusConfig"
-        ),
+        ("/api/statistics-center-server/order/statistics/businessExportWeightPageButtonValidation"),
+        ("/api/statistics-center-server/order/statistics/selectBusinessLoadAdditionalStatusConfig"),
         "/api/user-center-server/business/auth/selectTaxSourceList",
         "/api/user-center-server/business/user/getUserInfoAndFlag",
     }
@@ -86,6 +87,8 @@ APPROVED_SETTLEMENT_SCOPES = frozenset(
     }
 )
 HUMAN_LOGIN_NAVIGATION_TIMEOUT_MS = 60_000
+CHENGFENG_PAGE_HYDRATION_WAIT_MS = 5_000
+CHENGFENG_PAGE_HYDRATION_POLL_MS = 250
 SESSION_HEADER_QUERY_BUTTON_TIMEOUT_MS = 60_000
 OPERATIONAL_UI_IDLE_TIMEOUT_MS = 15_000
 SESSION_HEADER_CAPTURE_WAIT_STEPS = 50
@@ -94,7 +97,7 @@ JSON_READ_TIMEOUT_MS = 30_000
 IMAGE_READ_TIMEOUT_MS = 60_000
 MAX_JSON_READ_BYTES = 2 * 1024 * 1024
 MAX_IMAGE_READ_BYTES = 25 * 1024 * 1024
-MAX_OPERATIONAL_BATCH_BYTES = 256 * 1024 * 1024
+MAX_OPERATIONAL_BATCH_BYTES = 2 * 1024 * 1024 * 1024
 MAX_SESSION_HEADER_COUNT = 64
 MAX_SESSION_HEADER_VALUE_LENGTH = 8 * 1024
 MAX_SESSION_HEADER_TOTAL_LENGTH = 32 * 1024
@@ -113,6 +116,11 @@ _DAILY_CONTROLLED_FIELDS = {
     "receivePlace",
     "pageNumber",
     "pageSize",
+}
+_DAILY_SCOPE_FIELDS = {
+    "loadStartTime",
+    "loadEndTime",
+    "receivePlace",
 }
 _DYNAMIC_DAILY_BASELINE_FIELDS = {
     "deptCode",
@@ -265,11 +273,7 @@ def _validated_image_media_type(declared: str, content: bytes) -> str:
         "image/jpeg": content.startswith(b"\xff\xd8\xff"),
         "image/png": content.startswith(b"\x89PNG\r\n\x1a\n"),
         "image/tiff": content.startswith((b"II*\x00", b"MM\x00*")),
-        "image/webp": (
-            len(content) >= 12
-            and content[:4] == b"RIFF"
-            and content[8:12] == b"WEBP"
-        ),
+        "image/webp": (len(content) >= 12 and content[:4] == b"RIFF" and content[8:12] == b"WEBP"),
     }
     if media_type not in _IMAGE_MEDIA_TYPES or not signature_matches.get(
         media_type,
@@ -339,8 +343,10 @@ def _bounded_http_fetch(
         )
         if status != 200:
             raise BrowserReadError("browser_read_http_failed")
-        if not expected_image and media_type != "application/json" and not media_type.endswith(
-            "+json"
+        if (
+            not expected_image
+            and media_type != "application/json"
+            and not media_type.endswith("+json")
         ):
             raise BrowserReadError("browser_read_contract_changed")
         content = response.read(maximum_bytes + 1)
@@ -444,9 +450,9 @@ def _bounded_http_image_probe(
     try:
         if int(response.status) not in {200, 206}:
             return None
-        media_type = str(
-            response.headers.get("content-type", "")
-        ).split(";", 1)[0].strip().casefold()
+        media_type = (
+            str(response.headers.get("content-type", "")).split(";", 1)[0].strip().casefold()
+        )
         if media_type not in _IMAGE_MEDIA_TYPES:
             return None
         validator_sha256 = _image_validator_sha256(
@@ -1501,9 +1507,7 @@ def _operational_list_request_matches(
         actual_body = request.post_data_json
     except Exception:
         return False
-    return isinstance(actual_body, Mapping) and dict(actual_body) == dict(
-        expected_body
-    )
+    return isinstance(actual_body, Mapping) and dict(actual_body) == dict(expected_body)
 
 
 def _approved_discovery_request(request: Any) -> bool:
@@ -1566,10 +1570,7 @@ def _approved_daily_bootstrap_request(request: Any) -> bool:
         and parsed.username is None
         and parsed.password is None
         and parsed.path in _DAILY_BOOTSTRAP_READ_PATHS
-        and (
-            not parsed.query
-            or _daily_query_keys(parsed.query) == ["t"]
-        )
+        and (not parsed.query or _daily_query_keys(parsed.query) == ["t"])
         and not parsed.fragment
     )
 
@@ -1761,9 +1762,7 @@ def _daily_page_request_matches(
         actual_body = request.post_data_json
     except Exception:
         return False
-    return isinstance(actual_body, Mapping) and dict(actual_body) == dict(
-        expected_body
-    )
+    return isinstance(actual_body, Mapping) and dict(actual_body) == dict(expected_body)
 
 
 def _daily_page_request_can_be_scoped(
@@ -1779,13 +1778,10 @@ def _daily_page_request_can_be_scoped(
         actual_body = request.post_data_json
     except Exception:
         return False
-    if not isinstance(actual_body, Mapping) or set(actual_body) != set(
-        private_baseline
-    ):
+    if not isinstance(actual_body, Mapping) or set(actual_body) != set(private_baseline):
         return False
     return all(
-        name in _DAILY_CONTROLLED_FIELDS
-        or actual_body.get(name) == baseline_value
+        name in _DAILY_CONTROLLED_FIELDS or actual_body.get(name) == baseline_value
         for name, baseline_value in private_baseline.items()
     )
 
@@ -1988,18 +1984,14 @@ def _validate_page_owned_daily_scope(
         if loaded_at_raw is None or loaded_at_raw == "":
             continue
         if type(loaded_at_raw) is not str:
-            raise BrowserReadError(
-                "browser_daily_scope_loading_time_type_invalid"
-            )
+            raise BrowserReadError("browser_daily_scope_loading_time_type_invalid")
         try:
             datetime.strptime(
                 loaded_at_raw,
                 "%Y-%m-%d %H:%M:%S",
             )
         except ValueError as exc:
-            raise BrowserReadError(
-                "browser_daily_scope_loading_time_format_changed"
-            ) from exc
+            raise BrowserReadError("browser_daily_scope_loading_time_format_changed") from exc
         # Chengfeng may return a broader candidate page even when the exact
         # page-owned request contains the requested dates. The application
         # performs the authoritative 14:00-to-14:00 filter before details or
@@ -2022,12 +2014,9 @@ def _json_scalar_type(value: object) -> str:
 
 
 def _daily_scope_sha256(body: Mapping[str, object]) -> str:
-    """Hash only the approved daily range controls, never private page state."""
+    """Hash the business scope, excluding pagination transport controls."""
 
-    controlled = {
-        name: body.get(name)
-        for name in sorted(_DAILY_CONTROLLED_FIELDS)
-    }
+    controlled = {name: body.get(name) for name in sorted(_DAILY_SCOPE_FIELDS)}
     return hashlib.sha256(
         json.dumps(
             controlled,
@@ -2210,9 +2199,7 @@ def _daily_discovery_body(now: datetime) -> dict[str, object]:
         minute=0,
     )
     return {
-        "loadEndTime": (start + timedelta(days=1, minutes=30)).strftime(
-            "%Y-%m-%d %H:%M:%S"
-        ),
+        "loadEndTime": (start + timedelta(days=1, minutes=30)).strftime("%Y-%m-%d %H:%M:%S"),
         "loadStartTime": start.strftime("%Y-%m-%d %H:%M:%S"),
         "pageNumber": 1,
         "pageSize": 5,
@@ -2372,23 +2359,69 @@ def _entry_business_controls_visible(page: Any) -> bool:
     """Detect a hydrated settlement page without reading business values."""
 
     try:
-        control = (
-            page.get_by_text("按运单显示", exact=True)
-            .filter(visible=True)
-            .first
-        )
+        control = page.get_by_text("按运单显示", exact=True).filter(visible=True).first
         return bool(control.is_visible())
     except Exception:
         return False
 
 
-def _wait_for_entry_login_state(page: Any) -> bool:
+def _daily_business_controls_visible(page: Any) -> bool:
+    """Detect a hydrated daily page without reading business values."""
+
+    try:
+        control = page.get_by_text("运单管理", exact=True).filter(visible=True).first
+        return bool(control.is_visible())
+    except Exception:
+        return False
+
+
+def _page_hydration_score(page: Any) -> int:
+    """Rank safe same-origin pages without reading credentials or business data."""
+
+    if (
+        _page_requires_login(page)
+        or _entry_business_controls_visible(page)
+        or _daily_business_controls_visible(page)
+    ):
+        return 2
+    try:
+        observation = page.evaluate(
+            """() => ({
+                ready_state: document.readyState,
+                body_element_count: document.body
+                    ? document.body.querySelectorAll("*").length
+                    : 0,
+            })"""
+        )
+    except Exception:
+        return 0
+    if not isinstance(observation, Mapping) or set(observation) != {
+        "ready_state",
+        "body_element_count",
+    }:
+        return 0
+    ready_state = observation.get("ready_state")
+    body_element_count = observation.get("body_element_count")
+    if (
+        ready_state in {"interactive", "complete"}
+        and type(body_element_count) is int
+        and 0 < body_element_count <= 100_000
+    ):
+        return 1
+    return 0
+
+
+def _wait_for_entry_login_state(page: Any, *, daily: bool = False) -> bool:
     """Wait for the SPA to reveal either login or authenticated controls."""
 
     for _ in range(HUMAN_LOGIN_NAVIGATION_TIMEOUT_MS // 500):
         if _page_requires_login(page):
             return True
-        if _entry_business_controls_visible(page):
+        if (
+            _daily_business_controls_visible(page)
+            if daily
+            else _entry_business_controls_visible(page)
+        ):
             return False
         page.wait_for_timeout(500)
     return _page_requires_login(page)
@@ -2412,7 +2445,237 @@ def _visible_captcha(page: Any) -> bool:
     return False
 
 
-def _login_with_saved_credential(page: Any) -> None:
+def _contract_subject_control(page: Any, *, login_page: bool) -> Any:
+    if login_page:
+        candidates = page.locator(".el-form-item")
+        matching = []
+        for index in range(candidates.count()):
+            candidate = candidates.nth(index)
+            label = candidate.locator(".el-form-item__label").first
+            if label.count() == 1 and str(label.inner_text()).strip() == "签约主体":
+                matching.append(candidate.locator(".el-select").first)
+        if len(matching) != 1 or matching[0].count() != 1:
+            raise BrowserReadError("browser_contract_subject_control_unavailable")
+        return matching[0]
+    control = page.locator(".l-content .el-select")
+    if control.count() != 1:
+        raise BrowserReadError("browser_contract_subject_control_unavailable")
+    return control.first
+
+
+def _selected_contract_subject_code(page: Any, *, login_page: bool) -> str:
+    control = _contract_subject_control(page, login_page=login_page)
+    selected_text = ""
+    inputs = control.locator("input")
+    if inputs.count() == 1:
+        selected_text = str(inputs.first.input_value()).strip()
+    if not selected_text:
+        selected = page.locator(".el-select-dropdown:visible .el-select-dropdown__item.selected")
+        if selected.count() == 1:
+            selected_text = str(selected.first.inner_text()).strip()
+    for code, option_text in CONTRACT_SUBJECT_OPTION_TEXT.items():
+        if selected_text == option_text:
+            return code
+    raise BrowserReadError("browser_contract_subject_unknown")
+
+
+def _ensure_contract_subject(
+    page: Any,
+    *,
+    contract_subject_code: str,
+    login_page: bool,
+) -> dict[str, object]:
+    option_text = CONTRACT_SUBJECT_OPTION_TEXT.get(contract_subject_code)
+    if option_text is None:
+        raise BrowserReadError("browser_contract_subject_unknown")
+    if _selected_contract_subject_code(page, login_page=login_page) == contract_subject_code:
+        return {
+            "contract_subject_code": contract_subject_code,
+            "contract_subject_switch_performed": False,
+        }
+    control = _contract_subject_control(page, login_page=login_page)
+    switch_response_revision = 0
+    switch_document_response_observed = False
+
+    def observe_switch_response(response: Any) -> None:
+        nonlocal switch_response_revision
+        nonlocal switch_document_response_observed
+        try:
+            parsed = urlsplit(str(getattr(response, "url", "")))
+            request = getattr(response, "request", None)
+            resource_type = str(
+                getattr(request, "resource_type", "")
+            ).casefold()
+            status = int(getattr(response, "status", 0))
+        except (TypeError, ValueError):
+            return
+        if (
+            parsed.scheme == "https"
+            and parsed.hostname == "pc.chengfengkuaiyun.com"
+            and parsed.port in {None, 443}
+            and parsed.username is None
+            and parsed.password is None
+            and resource_type in {"document", "fetch", "xhr"}
+            and 200 <= status < 400
+        ):
+            switch_response_revision += 1
+            if resource_type == "document":
+                switch_document_response_observed = True
+
+    response_listener_installed = False
+    try:
+        control.locator("input").first.click(timeout=10_000)
+        exact_match = None
+        for _ in range(CONTRACT_SUBJECT_OPTION_TIMEOUT_MS // 250):
+            options = page.locator(
+                ".el-select-dropdown:visible .el-select-dropdown__item"
+            )
+            exact_matches = []
+            for index in range(options.count()):
+                candidate = options.nth(index)
+                if str(candidate.inner_text()).strip() == option_text:
+                    exact_matches.append(candidate)
+            if len(exact_matches) > 1:
+                raise BrowserReadError("browser_contract_subject_option_unavailable")
+            if exact_matches:
+                exact_match = exact_matches[0]
+                break
+            page.wait_for_timeout(250)
+        if exact_match is None:
+            raise BrowserReadError("browser_contract_subject_option_unavailable")
+        page.on("response", observe_switch_response)
+        response_listener_installed = True
+        exact_match.click(timeout=10_000)
+        stable_confirmation_count = 0
+        target_selection_observed = False
+        for _ in range(CONTRACT_SUBJECT_OPTION_TIMEOUT_MS // 250):
+            page.wait_for_timeout(250)
+            try:
+                if (
+                    _selected_contract_subject_code(
+                        page,
+                        login_page=login_page,
+                    )
+                    == contract_subject_code
+                ):
+                    target_selection_observed = True
+                    # The Chengfeng shell continues polling notification and
+                    # account endpoints after a subject switch. Those later
+                    # successful reads prove the page is alive; they must not
+                    # reset an already stable subject selection.
+                    stable_confirmation_count += 1
+                    if (
+                        stable_confirmation_count
+                        >= CONTRACT_SUBJECT_STABLE_POLL_COUNT
+                    ):
+                        return {
+                            "contract_subject_code": contract_subject_code,
+                            "contract_subject_switch_performed": True,
+                            "contract_subject_switch_response_observed": (
+                                switch_response_revision > 0
+                            ),
+                        }
+                else:
+                    stable_confirmation_count = 0
+            except BrowserReadError:
+                stable_confirmation_count = 0
+                continue
+        if target_selection_observed and switch_document_response_observed:
+            # Switching back to Chengfeng's primary subject performs a full
+            # same-origin document reload. The selected input can disappear
+            # before the normal stable-poll window completes. Hand this
+            # explicitly observed transition to the caller's hydration and
+            # final-subject gates instead of treating the empty shell as a
+            # failed click.
+            return {
+                "contract_subject_code": contract_subject_code,
+                "contract_subject_switch_performed": True,
+                "contract_subject_switch_response_observed": True,
+            }
+    except BrowserReadError:
+        raise
+    except Exception as exc:
+        raise BrowserReadError("browser_contract_subject_switch_failed") from exc
+    finally:
+        if response_listener_installed:
+            with suppress(Exception):
+                page.remove_listener("response", observe_switch_response)
+    raise BrowserReadError("browser_contract_subject_confirmation_failed")
+
+
+def _stabilize_contract_subject_business_page(
+    page: Any,
+    *,
+    contract_subject_code: str,
+    entry: str,
+    daily: bool,
+) -> None:
+    """Recover one blank SPA shell after an accepted subject switch."""
+
+    controls_visible = (
+        _daily_business_controls_visible if daily else _entry_business_controls_visible
+    )
+    def wait_for_stable_controls(poll_count: int) -> bool:
+        stable_count = 0
+        for _ in range(poll_count):
+            page.wait_for_timeout(250)
+            try:
+                ready = (
+                    controls_visible(page)
+                    and _selected_contract_subject_code(
+                        page,
+                        login_page=False,
+                    )
+                    == contract_subject_code
+                )
+            except BrowserReadError:
+                ready = False
+            if ready:
+                stable_count += 1
+                if stable_count >= CONTRACT_SUBJECT_STABLE_POLL_COUNT:
+                    return True
+            else:
+                stable_count = 0
+        return False
+
+    if not wait_for_stable_controls(
+        CONTRACT_SUBJECT_OPTION_TIMEOUT_MS // 250
+    ):
+        error_code = (
+            "browser_daily_query_control_unavailable"
+            if daily
+            else "browser_session_waybill_control_unavailable"
+        )
+        try:
+            response = page.goto(
+                entry,
+                wait_until="domcontentloaded",
+                timeout=HUMAN_LOGIN_NAVIGATION_TIMEOUT_MS,
+            )
+            if response is None:
+                raise BrowserReadError(error_code)
+            _assert_business_landing(
+                str(getattr(page, "url", "")),
+                response_status=int(getattr(response, "status", 0)),
+                expected_path="/wayBill" if daily else "/billablewaybill",
+            )
+        except BrowserReadError:
+            raise
+        except Exception as exc:
+            raise BrowserReadError(error_code) from exc
+        if _page_requires_login(page):
+            raise BrowserReadError("browser_read_login_required")
+        if not wait_for_stable_controls(
+            HUMAN_LOGIN_NAVIGATION_TIMEOUT_MS // 250
+        ):
+            raise BrowserReadError(error_code)
+
+
+def _login_with_saved_credential(
+    page: Any,
+    *,
+    contract_subject_code: str = "shanxi_guienbo",
+) -> None:
     if _visible_captcha(page):
         raise BrowserReadError("browser_saved_login_captcha_required")
     try:
@@ -2429,6 +2692,12 @@ def _login_with_saved_credential(page: Any) -> None:
             raise BrowserReadError("browser_saved_login_structure_changed")
         username.fill(credential.username)
         password.fill(credential.password)
+        with suppress(AttributeError, TypeError):
+            _ensure_contract_subject(
+                page,
+                contract_subject_code=contract_subject_code,
+                login_page=True,
+            )
         submit.click(timeout=10_000)
         for _ in range(HUMAN_LOGIN_NAVIGATION_TIMEOUT_MS // 500):
             page.wait_for_timeout(500)
@@ -2692,6 +2961,7 @@ class BrowserEngine:
         self._operational_first_page_number: int | None = None
         self._operational_first_page_size: int | None = None
         self._operational_query_trace: dict[str, object] | None = None
+        self._active_contract_subject_code: str | None = None
         self._human_page: Any | None = None
         self._operational_batch_page: Any | None = None
         self._operational_batch_route_handler: Any | None = None
@@ -2777,8 +3047,13 @@ class BrowserEngine:
                 self._human_page = page
                 try:
                     _open_human_login_entry(page)
+                    page = self._human_page_or_create(wait_for_hydrated=True)
+                    self._install_single_chengfeng_page_guard()
                     if headless and _wait_for_entry_login_state(page):
-                        _login_with_saved_credential(page)
+                        _login_with_saved_credential(
+                            page,
+                            contract_subject_code="shanxi_guienbo",
+                        )
                 except LoginEntryError:
                     self._context.close()
                     self._context = None
@@ -3186,9 +3461,7 @@ class BrowserEngine:
             or self._session_headers is None
             or self._session_list_cache_query is None
         ):
-            raise BrowserReadError(
-                "browser_operational_batch_prepare_required"
-            )
+            raise BrowserReadError("browser_operational_batch_prepare_required")
         page_headers = {
             name: value
             for name, value in self._session_headers.items()
@@ -3198,9 +3471,7 @@ class BrowserEngine:
         }
         page_headers["content-type"] = "application/json;charset=UTF-8"
         self._operational_batch_list_body = dict(body)
-        self._operational_batch_list_cache_query = (
-            self._session_list_cache_query
-        )
+        self._operational_batch_list_cache_query = self._session_list_cache_query
         self._operational_batch_list_seen = False
         try:
             raw_result = page.evaluate(
@@ -3237,9 +3508,7 @@ class BrowserEngine:
         if not isinstance(content_type, str):
             raise BrowserReadError("browser_read_contract_changed")
         media_type = content_type.split(";", 1)[0].strip().casefold()
-        if media_type != "application/json" and not media_type.endswith(
-            "+json"
-        ):
+        if media_type != "application/json" and not media_type.endswith("+json"):
             raise BrowserReadError("browser_read_contract_changed")
         raw_body = raw_result.get("body")
         if not isinstance(raw_body, str):
@@ -3279,12 +3548,9 @@ class BrowserEngine:
                 raise BrowserReadError("browser_daily_request_fields_changed")
             private_body[name] = body[name]
         scope_sha256 = _daily_scope_sha256(private_body)
-        if (
-            body.get("pageNumber") == 1
-            and (
-                scope_sha256 != self._daily_authority_scope_sha256
-                or self._daily_platform_display_total is None
-            )
+        if body.get("pageNumber") == 1 and (
+            scope_sha256 != self._daily_authority_scope_sha256
+            or self._daily_platform_display_total is None
         ):
             return self._read_page_authoritative_daily_list(
                 body=body,
@@ -3339,9 +3605,7 @@ class BrowserEngine:
         if not isinstance(content_type, str):
             raise BrowserReadError("browser_read_contract_changed")
         media_type = content_type.split(";", 1)[0].strip().casefold()
-        if media_type != "application/json" and not media_type.endswith(
-            "+json"
-        ):
+        if media_type != "application/json" and not media_type.endswith("+json"):
             raise BrowserReadError("browser_read_contract_changed")
         raw_body = raw_result.get("body")
         if not isinstance(raw_body, str):
@@ -3369,11 +3633,7 @@ class BrowserEngine:
             if scope_sha256 == self._daily_authority_scope_sha256
             else None
         )
-        display_total = (
-            page_display_total
-            if page_display_total == response_total
-            else None
-        )
+        display_total = page_display_total if page_display_total == response_total else None
         page_size = int(body["pageSize"])
         response_page_count = max(
             1,
@@ -3411,9 +3671,7 @@ class BrowserEngine:
         try:
             _, _, query_button = self._wait_for_daily_controls(page)
             with page.expect_response(
-                lambda candidate: _is_daily_native_request(
-                    getattr(candidate, "request", None)
-                ),
+                lambda candidate: _is_daily_native_request(getattr(candidate, "request", None)),
                 timeout=SESSION_HEADER_QUERY_BUTTON_TIMEOUT_MS,
             ) as response_info:
                 query_button.click(timeout=SESSION_HEADER_QUERY_BUTTON_TIMEOUT_MS)
@@ -3460,11 +3718,7 @@ class BrowserEngine:
                     retry_after_refresh=True,
                 )
             page_display_total = _daily_platform_display_total(page)
-            display_total = (
-                page_display_total
-                if page_display_total == response_total
-                else None
-            )
+            display_total = page_display_total if page_display_total == response_total else None
             scope_sha256 = _daily_scope_sha256(private_body)
             page_size = int(body["pageSize"])
             response_page_count = max(
@@ -3518,9 +3772,7 @@ class BrowserEngine:
                     captured_private_body = dict(private)
                     route.continue_()
                     return
-            if _approved_discovery_request(
-                request
-            ) or _approved_daily_bootstrap_request(request):
+            if _approved_discovery_request(request) or _approved_daily_bootstrap_request(request):
                 route.continue_()
                 return
             route.abort()
@@ -3538,14 +3790,10 @@ class BrowserEngine:
             if captured_headers is None or captured_private_body is None:
                 _, _, query_button = self._wait_for_daily_controls(page)
                 with page.expect_response(
-                    lambda candidate: _is_daily_native_request(
-                        getattr(candidate, "request", None)
-                    ),
+                    lambda candidate: _is_daily_native_request(getattr(candidate, "request", None)),
                     timeout=SESSION_HEADER_QUERY_BUTTON_TIMEOUT_MS,
                 ):
-                    query_button.click(
-                        timeout=SESSION_HEADER_QUERY_BUTTON_TIMEOUT_MS
-                    )
+                    query_button.click(timeout=SESSION_HEADER_QUERY_BUTTON_TIMEOUT_MS)
                 self._wait_for_operational_ui_idle(page)
             if captured_headers is None or captured_private_body is None:
                 if _page_requires_login(page):
@@ -3572,12 +3820,12 @@ class BrowserEngine:
 
     def read_operational_batch(
         self,
-        command: ReadOperationalBatchCommand,
+        command: ReadOperationalBatchCommand | CaptureOperationalWholeRunCommand,
         *,
         abort_event: Event | None = None,
         progress_callback: Callable[[str, int, int], None] | None = None,
     ) -> list[dict[str, object]]:
-        """Read one bounded batch without exposing session or signed URL data."""
+        """Read one validated capture unit without exposing session or signed URLs."""
 
         def abort_requested() -> bool:
             return abort_event is not None and abort_event.is_set()
@@ -3641,9 +3889,7 @@ class BrowserEngine:
                         emit_progress(phase, completed, len(tasks))
                     submit_available()
                 ensure_not_aborted()
-                if next_index != len(tasks) or any(
-                    result is None for result in results
-                ):
+                if next_index != len(tasks) or any(result is None for result in results):
                     raise BrowserReadError("browser_read_cancelled")
                 return [result for result in results if result is not None]
             except BaseException:
@@ -3661,6 +3907,15 @@ class BrowserEngine:
             and (self._session_headers is not None or self._daily_session_headers is not None)
         ):
             self._freeze_private_batch_session()
+        page = self._operational_batch_page
+        if isinstance(command, CaptureOperationalWholeRunCommand) and (
+            self._active_contract_subject_code != command.contract_subject_code
+            or page is None
+            or bool(page.is_closed())
+            or _selected_contract_subject_code(page, login_page=False)
+            != command.contract_subject_code
+        ):
+            raise BrowserReadError("browser_contract_subject_confirmation_failed")
         if (
             self._staging_root is None
             or not (self._operational_compat_prepared or self._daily_session_headers is not None)
@@ -3668,7 +3923,6 @@ class BrowserEngine:
             or not self._private_batch_session_frozen
         ):
             raise BrowserReadError("browser_operational_batch_prepare_required")
-        page = self._operational_batch_page
         session_headers = self._session_headers or self._daily_session_headers
         assert session_headers is not None
         page_headers = {
@@ -3694,6 +3948,7 @@ class BrowserEngine:
         allowed_ids = {detail.platform_waybill_id for detail in command.details}
         if len(allowed_ids) != len(command.details):
             raise BrowserReadError("browser_read_contract_changed")
+
         def read_details_in_page() -> list[object]:
             if (
                 page is None
@@ -3784,11 +4039,7 @@ class BrowserEngine:
                 raw_results = read_all_details_direct()
         else:
             detail_results = read_all_details_direct()
-            raw_results = [
-                result
-                for result in detail_results
-                if isinstance(result, dict)
-            ]
+            raw_results = [result for result in detail_results if isinstance(result, dict)]
         if not isinstance(raw_results, list) or len(raw_results) != len(command.details):
             raise BrowserReadError("browser_read_contract_changed")
 
@@ -3864,9 +4115,7 @@ class BrowserEngine:
                 sort_keys=True,
                 separators=(",", ":"),
             ).encode("utf-8")
-            source_revision_sha256 = hashlib.sha256(
-                sanitized_content
-            ).hexdigest()
+            source_revision_sha256 = hashlib.sha256(sanitized_content).hexdigest()
             parsed_detail_results.append(
                 (
                     detail_index,
@@ -3883,6 +4132,10 @@ class BrowserEngine:
                     len(command.details),
                 )
 
+        batch_key = hashlib.sha256(command.request_id.encode("ascii")).hexdigest()[:20]
+        staged_paths: list[str] = []
+        staged_paths_lock = Lock()
+
         def read_image(
             task: tuple[
                 int,
@@ -3891,16 +4144,21 @@ class BrowserEngine:
                 Mapping[str, str],
                 object,
             ],
-        ) -> tuple[int, str, bytes | None, str, str | None, str | None]:
+        ) -> tuple[
+            int,
+            str,
+            dict[str, object] | None,
+            str,
+            str | None,
+            str | None,
+        ]:
             detail_index, slot, url, headers, reuse_image = task
             if reuse_image is not None:
                 probe = _bounded_http_image_probe(
                     url=url,
                     headers=headers,
                     timeout_seconds=IMAGE_READ_TIMEOUT_MS / 1000,
-                    unsupported_hosts=(
-                        self._image_head_probe_unsupported_hosts
-                    ),
+                    unsupported_hosts=(self._image_head_probe_unsupported_hosts),
                 )
                 if (
                     probe is not None
@@ -3929,10 +4187,17 @@ class BrowserEngine:
                 validator_sha256 = None
             else:
                 content, media_type, validator_sha256 = fetched
+            image_payload = self._stage_batch_payload(
+                request_id=f"whole-{batch_key}-d{detail_index:04d}-{slot}",
+                content=content,
+                media_type=media_type,
+            )
+            with staged_paths_lock:
+                staged_paths.append(str(image_payload["relative_path"]))
             return (
                 detail_index,
                 slot,
-                content,
+                image_payload,
                 media_type,
                 validator_sha256,
                 None,
@@ -3960,15 +4225,9 @@ class BrowserEngine:
                             (
                                 candidate
                                 for candidate in (
-                                    command.details[
-                                        detail_index
-                                    ].reuse.images
-                                    if command.details[
-                                        detail_index
-                                    ].reuse is not None
-                                    and command.details[
-                                        detail_index
-                                    ].reuse.source_revision_sha256
+                                    command.details[detail_index].reuse.images
+                                    if command.details[detail_index].reuse is not None
+                                    and command.details[detail_index].reuse.source_revision_sha256
                                     == source_revision_sha256
                                     else ()
                                 )
@@ -3978,13 +4237,17 @@ class BrowserEngine:
                         ),
                     )
                 )
-        image_task_results = run_bounded_tasks(
-            tasks=image_tasks,
-            worker=read_image,
-            maximum_workers=command.image_concurrency,
-            thread_name_prefix="chengfeng-image",
-            phase="image",
-        )
+        try:
+            image_task_results = run_bounded_tasks(
+                tasks=image_tasks,
+                worker=read_image,
+                maximum_workers=command.image_concurrency,
+                thread_name_prefix="chengfeng-image",
+                phase="image",
+            )
+        except Exception:
+            self._cleanup_batch_paths(staged_paths)
+            raise
         parsed_details = tuple(
             (platform_waybill_id, content, source_revision_sha256, images)
             for (
@@ -3995,45 +4258,39 @@ class BrowserEngine:
                 images,
             ) in parsed_detail_results
         )
-        image_results = tuple(
-            result
-            for result in image_task_results
-            if isinstance(result, tuple)
-        )
+        image_results = tuple(result for result in image_task_results if isinstance(result, tuple))
         total_bytes = sum(
-            len(content)
-            for _identity, content, _source_revision, _images in parsed_details
+            len(content) for _identity, content, _source_revision, _images in parsed_details
         )
         total_bytes += sum(
-            len(content)
+            int(payload["byte_size"])
             for (
                 _detail_index,
                 _slot,
-                content,
+                payload,
                 _media_type,
                 _validator,
                 _reused_sha,
             ) in image_results
-            if content is not None
+            if payload is not None
         )
         if total_bytes > MAX_OPERATIONAL_BATCH_BYTES:
+            self._cleanup_batch_paths(staged_paths)
             raise BrowserReadError("browser_read_size_invalid")
 
-        staged_paths: list[str] = []
-        batch_key = hashlib.sha256(command.request_id.encode("ascii")).hexdigest()[:20]
         try:
             ensure_not_aborted()
             result_by_detail: list[dict[str, object]] = []
             for detail_index, (
                 platform_waybill_id,
-                content,
+                detail_content,
                 source_revision_sha256,
                 _images,
             ) in enumerate(parsed_details):
                 detail_request_id = f"batch-{batch_key}-d{detail_index:02d}"
                 detail_payload = self._stage_batch_payload(
                     request_id=detail_request_id,
-                    content=content,
+                    content=detail_content,
                     media_type="application/json",
                 )
                 staged_paths.append(str(detail_payload["relative_path"]))
@@ -4045,10 +4302,10 @@ class BrowserEngine:
                         "images": [],
                     }
                 )
-            for image_index, (
+            for _image_index, (
                 detail_index,
                 slot,
-                content,
+                image_payload,
                 media_type,
                 validator_sha256,
                 reused_sha256,
@@ -4067,14 +4324,7 @@ class BrowserEngine:
                         }
                     )
                     continue
-                assert content is not None
-                image_request_id = f"batch-{batch_key}-i{image_index:02d}"
-                image_payload = self._stage_batch_payload(
-                    request_id=image_request_id,
-                    content=content,
-                    media_type=media_type,
-                )
-                staged_paths.append(str(image_payload["relative_path"]))
+                assert image_payload is not None
                 images.append(
                     {
                         "slot": slot,
@@ -4136,9 +4386,7 @@ class BrowserEngine:
             self._private_batch_session_frozen = True
             return
         try:
-            cookies = cookie_reader(
-                [f"{_CHENGFENG_ORIGIN}{CHENGFENG_DETAIL_PATH}"]
-            )
+            cookies = cookie_reader([f"{_CHENGFENG_ORIGIN}{CHENGFENG_DETAIL_PATH}"])
         except Exception as exc:
             raise BrowserReadError("browser_read_login_required") from exc
         cookie_parts: list[str] = []
@@ -4154,9 +4402,7 @@ class BrowserEngine:
             ):
                 raise BrowserReadError("browser_read_contract_changed")
             cookie_parts.append(f"{name}={value}")
-        self._private_batch_cookie_header = (
-            "; ".join(cookie_parts) if cookie_parts else None
-        )
+        self._private_batch_cookie_header = "; ".join(cookie_parts) if cookie_parts else None
         self._private_batch_session_frozen = True
 
     def _install_operational_batch_page(self, page: Any) -> None:
@@ -4239,7 +4485,7 @@ class BrowserEngine:
         self._operational_daily_authority_body = None
         self._operational_daily_authority_seen = False
 
-    def _human_page_or_create(self) -> Any:
+    def _human_page_or_create(self, *, wait_for_hydrated: bool = False) -> Any:
         """Return the one Chengfeng page without touching unrelated tabs."""
 
         if self._context is None:
@@ -4266,22 +4512,59 @@ class BrowserEngine:
                 and parsed.password is None
             )
 
-        open_pages = [candidate for candidate in tuple(context.pages) if is_open(candidate)]
-        chengfeng_pages = [candidate for candidate in open_pages if is_chengfeng(candidate)]
-        preferred = self._human_page
-        if preferred not in open_pages or (
-            preferred not in chengfeng_pages
-            and str(getattr(preferred, "url", "")) not in {"", "about:blank"}
-        ):
-            preferred = None
-        page = preferred or (chengfeng_pages[0] if chengfeng_pages else None)
+        def page_snapshot() -> tuple[list[Any], list[Any], Any | None]:
+            open_pages = [candidate for candidate in tuple(context.pages) if is_open(candidate)]
+            chengfeng_pages = [candidate for candidate in open_pages if is_chengfeng(candidate)]
+            preferred = self._human_page
+            if preferred not in open_pages or (
+                preferred not in chengfeng_pages
+                and str(getattr(preferred, "url", "")) not in {"", "about:blank"}
+            ):
+                preferred = None
+            return open_pages, chengfeng_pages, preferred
+
+        open_pages, chengfeng_pages, preferred = page_snapshot()
+        if wait_for_hydrated and open_pages:
+            wait_page = preferred or (chengfeng_pages[0] if chengfeng_pages else open_pages[0])
+            for _ in range(CHENGFENG_PAGE_HYDRATION_WAIT_MS // CHENGFENG_PAGE_HYDRATION_POLL_MS):
+                pending_blank = any(
+                    str(getattr(candidate, "url", "")) in {"", "about:blank"}
+                    for candidate in open_pages
+                )
+                if not pending_blank and any(
+                    _page_hydration_score(candidate) > 0 for candidate in chengfeng_pages
+                ):
+                    break
+                with suppress(Exception):
+                    wait_page.wait_for_timeout(CHENGFENG_PAGE_HYDRATION_POLL_MS)
+                open_pages, chengfeng_pages, preferred = page_snapshot()
+
+        page = None
+        highest_score = 0
+        for candidate in chengfeng_pages:
+            score = _page_hydration_score(candidate)
+            if score > highest_score or (score == highest_score and candidate is preferred):
+                page = candidate
+                highest_score = score
+        if page is None:
+            page = preferred or (chengfeng_pages[0] if chengfeng_pages else None)
         if page is None:
             page = context.new_page()
-        for candidate in chengfeng_pages:
-            if candidate is page:
-                continue
-            with suppress(Exception):
-                candidate.close()
+        if highest_score > 0 or len(chengfeng_pages) <= 1:
+            for candidate in chengfeng_pages:
+                if candidate is page:
+                    continue
+                with suppress(Exception):
+                    candidate.close()
+        if wait_for_hydrated and highest_score > 0:
+            for candidate in open_pages:
+                if candidate is page or str(getattr(candidate, "url", "")) not in {
+                    "",
+                    "about:blank",
+                }:
+                    continue
+                with suppress(Exception):
+                    candidate.close()
         self._human_page = page
         return page
 
@@ -4310,6 +4593,20 @@ class BrowserEngine:
                 "domcontentloaded",
                 timeout=HUMAN_LOGIN_NAVIGATION_TIMEOUT_MS,
             )
+            # Chromium can dispatch DOMContentLoaded while Chengfeng's SPA is
+            # still an empty document shell. A cache-disabled refresh is not
+            # complete until either the login form or one of the two approved
+            # business pages has hydrated. Do not hand an empty shell to the
+            # control locators and spend another full locator timeout there.
+            for _ in range(
+                HUMAN_LOGIN_NAVIGATION_TIMEOUT_MS
+                // CHENGFENG_PAGE_HYDRATION_POLL_MS
+            ):
+                if _page_hydration_score(page) == 2:
+                    break
+                page.wait_for_timeout(CHENGFENG_PAGE_HYDRATION_POLL_MS)
+            else:
+                raise BrowserReadError(error_code)
         except BrowserReadError:
             raise
         except Exception as exc:
@@ -4388,11 +4685,12 @@ class BrowserEngine:
                 and current.path == expected_path
                 and not current.query
                 and not current.fragment
+                and _page_hydration_score(page) > 0
             )
             if not already_at_entry:
                 response = page.goto(
                     entry,
-                    wait_until="commit",
+                    wait_until="domcontentloaded",
                     timeout=HUMAN_LOGIN_NAVIGATION_TIMEOUT_MS,
                 )
                 if response is None:
@@ -4403,9 +4701,49 @@ class BrowserEngine:
                     expected_path=expected_path,
                 )
             # Older releases could leave multiple platform tabs behind. Keep
-            # this page and close only same-origin Chengfeng duplicates.
+            # the explicitly navigated target page and close only same-origin
+            # Chengfeng duplicates. A hydrated stale route must never replace
+            # the loading target route merely because it rendered first.
             self._human_page = page
-            page = self._human_page_or_create()
+            for _ in range(
+                HUMAN_LOGIN_NAVIGATION_TIMEOUT_MS
+                // CHENGFENG_PAGE_HYDRATION_POLL_MS
+            ):
+                if _page_hydration_score(page) == 2:
+                    break
+                page.wait_for_timeout(CHENGFENG_PAGE_HYDRATION_POLL_MS)
+            final_url = urlsplit(str(getattr(page, "url", "")))
+            if (
+                final_url.scheme != "https"
+                or final_url.hostname != "pc.chengfengkuaiyun.com"
+                or final_url.port not in {None, 443}
+                or final_url.username is not None
+                or final_url.password is not None
+                or (
+                    final_url.path != expected_path
+                    and final_url.path != "/login"
+                    and not final_url.path.startswith("/login/")
+                )
+                or bool(final_url.query)
+                or bool(final_url.fragment)
+            ):
+                raise BrowserReadError(error_code)
+            for candidate in tuple(context.pages):
+                if candidate is page:
+                    continue
+                try:
+                    candidate_url = urlsplit(str(getattr(candidate, "url", "")))
+                except ValueError:
+                    continue
+                if (
+                    candidate_url.scheme == "https"
+                    and candidate_url.hostname == "pc.chengfengkuaiyun.com"
+                    and candidate_url.port in {None, 443}
+                    and candidate_url.username is None
+                    and candidate_url.password is None
+                ):
+                    with suppress(Exception):
+                        candidate.close()
             cdp_session = context.new_cdp_session(page)
             try:
                 window = cdp_session.send("Browser.getWindowForTarget")
@@ -4558,7 +4896,11 @@ class BrowserEngine:
         self._operational_query_trace = None
         return safe_probe
 
-    def prepare_operational_compat(self) -> dict[str, object]:
+    def prepare_operational_compat(
+        self,
+        *,
+        contract_subject_code: str = "shanxi_guienbo",
+    ) -> dict[str, object]:
         """Use the exact completed UI query as the current business authority."""
 
         if self._context is None or self._capturing:
@@ -4574,11 +4916,14 @@ class BrowserEngine:
                 and self._session_native_probe is not None
                 and self._operational_first_list_content is not None
                 and self._operational_query_trace is not None
+                and self._active_contract_subject_code == contract_subject_code
             ):
                 return {
                     **self._session_native_probe,
                     "metrics": dict(self._session_native_probe["metrics"]),
                     "query_trace": dict(self._operational_query_trace),
+                    "contract_subject_code": contract_subject_code,
+                    "contract_subject_confirmed": True,
                 }
             raise BrowserReadError("browser_connection_mode_change_rejected")
         self._release_human_freeze_for_automation()
@@ -4589,7 +4934,10 @@ class BrowserEngine:
         )
         try:
             if _wait_for_entry_login_state(human_page):
-                _login_with_saved_credential(human_page)
+                _login_with_saved_credential(
+                    human_page,
+                    contract_subject_code=contract_subject_code,
+                )
                 human_page = self._ensure_visible_human_business_page(
                     CHENGFENG_HUMAN_LOGIN_ENTRY,
                     expected_path="/billablewaybill",
@@ -4598,9 +4946,21 @@ class BrowserEngine:
         except BrowserReadError:
             raise
         except Exception as exc:
-            raise BrowserReadError(
-                "browser_session_settlement_route_unavailable"
-            ) from exc
+            raise BrowserReadError("browser_session_settlement_route_unavailable") from exc
+        subject_evidence = _ensure_contract_subject(
+            human_page,
+            contract_subject_code=contract_subject_code,
+            login_page=False,
+        )
+        if subject_evidence["contract_subject_switch_performed"] is True:
+            _stabilize_contract_subject_business_page(
+                human_page,
+                contract_subject_code=contract_subject_code,
+                entry=CHENGFENG_HUMAN_LOGIN_ENTRY,
+                daily=False,
+            )
+            self._wait_for_operational_ui_idle(human_page)
+        self._active_contract_subject_code = contract_subject_code
         self._install_single_chengfeng_page_guard()
         page = human_page
         try:
@@ -4613,9 +4973,7 @@ class BrowserEngine:
                 page.bring_to_front()
             raise
         pages = tuple(
-            candidate
-            for candidate in self._context.pages
-            if not bool(candidate.is_closed())
+            candidate for candidate in self._context.pages if not bool(candidate.is_closed())
         )
         current_url = str(getattr(page, "url", ""))
         try:
@@ -4644,6 +5002,10 @@ class BrowserEngine:
             # visible. The captured request body remains the scope authority.
             if _page_requires_login(page):
                 raise BrowserReadError("browser_read_login_required")
+            if _page_hydration_score(page) == 0:
+                raise BrowserReadError(
+                    "browser_session_waybill_control_unavailable"
+                )
             self._wait_for_settlement_controls(
                 page,
                 scope=CURRENT_PENDING_SETTLEMENT_SCOPE,
@@ -4846,7 +5208,21 @@ class BrowserEngine:
                     error_code="browser_operational_cache_refresh_failed",
                 )
                 entry_recovery_refresh_count = 1
-                validate_operational_entry()
+                try:
+                    validate_operational_entry()
+                except BrowserReadError as recovery_exc:
+                    if recovery_exc.code not in {
+                        "browser_session_waybill_control_unavailable",
+                        "browser_session_query_control_unavailable",
+                    }:
+                        raise
+                    _stabilize_contract_subject_business_page(
+                        page,
+                        contract_subject_code=contract_subject_code,
+                        entry=CHENGFENG_HUMAN_LOGIN_ENTRY,
+                        daily=False,
+                    )
+                    validate_operational_entry()
             route_handler = operational_route
             install_operational_route()
             cache_refresh_count = 1 + entry_recovery_refresh_count
@@ -4875,6 +5251,15 @@ class BrowserEngine:
                 probe, content, response = execute_authoritative_query()
                 metrics = probe["metrics"]
                 assert isinstance(metrics, Mapping)
+            final_subject_evidence = _ensure_contract_subject(
+                page,
+                contract_subject_code=contract_subject_code,
+                login_page=False,
+            )
+            if final_subject_evidence["contract_subject_switch_performed"] is True:
+                raise BrowserReadError(
+                    "browser_contract_subject_confirmation_failed"
+                )
             response_request = getattr(response, "request", None)
             resource_type = str(getattr(response_request, "resource_type", "")).casefold()
             duration_ms = int(
@@ -4948,11 +5333,15 @@ class BrowserEngine:
             **self._session_native_probe,
             "metrics": dict(self._session_native_probe["metrics"]),
             "query_trace": dict(self._operational_query_trace),
+            "contract_subject_code": contract_subject_code,
+            "contract_subject_confirmed": True,
         }
 
     def prepare_settlement_filter_handoff(
         self,
         waybill_numbers: tuple[str, ...],
+        *,
+        contract_subject_code: str,
     ) -> dict[str, object]:
         """Populate the official waybill filter and leave the page to the user."""
 
@@ -4962,10 +5351,7 @@ class BrowserEngine:
             not waybill_numbers
             or len(waybill_numbers) > 2000
             or len(set(waybill_numbers)) != len(waybill_numbers)
-            or any(
-                re.fullmatch(r"[A-Za-z0-9_-]{1,40}", value) is None
-                for value in waybill_numbers
-            )
+            or any(re.fullmatch(r"[A-Za-z0-9_-]{1,40}", value) is None for value in waybill_numbers)
         ):
             raise BrowserReadError("browser_settlement_filter_values_invalid")
         page = self._human_page_or_create()
@@ -4984,6 +5370,11 @@ class BrowserEngine:
             _open_human_login_entry(page)
         if _page_requires_login(page):
             raise BrowserReadError("browser_read_login_required")
+        _ensure_contract_subject(
+            page,
+            contract_subject_code=contract_subject_code,
+            login_page=False,
+        )
         try:
             _, _, waybill_tab, _, _ = self._wait_for_settlement_controls(
                 page,
@@ -4992,19 +5383,13 @@ class BrowserEngine:
             )
             waybill_tab.click(timeout=SESSION_HEADER_QUERY_BUTTON_TIMEOUT_MS)
             self._wait_for_operational_ui_idle(page)
-            batch_search = (
-                page.get_by_text("批量搜", exact=True)
-                .filter(visible=True)
-                .first
-            )
+            batch_search = page.get_by_text("批量搜", exact=True).filter(visible=True).first
             batch_search.wait_for(
                 state="visible",
                 timeout=SESSION_HEADER_QUERY_BUTTON_TIMEOUT_MS,
             )
             batch_search.click(timeout=SESSION_HEADER_QUERY_BUTTON_TIMEOUT_MS)
-            dialog = page.locator(
-                ".el-dialog:visible, [role='dialog']:visible"
-            ).last
+            dialog = page.locator(".el-dialog:visible, [role='dialog']:visible").last
             dialog.wait_for(
                 state="visible",
                 timeout=SESSION_HEADER_QUERY_BUTTON_TIMEOUT_MS,
@@ -5012,9 +5397,7 @@ class BrowserEngine:
             textarea = dialog.locator("textarea:visible").first
             textarea.fill("\n".join(waybill_numbers))
             confirm = (
-                dialog.get_by_role("button", name="确定", exact=True)
-                .filter(visible=True)
-                .first
+                dialog.get_by_role("button", name="确定", exact=True).filter(visible=True).first
             )
             response = None
             try:
@@ -5032,9 +5415,7 @@ class BrowserEngine:
                 # writes the filter values. That is safe to continue once by
                 # clicking the page's official read-only query button.
                 if dialog.is_visible():
-                    raise BrowserReadError(
-                        "browser_settlement_filter_dialog_failed"
-                    ) from exc
+                    raise BrowserReadError("browser_settlement_filter_dialog_failed") from exc
             dialog.wait_for(
                 state="hidden",
                 timeout=SESSION_HEADER_QUERY_BUTTON_TIMEOUT_MS,
@@ -5058,18 +5439,14 @@ class BrowserEngine:
             try:
                 request_body = response.request.post_data_json
             except Exception as exc:
-                raise BrowserReadError(
-                    "browser_settlement_filter_result_changed"
-                ) from exc
+                raise BrowserReadError("browser_settlement_filter_result_changed") from exc
             if not isinstance(request_body, Mapping):
                 raise BrowserReadError("browser_settlement_filter_result_changed")
             try:
                 content = response.body()
                 parsed = json.loads(content.decode("utf-8", errors="strict"))
             except Exception as exc:
-                raise BrowserReadError(
-                    "browser_settlement_filter_result_changed"
-                ) from exc
+                raise BrowserReadError("browser_settlement_filter_result_changed") from exc
             result = _safe_settlement_filter_result(
                 parsed,
                 request_body=request_body,
@@ -5082,29 +5459,84 @@ class BrowserEngine:
         except Exception as exc:
             if _page_requires_login(page):
                 raise BrowserReadError("browser_read_login_required") from exc
-            raise BrowserReadError(
-                "browser_settlement_filter_handoff_failed"
-            ) from exc
+            raise BrowserReadError("browser_settlement_filter_handoff_failed") from exc
 
     def prepare_daily_from_automated(self) -> dict[str, object]:
         """Switch to the fixed daily page and retain only private read authority."""
+
+        return self._prepare_operational_daily(
+            require_automated_transition=True,
+            contract_subject_code=(self._active_contract_subject_code or "shanxi_guienbo"),
+        )
+
+    def prepare_operational_daily(
+        self,
+        *,
+        contract_subject_code: str = "shanxi_guienbo",
+    ) -> dict[str, object]:
+        """Prepare the fixed daily page directly from the visible session."""
+
+        return self._prepare_operational_daily(
+            require_automated_transition=False,
+            contract_subject_code=contract_subject_code,
+        )
+
+    def _prepare_operational_daily(
+        self,
+        *,
+        require_automated_transition: bool,
+        contract_subject_code: str,
+    ) -> dict[str, object]:
+        """Build one fresh page-owned daily read authority."""
 
         previous_controlled_page = self._operational_batch_page
         if (
             self._context is None
             or self._capturing
-            or not self._automated_prepared
-            or not self._session_headers
-            or previous_controlled_page is None
-            or bool(previous_controlled_page.is_closed())
+            or (
+                require_automated_transition
+                and (
+                    not self._automated_prepared
+                    or not self._session_headers
+                    or previous_controlled_page is None
+                    or bool(previous_controlled_page.is_closed())
+                )
+            )
         ):
-            raise BrowserReadError("browser_daily_automated_transition_required")
+            raise BrowserReadError(
+                "browser_daily_automated_transition_required"
+                if require_automated_transition
+                else "browser_read_login_required"
+            )
         self._remove_operational_batch_page()
         human_page = self._ensure_visible_human_business_page(
             CHENGFENG_DAILY_ENTRY,
             expected_path="/wayBill",
             error_code="browser_daily_route_unavailable",
         )
+        if _wait_for_entry_login_state(human_page, daily=True):
+            _login_with_saved_credential(
+                human_page,
+                contract_subject_code=contract_subject_code,
+            )
+            human_page = self._ensure_visible_human_business_page(
+                CHENGFENG_DAILY_ENTRY,
+                expected_path="/wayBill",
+                error_code="browser_daily_route_unavailable",
+            )
+        subject_evidence = _ensure_contract_subject(
+            human_page,
+            contract_subject_code=contract_subject_code,
+            login_page=False,
+        )
+        # The authoritative cache-disabled reload below is the daily page
+        # stabilization boundary. Running the generic shell recovery here as
+        # well duplicated one navigation and could exceed the worker budget
+        # when switching subjects. The fresh daily list response and the final
+        # subject check remain the publication gate.
+        del subject_evidence
+        self._active_contract_subject_code = contract_subject_code
+        self._install_single_chengfeng_page_guard()
         self._automated_prepared = False
         self._automated_scope = None
         self._operational_compat_prepared = False
@@ -5133,6 +5565,7 @@ class BrowserEngine:
         captured_private_body: dict[str, object] | None = None
         page = human_page
         try:
+
             def daily_navigation_route(route: Any) -> None:
                 nonlocal captured_headers, captured_private_body
                 request = getattr(route, "request", None)
@@ -5148,9 +5581,9 @@ class BrowserEngine:
                         captured_private_body = dict(private_body)
                         route.continue_()
                         return
-                if _approved_discovery_request(
+                if _approved_discovery_request(request) or _approved_daily_bootstrap_request(
                     request
-                ) or _approved_daily_bootstrap_request(request):
+                ):
                     route.continue_()
                     return
                 route.abort()
@@ -5171,9 +5604,7 @@ class BrowserEngine:
             captured_private_body = None
             _, _, query_button = self._wait_for_daily_controls(page)
             with page.expect_response(
-                lambda candidate: _is_daily_native_request(
-                    getattr(candidate, "request", None)
-                ),
+                lambda candidate: _is_daily_native_request(getattr(candidate, "request", None)),
                 timeout=SESSION_HEADER_QUERY_BUTTON_TIMEOUT_MS,
             ) as response_info:
                 query_button.click(timeout=SESSION_HEADER_QUERY_BUTTON_TIMEOUT_MS)
@@ -5187,14 +5618,10 @@ class BrowserEngine:
                     raise BrowserReadError("browser_read_login_required")
                 raise BrowserReadError("browser_daily_page_request_not_constructed")
             try:
-                native_payload = json.loads(
-                    native_response.body().decode("utf-8", errors="strict")
-                )
+                native_payload = json.loads(native_response.body().decode("utf-8", errors="strict"))
                 native_total = native_payload.get("data", {}).get("total")
             except Exception as exc:
-                raise BrowserReadError(
-                    "browser_daily_response_contract_changed"
-                ) from exc
+                raise BrowserReadError("browser_daily_response_contract_changed") from exc
             if type(native_total) is not int or native_total < 0:
                 raise BrowserReadError("browser_daily_response_contract_changed")
             visible_total = _daily_platform_display_total(page)
@@ -5208,14 +5635,21 @@ class BrowserEngine:
                 or current_url.fragment
             ):
                 raise BrowserReadError("browser_daily_route_unavailable")
+            final_subject_evidence = _ensure_contract_subject(
+                page,
+                contract_subject_code=contract_subject_code,
+                login_page=False,
+            )
+            if final_subject_evidence["contract_subject_switch_performed"] is True:
+                raise BrowserReadError(
+                    "browser_contract_subject_confirmation_failed"
+                )
             page.unroute("**/*", route_handler)
             route_handler = None
             self._daily_session_headers = captured_headers
             self._daily_private_body = captured_private_body
             self._daily_body = _frozen_daily_private_body()
-            self._daily_authority_scope_sha256 = _daily_scope_sha256(
-                captured_private_body
-            )
+            self._daily_authority_scope_sha256 = _daily_scope_sha256(captured_private_body)
             self._daily_platform_display_total = visible_total
             if visible_total is not None and visible_total != native_total:
                 raise BrowserReadError("browser_daily_scope_total_mismatch")
@@ -5223,7 +5657,11 @@ class BrowserEngine:
             probe_body = _daily_discovery_body(datetime.now())
             probe_content, response_fields = self._read_daily_list_in_page(
                 body=probe_body,
-                require_nonempty=True,
+                # A completed business window may legitimately contain no
+                # waybills for one contract subject. The page-authoritative
+                # reader performs the required cache-disabled second query
+                # before accepting that zero.
+                require_nonempty=False,
             )
             observation = {
                 "method": "POST",
@@ -5284,9 +5722,17 @@ class BrowserEngine:
             self._daily_cache_refresh_count = 0
             with suppress(Exception):
                 page.bring_to_front()
-            raise BrowserReadError("browser_daily_automated_transition_failed") from exc
+            raise BrowserReadError(
+                "browser_daily_automated_transition_failed"
+                if require_automated_transition
+                else "browser_daily_direct_prepare_failed"
+            ) from exc
 
-    def daily_preparation_evidence(self) -> dict[str, object]:
+    def daily_preparation_evidence(
+        self,
+        *,
+        include_contract_subject: bool = True,
+    ) -> dict[str, object]:
         """Return value-free proof for the visible daily preparation."""
 
         page = self._operational_batch_page
@@ -5301,10 +5747,7 @@ class BrowserEngine:
         pages = tuple(
             candidate
             for candidate in context.pages
-            if not (
-                callable(getattr(candidate, "is_closed", None))
-                and bool(candidate.is_closed())
-            )
+            if not (callable(getattr(candidate, "is_closed", None)) and bool(candidate.is_closed()))
         )
         current_url = urlsplit(str(getattr(page, "url", "")))
         if (
@@ -5318,7 +5761,7 @@ class BrowserEngine:
             or current_url.fragment
         ):
             raise BrowserReadError("browser_platform_tab_not_single")
-        return {
+        evidence: dict[str, object] = {
             "schema_version": 1,
             "evidence_kind": "chengfeng_daily_freshness",
             "cache_disabled_during_reload": True,
@@ -5328,6 +5771,12 @@ class BrowserEngine:
             "page_count": 1,
             "route": "/wayBill",
         }
+        if include_contract_subject:
+            if self._active_contract_subject_code not in CONTRACT_SUBJECT_OPTION_TEXT:
+                raise BrowserReadError("browser_contract_subject_confirmation_failed")
+            evidence["contract_subject_code"] = self._active_contract_subject_code
+            evidence["contract_subject_confirmed"] = True
+        return evidence
 
     def prepare_daily(self) -> dict[str, object]:
         if self._context is None or self._capturing:
@@ -5493,28 +5942,114 @@ class BrowserEngine:
                     "browser_session_settlement_scope_control_unavailable"
                 ) from exc
         try:
-            waybill_tab = page.get_by_text("按运单显示", exact=True).filter(visible=True).first
-            waybill_tab.wait_for(
-                state="visible",
-                timeout=SESSION_HEADER_QUERY_BUTTON_TIMEOUT_MS,
+            role_waybill_tab = page.get_by_role("tab", name="按运单显示", exact=True).filter(
+                visible=True
             )
-        except Exception as exc:
-            raise BrowserReadError("browser_session_waybill_control_unavailable") from exc
+            # Chengfeng's Element UI tab is not consistent about exposing a
+            # tab role while the SPA hydrates. Wait once for either exact
+            # representation so fallback locators cannot each consume the
+            # full browser-control lease.
+            combine_locator = getattr(role_waybill_tab, "or_", None)
+            if callable(combine_locator):
+                text_waybill_tab = page.get_by_text("按运单显示", exact=True).filter(visible=True)
+                waybill_tab = combine_locator(text_waybill_tab).first
+                waybill_tab.wait_for(
+                    state="visible",
+                    timeout=SESSION_HEADER_QUERY_BUTTON_TIMEOUT_MS,
+                )
+            else:
+                # Lightweight protocol test doubles predate Locator.or_. Keep
+                # their compatibility path equivalent to the former exact
+                # role/text fallback; real Playwright locators always use the
+                # single shared timeout above.
+                try:
+                    waybill_tab = role_waybill_tab.first
+                    waybill_tab.wait_for(
+                        state="visible",
+                        timeout=SESSION_HEADER_QUERY_BUTTON_TIMEOUT_MS,
+                    )
+                except Exception:
+                    waybill_tab = (
+                        page.get_by_text("按运单显示", exact=True).filter(visible=True).first
+                    )
+                    waybill_tab.wait_for(
+                        state="visible",
+                        timeout=SESSION_HEADER_QUERY_BUTTON_TIMEOUT_MS,
+                    )
+        except Exception:
+            try:
+                tab_candidates = page.locator("[role='tab']:visible, .el-tabs__item:visible")
+                waybill_tab = None
+                for index in range(min(tab_candidates.count(), 12)):
+                    candidate = tab_candidates.nth(index)
+                    if not candidate.is_visible():
+                        continue
+                    label = candidate.text_content()
+                    if isinstance(label, str) and "".join(label.split()) == "按运单显示":
+                        waybill_tab = candidate
+                        break
+                if waybill_tab is None:
+                    raise RuntimeError("settlement waybill tab structure is unavailable")
+            except Exception as structural_exc:
+                raise BrowserReadError(
+                    "browser_session_waybill_control_unavailable"
+                ) from structural_exc
         try:
-            reset_button = (
-                page.get_by_role("button", name="重置", exact=True).filter(visible=True).first
-            )
-            reset_button.wait_for(
-                state="visible",
-                timeout=SESSION_HEADER_QUERY_BUTTON_TIMEOUT_MS,
-            )
-            query_button = (
-                page.get_by_role("button", name="查询", exact=True).filter(visible=True).first
-            )
-            query_button.wait_for(
-                state="visible",
-                timeout=SESSION_HEADER_QUERY_BUTTON_TIMEOUT_MS,
-            )
+            query_regions = page.locator("[role='search']:visible, form:visible, .el-form:visible")
+            matched_controls: tuple[Any, Any] | None = None
+            for index in range(min(query_regions.count(), 8)):
+                query_region = query_regions.nth(index)
+                if not query_region.is_visible():
+                    continue
+                try:
+                    region_resets = query_region.get_by_role(
+                        "button", name="重置", exact=True
+                    ).filter(visible=True)
+                    region_queries = query_region.get_by_role(
+                        "button", name="查询", exact=True
+                    ).filter(visible=True)
+                    # The first visible .el-form can be Chengfeng's account
+                    # header rather than the business query form. Count is a
+                    # safe discriminator once the waybill tab has rendered;
+                    # do not wait a full timeout inside a form that owns no
+                    # query buttons.
+                    if region_resets.count() != 1 or region_queries.count() != 1:
+                        continue
+                    candidate_reset = region_resets.first
+                    candidate_query = region_queries.first
+                    candidate_reset.wait_for(
+                        state="visible",
+                        timeout=SESSION_HEADER_QUERY_BUTTON_TIMEOUT_MS,
+                    )
+                    candidate_query.wait_for(
+                        state="visible",
+                        timeout=SESSION_HEADER_QUERY_BUTTON_TIMEOUT_MS,
+                    )
+                except Exception:
+                    continue
+                matched_controls = (candidate_reset, candidate_query)
+                break
+            if matched_controls is None:
+                global_reset = page.get_by_role("button", name="重置", exact=True).filter(
+                    visible=True
+                )
+                global_query = page.get_by_role("button", name="查询", exact=True).filter(
+                    visible=True
+                )
+                candidate_reset = global_reset.first
+                candidate_query = global_query.first
+                candidate_reset.wait_for(
+                    state="visible",
+                    timeout=SESSION_HEADER_QUERY_BUTTON_TIMEOUT_MS,
+                )
+                candidate_query.wait_for(
+                    state="visible",
+                    timeout=SESSION_HEADER_QUERY_BUTTON_TIMEOUT_MS,
+                )
+                if global_reset.count() != 1 or global_query.count() != 1:
+                    raise RuntimeError("settlement query region is unavailable")
+                matched_controls = (candidate_reset, candidate_query)
+            reset_button, query_button = matched_controls
         except Exception as exc:
             raise BrowserReadError("browser_session_query_control_unavailable") from exc
         return (
@@ -5529,28 +6064,20 @@ class BrowserEngine:
         """Return the official daily list, reset and query controls."""
 
         try:
-            daily_title = (
-                page.get_by_text("运单管理", exact=True)
-                .filter(visible=True)
-                .first
-            )
+            daily_title = page.get_by_text("运单管理", exact=True).filter(visible=True).first
             daily_title.wait_for(
                 state="visible",
                 timeout=SESSION_HEADER_QUERY_BUTTON_TIMEOUT_MS,
             )
             reset_button = (
-                page.get_by_role("button", name="重置", exact=True)
-                .filter(visible=True)
-                .first
+                page.get_by_role("button", name="重置", exact=True).filter(visible=True).first
             )
             reset_button.wait_for(
                 state="visible",
                 timeout=SESSION_HEADER_QUERY_BUTTON_TIMEOUT_MS,
             )
             query_button = (
-                page.get_by_role("button", name="查询", exact=True)
-                .filter(visible=True)
-                .first
+                page.get_by_role("button", name="查询", exact=True).filter(visible=True).first
             )
             query_button.wait_for(
                 state="visible",
@@ -5560,9 +6087,7 @@ class BrowserEngine:
         except Exception as exc:
             if _page_requires_login(page):
                 raise BrowserReadError("browser_read_login_required") from exc
-            raise BrowserReadError(
-                "browser_daily_query_control_unavailable"
-            ) from exc
+            raise BrowserReadError("browser_daily_query_control_unavailable") from exc
 
     @staticmethod
     def _wait_for_operational_ui_idle(page: Any) -> None:
@@ -5596,25 +6121,18 @@ class BrowserEngine:
         if not pages:
             raise BrowserReadError("browser_read_login_required")
         settlement_pages = tuple(
-            page
-            for page in pages
-            if str(getattr(page, "url", "")) == CHENGFENG_HUMAN_LOGIN_ENTRY
+            page for page in pages if str(getattr(page, "url", "")) == CHENGFENG_HUMAN_LOGIN_ENTRY
         )
         if len(settlement_pages) != 1:
             for candidate in pages:
                 try:
-                    candidate_url = urlsplit(
-                        str(getattr(candidate, "url", ""))
-                    )
+                    candidate_url = urlsplit(str(getattr(candidate, "url", "")))
                 except ValueError:
                     continue
                 if (
                     candidate_url.scheme == "https"
                     and candidate_url.hostname == "pc.chengfengkuaiyun.com"
-                    and (
-                        candidate_url.path == "/login"
-                        or candidate_url.path.startswith("/login/")
-                    )
+                    and (candidate_url.path == "/login" or candidate_url.path.startswith("/login/"))
                 ):
                     raise BrowserReadError("browser_read_login_required")
             raise BrowserReadError("browser_session_settlement_route_unavailable")
@@ -6161,6 +6679,7 @@ class BrowserEngine:
         self._operational_first_page_number = None
         self._operational_first_page_size = None
         self._operational_query_trace = None
+        self._active_contract_subject_code = None
         self._detail_image_grants = {}
 
     def probe_settlement_views(self) -> dict[str, object]:
@@ -6172,10 +6691,7 @@ class BrowserEngine:
         pages = tuple(
             page
             for page in self._context.pages
-            if not (
-                callable(getattr(page, "is_closed", None))
-                and bool(page.is_closed())
-            )
+            if not (callable(getattr(page, "is_closed", None)) and bool(page.is_closed()))
         )
         settlement_pages = tuple(
             page for page in pages if str(getattr(page, "url", "")) == CHENGFENG_HUMAN_LOGIN_ENTRY
@@ -6343,10 +6859,7 @@ class BrowserEngine:
         pages = tuple(
             page
             for page in self._context.pages
-            if not (
-                callable(getattr(page, "is_closed", None))
-                and bool(page.is_closed())
-            )
+            if not (callable(getattr(page, "is_closed", None)) and bool(page.is_closed()))
         )
         settlement_pages = tuple(
             page for page in pages if str(getattr(page, "url", "")) == CHENGFENG_HUMAN_LOGIN_ENTRY

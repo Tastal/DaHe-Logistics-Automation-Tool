@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import hashlib
 import json
@@ -42,6 +42,165 @@ def _load_worker_modules(monkeypatch: pytest.MonkeyPatch) -> tuple[object, objec
     return engine, protocol
 
 
+def test_settlement_controls_wait_for_delayed_waybill_tab_instead_of_counting_once(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    engine_module, _ = _load_worker_modules(monkeypatch)
+    events: list[str] = []
+
+    class Control:
+        def __init__(self, name: str) -> None:
+            self._name = name
+
+        def filter(self, *, visible: bool) -> Control:
+            assert visible is True
+            return self
+
+        @property
+        def first(self) -> Control:
+            return self
+
+        def or_(self, other: Control) -> Control:
+            assert isinstance(other, Control)
+            return self
+
+        def count(self) -> int:
+            # Chengfeng can commit /billablewaybill before its SPA renders
+            # the tab. Playwright's wait_for is the synchronization point;
+            # a one-shot count must not short-circuit that wait.
+            events.append(f"{self._name}-counted-before-render")
+            return 0
+
+        def wait_for(self, *, state: str, timeout: int) -> None:
+            assert state == "visible"
+            assert timeout == engine_module.SESSION_HEADER_QUERY_BUTTON_TIMEOUT_MS
+            events.append(f"{self._name}-visible-after-render")
+
+    class QueryRegion:
+        def is_visible(self) -> bool:
+            return True
+
+        def get_by_role(
+            self,
+            role: str,
+            *,
+            name: str,
+            exact: bool,
+        ) -> Control:
+            assert role == "button"
+            assert exact is True
+            control = Control(name)
+            control.count = lambda: 1  # type: ignore[method-assign]
+            return control
+
+    class QueryRegions:
+        def count(self) -> int:
+            return 1
+
+        def nth(self, index: int) -> QueryRegion:
+            assert index == 0
+            return QueryRegion()
+
+    class Page:
+        def get_by_role(
+            self,
+            role: str,
+            *,
+            name: str,
+            exact: bool,
+        ) -> Control:
+            assert exact is True
+            assert role == "tab"
+            assert name == "按运单显示"
+            return Control("waybill-tab")
+
+        def get_by_text(self, text: str, *, exact: bool) -> Control:
+            assert text == "按运单显示"
+            assert exact is True
+            return Control("waybill-tab-text")
+
+        def locator(self, selector: str) -> QueryRegions:
+            assert selector == "[role='search']:visible, form:visible, .el-form:visible"
+            return QueryRegions()
+
+    worker = engine_module.BrowserEngine()
+
+    controls = worker._wait_for_settlement_controls(
+        Page(),
+        require_scope_controls=False,
+    )
+
+    assert len(controls) == 5
+    assert events == [
+        "waybill-tab-visible-after-render",
+        "重置-visible-after-render",
+        "查询-visible-after-render",
+    ]
+
+
+def test_settlement_waybill_locators_share_one_total_wait_budget(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    engine_module, _ = _load_worker_modules(monkeypatch)
+    elapsed_ms = 0
+
+    class MissingControl:
+        def filter(self, *, visible: bool) -> MissingControl:
+            assert visible is True
+            return self
+
+        @property
+        def first(self) -> MissingControl:
+            return self
+
+        def or_(self, other: MissingControl) -> MissingControl:
+            assert isinstance(other, MissingControl)
+            return self
+
+        def wait_for(self, *, state: str, timeout: int) -> None:
+            nonlocal elapsed_ms
+            assert state == "visible"
+            elapsed_ms += timeout
+            raise TimeoutError("control is not rendered")
+
+    class MissingCandidates:
+        def count(self) -> int:
+            return 0
+
+    class Page:
+        def get_by_role(
+            self,
+            role: str,
+            *,
+            name: str,
+            exact: bool,
+        ) -> MissingControl:
+            assert role == "tab"
+            assert name == "按运单显示"
+            assert exact is True
+            return MissingControl()
+
+        def get_by_text(self, text: str, *, exact: bool) -> MissingControl:
+            assert text == "按运单显示"
+            assert exact is True
+            return MissingControl()
+
+        def locator(self, selector: str) -> MissingCandidates:
+            assert selector == "[role='tab']:visible, .el-tabs__item:visible"
+            return MissingCandidates()
+
+    worker = engine_module.BrowserEngine()
+
+    with pytest.raises(engine_module.BrowserReadError) as raised:
+        worker._wait_for_settlement_controls(
+            Page(),
+            require_scope_controls=False,
+        )
+
+    assert raised.value.code == "browser_session_waybill_control_unavailable"
+    assert elapsed_ms <= engine_module.SESSION_HEADER_QUERY_BUTTON_TIMEOUT_MS
+
+
 def test_browser_worker_protocol_accepts_only_typed_read_commands(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -51,7 +210,7 @@ def test_browser_worker_protocol_accepts_only_typed_read_commands(
     command = parse_command(
         json.dumps(
             {
-                "schema_version": 6,
+                "schema_version": 9,
                 "command": "read_json",
                 "request_id": "read-json-1",
                 "operation": "list_waybills",
@@ -66,7 +225,7 @@ def test_browser_worker_protocol_accepts_only_typed_read_commands(
     prepared = parse_command(
         json.dumps(
             {
-                "schema_version": 6,
+                "schema_version": 9,
                 "command": "prepare_automated",
                 "request_id": "prepare-1",
                 "scope": "current",
@@ -78,8 +237,9 @@ def test_browser_worker_protocol_accepts_only_typed_read_commands(
     operational = parse_command(
         json.dumps(
             {
-                "schema_version": 6,
+                "schema_version": 9,
                 "command": "prepare_operational_compat",
+                    "contract_subject_code": "shanxi_guienbo",
                 "request_id": "prepare-operational-1",
             }
         )
@@ -88,10 +248,11 @@ def test_browser_worker_protocol_accepts_only_typed_read_commands(
     handoff = parse_command(
         json.dumps(
             {
-                "schema_version": 6,
+                "schema_version": 9,
                 "command": "prepare_settlement_filter_handoff",
                 "request_id": "filter-handoff-1",
                 "waybill_numbers": ["SXYD202608080001", "YD202608080002"],
+                "contract_subject_code": "shanghai_jinyisheng",
             }
         )
     )
@@ -99,10 +260,11 @@ def test_browser_worker_protocol_accepts_only_typed_read_commands(
         "SXYD202608080001",
         "YD202608080002",
     )
+    assert handoff.contract_subject_code == "shanghai_jinyisheng"
     frozen = parse_command(
         json.dumps(
             {
-                "schema_version": 6,
+                "schema_version": 9,
                 "command": "freeze_human_session",
                 "request_id": "freeze-1",
             }
@@ -112,7 +274,7 @@ def test_browser_worker_protocol_accepts_only_typed_read_commands(
     resumed = parse_command(
         json.dumps(
             {
-                "schema_version": 6,
+                "schema_version": 9,
                 "command": "resume_human_session",
                 "request_id": "resume-1",
             }
@@ -122,7 +284,7 @@ def test_browser_worker_protocol_accepts_only_typed_read_commands(
     settlement_views = parse_command(
         json.dumps(
             {
-                "schema_version": 6,
+                "schema_version": 9,
                 "command": "probe_settlement_views",
                 "request_id": "probe-settlement-views-1",
             }
@@ -132,7 +294,7 @@ def test_browser_worker_protocol_accepts_only_typed_read_commands(
 
     invalid_payloads = (
         {
-            "schema_version": 6,
+            "schema_version": 9,
             "command": "read_json",
             "request_id": "read-json-2",
             "operation": "confirm_settlement",
@@ -141,7 +303,7 @@ def test_browser_worker_protocol_accepts_only_typed_read_commands(
             "parameters": {"id": "one"},
         },
         {
-            "schema_version": 6,
+            "schema_version": 9,
             "command": "read_json",
             "request_id": "read-json-3",
             "operation": "list_waybills",
@@ -150,7 +312,7 @@ def test_browser_worker_protocol_accepts_only_typed_read_commands(
             "parameters": {},
         },
         {
-            "schema_version": 6,
+            "schema_version": 9,
             "command": "read_image",
             "request_id": "../escape",
             "operation": "download_ticket_image",
@@ -159,7 +321,7 @@ def test_browser_worker_protocol_accepts_only_typed_read_commands(
             "parameters": {},
         },
         {
-            "schema_version": 6,
+            "schema_version": 9,
             "command": "read_image",
             "request_id": "read-image-1",
             "operation": "download_ticket_image",
@@ -168,30 +330,31 @@ def test_browser_worker_protocol_accepts_only_typed_read_commands(
             "parameters": {},
         },
         {
-            "schema_version": 6,
+            "schema_version": 9,
             "command": "prepare_automated",
             "request_id": "prepare-invalid-scope",
             "scope": "all_history",
         },
         {
-            "schema_version": 6,
+            "schema_version": 9,
             "command": "prepare_automated",
             "request_id": "prepare-missing-scope",
         },
         {
-            "schema_version": 6,
+            "schema_version": 9,
             "command": "prepare_operational_compat",
+                    "contract_subject_code": "shanxi_guienbo",
             "request_id": "prepare-operational-extra",
             "scope": "current",
         },
         {
-            "schema_version": 6,
+            "schema_version": 9,
             "command": "prepare_settlement_filter_handoff",
             "request_id": "filter-handoff-duplicate",
             "waybill_numbers": ["YD1", "YD1"],
         },
         {
-            "schema_version": 6,
+            "schema_version": 9,
             "command": "prepare_settlement_filter_handoff",
             "request_id": "filter-handoff-unsafe",
             "waybill_numbers": ["YD1\n结算"],
@@ -210,7 +373,7 @@ def test_browser_worker_protocol_rejects_image_outside_fixed_chengfeng_hosts(
     accepted = protocol.parse_command(
         json.dumps(
             {
-                "schema_version": 6,
+                "schema_version": 9,
                 "command": "read_image",
                 "request_id": "read-image-chengfeng-origin",
                 "operation": "download_ticket_image",
@@ -229,7 +392,7 @@ def test_browser_worker_protocol_rejects_image_outside_fixed_chengfeng_hosts(
         protocol.parse_command(
             json.dumps(
                 {
-                    "schema_version": 6,
+                    "schema_version": 9,
                     "command": "read_image",
                     "request_id": "read-image-arbitrary-origin",
                     "operation": "download_ticket_image",
@@ -312,12 +475,12 @@ def test_browser_worker_protocol_emits_value_free_operational_query_trace(
     trace = {
         "schema_version": 1,
         "query_attempt_id": "1" * 32,
-        "observed_request_count": 3,
-        "approved_request_count": 1,
+        "observed_request_count": 4,
+        "approved_request_count": 2,
         "blocked_request_count": 2,
-        "query_attempt_count": 1,
-        "zero_retry_performed": False,
-        "cache_refresh_count": 1,
+        "query_attempt_count": 2,
+        "zero_retry_performed": True,
+        "cache_refresh_count": 3,
         "page_count": 1,
         "request_method": "POST",
         "request_path": (
@@ -342,6 +505,8 @@ def test_browser_worker_protocol_emits_value_free_operational_query_trace(
         },
         "response_structure_sha256": "a" * 64,
         "query_trace": trace,
+        "contract_subject_code": "shanxi_guienbo",
+        "contract_subject_confirmed": True,
     }
 
     output = json.loads(
@@ -2443,6 +2608,9 @@ def test_browser_engine_builds_current_replay_baseline_from_one_native_probe(
             assert self._visible_match_selected is True
             return self
 
+        def count(self) -> int:
+            return 1
+
         def wait_for(self, *, state: str, timeout: int) -> None:
             assert self._visible_match_selected is True
             assert state == "visible"
@@ -2479,8 +2647,11 @@ def test_browser_engine_builds_current_replay_baseline_from_one_native_probe(
             name: str,
             exact: bool,
         ) -> Trigger:
-            assert role == "button"
             assert exact is True
+            if role == "tab":
+                assert name == "按运单显示"
+                return Trigger(self, name="waybill-tab")
+            assert role == "button"
             if name == "查询":
                 return Trigger(self, name="query")
             if name == "重置":
@@ -2499,6 +2670,32 @@ def test_browser_engine_builds_current_replay_baseline_from_one_native_probe(
             if text not in controls:
                 raise AssertionError(f"unexpected text control: {text}")
             return Trigger(self, name=controls[text])
+
+        def locator(self, selector: str) -> object:
+            assert selector == "[role='search']:visible, form:visible, .el-form:visible"
+            page = self
+
+            class QueryRegions:
+                def count(self) -> int:
+                    return 1
+
+                def nth(self, index: int) -> QueryRegions:
+                    assert index == 0
+                    return self
+
+                def is_visible(self) -> bool:
+                    return True
+
+                def get_by_role(
+                    self,
+                    role: str,
+                    *,
+                    name: str,
+                    exact: bool,
+                ) -> Trigger:
+                    return page.get_by_role(role, name=name, exact=exact)
+
+            return QueryRegions()
 
         def route(self, pattern: str, handler: object) -> None:
             assert pattern == "**/*"
@@ -2692,6 +2889,9 @@ def test_browser_engine_probes_both_official_settlement_views_without_values(
         def first(self) -> Trigger:
             return self
 
+        def count(self) -> int:
+            return 1
+
         def wait_for(self, *, state: str, timeout: int) -> None:
             assert state == "visible"
             assert timeout == engine_module.SESSION_HEADER_QUERY_BUTTON_TIMEOUT_MS
@@ -2733,13 +2933,42 @@ def test_browser_engine_probes_both_official_settlement_views_without_values(
             name: str,
             exact: bool,
         ) -> Trigger:
-            assert role == "button"
             assert exact is True
+            if role == "tab":
+                assert name == "\u6309\u8fd0\u5355\u663e\u793a"
+                return Trigger(self, "waybill")
+            assert role == "button"
             controls = {
                 "\u91cd\u7f6e": "reset",
                 "\u67e5\u8be2": "query",
             }
             return Trigger(self, controls[name])
+
+        def locator(self, selector: str) -> object:
+            assert selector == "[role='search']:visible, form:visible, .el-form:visible"
+            page = self
+
+            class QueryRegions:
+                def count(self) -> int:
+                    return 1
+
+                def nth(self, index: int) -> QueryRegions:
+                    assert index == 0
+                    return self
+
+                def is_visible(self) -> bool:
+                    return True
+
+                def get_by_role(
+                    self,
+                    role: str,
+                    *,
+                    name: str,
+                    exact: bool,
+                ) -> Trigger:
+                    return page.get_by_role(role, name=name, exact=exact)
+
+            return QueryRegions()
 
         def route(self, pattern: str, handler: object) -> None:
             assert pattern == "**/*"
@@ -2889,6 +3118,9 @@ def test_browser_engine_navigates_directly_to_the_historical_read_route(
             assert self.filtered
             return self
 
+        def count(self) -> int:
+            return 1
+
         def wait_for(self, *, state: str, timeout: int) -> None:
             assert state == "visible"
             assert timeout == engine_module.SESSION_HEADER_QUERY_BUTTON_TIMEOUT_MS
@@ -2922,6 +3154,30 @@ def test_browser_engine_navigates_directly_to_the_historical_read_route(
             return type("Response", (), {"status": 200})()
 
         def locator(self, selector: str) -> object:
+            if selector == "[role='search']:visible, form:visible, .el-form:visible":
+                page = self
+
+                class QueryRegions:
+                    def count(self) -> int:
+                        return 1
+
+                    def nth(self, index: int) -> QueryRegions:
+                        assert index == 0
+                        return self
+
+                    def is_visible(self) -> bool:
+                        return True
+
+                    def get_by_role(
+                        self,
+                        role: str,
+                        *,
+                        name: str,
+                        exact: bool,
+                    ) -> Trigger:
+                        return page.get_by_role(role, name=name, exact=exact)
+
+                return QueryRegions()
             assert selector == "input[type='password']"
             return type(
                 "Locator",
@@ -2947,8 +3203,11 @@ def test_browser_engine_navigates_directly_to_the_historical_read_route(
             name: str,
             exact: bool,
         ) -> Trigger:
-            assert role == "button"
             assert exact is True
+            if role == "tab":
+                assert name == "按运单显示"
+                return Trigger(self, "waybill-tab")
+            assert role == "button"
             if name == "登录":
                 raise RuntimeError("not a login page")
             if name == "重置":
@@ -3524,7 +3783,7 @@ def _worker_response(
     prepare_result: dict[str, object] | None = None,
 ) -> dict[str, object]:
     return {
-        "schema_version": 6,
+        "schema_version": 9,
         "request_id": "replaced",
         "ok": ok,
         "selected_browser": "msedge",

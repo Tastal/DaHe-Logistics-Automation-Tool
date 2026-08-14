@@ -19,7 +19,7 @@ describe("locked-set review client", () => {
       "fetch",
       vi.fn().mockResolvedValue(
         jsonResponse({
-          application_version: "1.0.0",
+          application_version: "1.1.0",
           csrf_token: "csrf-review",
           locked_set_review_enabled: true,
         }),
@@ -27,7 +27,7 @@ describe("locked-set review client", () => {
     );
 
     await expect(new BrowserAppServices().bootstrap()).resolves.toMatchObject({
-      applicationVersion: "1.0.0",
+      applicationVersion: "1.1.0",
       lockedSetReviewEnabled: true,
     });
   });
@@ -136,7 +136,7 @@ describe("locked-set review client", () => {
       .fn()
       .mockResolvedValueOnce(
         jsonResponse({
-          application_version: "1.0.0",
+          application_version: "1.1.0",
           csrf_token: "csrf-review",
           locked_set_review_enabled: true,
         }),
@@ -253,7 +253,7 @@ describe("locked-set review client", () => {
       .fn()
       .mockResolvedValueOnce(
         jsonResponse({
-          application_version: "1.0.0",
+          application_version: "1.1.0",
           csrf_token: "csrf-review",
           locked_set_review_enabled: true,
         }),

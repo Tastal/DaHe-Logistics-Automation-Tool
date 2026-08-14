@@ -1,0 +1,28 @@
+{
+  "acceptance_gates": [
+    "one start request opens or rebuilds the visible Chengfeng browser and continues the same settlement or daily task",
+    "new settlement and daily reads publish one whole_run_v1 online result and create exactly one offline review job",
+    "platform pagination never creates a durable business batch and no partial online result is published",
+    "offline review remains non-terminal until the frozen total is reconciled and exposes only the contiguous completed prefix",
+    "daily capture calls /wayBill directly and performs zero settlement list requests",
+    "settlement and daily reads preserve one visible Chengfeng page after completion and perform zero platform business writes",
+    "the committed source, isolated browser Worker, Schema revision, frontend assets, and running development service are verified separately from the unchanged installed release"
+  ],
+  "allowed_external_resources": [
+    "https://pc.chengfengkuaiyun.com (read-only validation only)"
+  ],
+  "captured_at": "2026-08-13T08:31:58.4310334Z",
+  "forbidden_platform_operations": [
+    "settlement confirmation",
+    "payment",
+    "receipt cancellation",
+    "dispatch",
+    "any other platform business write"
+  ],
+  "fixture_policy": "Automated migration, atomicity, ordering, restart, cancellation, and UI checks use temporary databases and fake platform adapters. Real validation is limited to the two approved read-only business reads.",
+  "installed_release_policy": "Do not build, install, update shortcuts, or publish a release in Loop 13.",
+  "kind": "loop_13_atomic_whole_run_and_realtime_offline_review_input_manifest",
+  "schema_version": 1,
+  "source_commit": "654567713862a38031b66d180632387b81add04d",
+  "source_parent_commit": "c0e7f7194e4e767df19b2fc1ab5bee85ccf8c7d5"
+}

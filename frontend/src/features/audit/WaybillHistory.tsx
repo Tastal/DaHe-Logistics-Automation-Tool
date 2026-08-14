@@ -1,7 +1,7 @@
 import { FormEvent, useEffect, useState } from "react";
 import { ChevronLeft, Clock3, History, Search } from "lucide-react";
 
-import type { AppServices } from "../../app/contracts";
+import type { AppServices, ContractSubjectCode } from "../../app/contracts";
 import type { AuditReviewItem } from "../../api/auditContracts";
 
 const outcomeLabels: Record<string, string> = {
@@ -26,14 +26,24 @@ function usesNarrowMasterDetail(): boolean {
   );
 }
 
-export function WaybillHistory({ services }: { services: AppServices }) {
+export function WaybillHistory({
+  services,
+  contractSubjectCode,
+}: {
+  services: AppServices;
+  contractSubjectCode: ContractSubjectCode;
+}) {
   const [items, setItems] = useState<AuditReviewItem[]>([]);
   const [selected, setSelected] = useState<AuditReviewItem | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
   const load = async (query = "", outcome = "") => {
     if (!services.loadWaybillHistory) return;
-    const next = await services.loadWaybillHistory(query, outcome);
+    const next = await services.loadWaybillHistory(
+      query,
+      outcome,
+      contractSubjectCode,
+    );
     setItems(next);
     setSelected((current) => {
       if (current && next.some((item) => item.workItemId === current.workItemId)) {
@@ -47,7 +57,7 @@ export function WaybillHistory({ services }: { services: AppServices }) {
     if (!services.loadWaybillHistory) return;
     let active = true;
     void services
-      .loadWaybillHistory("", "")
+      .loadWaybillHistory("", "", contractSubjectCode)
       .then((next) => {
         if (!active) return;
         setItems(next);
@@ -59,7 +69,7 @@ export function WaybillHistory({ services }: { services: AppServices }) {
     return () => {
       active = false;
     };
-  }, [services]);
+  }, [contractSubjectCode, services]);
 
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();

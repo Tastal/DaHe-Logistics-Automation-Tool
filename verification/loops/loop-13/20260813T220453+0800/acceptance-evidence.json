@@ -1,0 +1,131 @@
+{
+  "accepted_at": "2026-08-13T14:04:53.6757633Z",
+  "automated_checks": {
+    "authoritative_command": ".\\.venv\\Scripts\\python.exe tools\\check.py",
+    "authoritative_elapsed_seconds": 882,
+    "edge_e2e_command": "npm.cmd --prefix frontend run test:e2e",
+    "edge_e2e_tests_passed": 14,
+    "frontend": {
+      "build": "passed",
+      "test_files": 24,
+      "tests_passed": 143
+    },
+    "mypy_source_files": 358,
+    "mypy_status": "passed",
+    "narrow_regression_command": ".\\.venv\\Scripts\\python.exe -m pytest tests/unit/application/chengfeng/test_fast_operational_capture.py tests/unit/application/chengfeng/test_browser_readiness.py tests/unit/application/daily/test_fast_operational_daily_capture.py tests/integration/test_daily_items_api.py tests/integration/test_daily_operational_progress_api.py tests/integration/test_loop8_audit_workflow_repository.py tests/integration/test_loop9_daily_live_execution.py tests/unit/platform/test_loop9_daily_browser_runtime.py tests/unit/platform/test_loop9_live_connector_runtime.py tests/unit/verification/test_loop9_request_audit.py tests/unit/adapters/test_browser_runtime.py -q",
+    "narrow_regression_tests_passed": 153,
+    "python_tests_passed": 2983,
+    "python_tests_skipped": 9,
+    "ruff_status": "passed",
+    "skip_reason": "The current Windows account cannot create symbolic links; non-link path-safety coverage passed."
+  },
+  "browser_contract": {
+    "daily_route": "/wayBill",
+    "settlement_route": "/billablewaybill",
+    "single_chengfeng_page_contract": true,
+    "same_task_login_recovery_covered": true,
+    "unrelated_browser_pages_managed": false,
+    "visible_browser_running_after_terminal": true,
+    "worker_rebuild_attempts_maximum": 1
+  },
+  "daily_read": {
+    "audit_evidence_sha256": "75a980d5847a1dc1a890d881892e5aa3caf90e19fdc920dfa68403df1da91c60",
+    "business_date": "2026-08-12",
+    "business_job_id": "4e563b9aef5442349fd7575b62d38b9f",
+    "capture_mode": "whole_run_v1",
+    "committed_online_results": 1,
+    "download_ticket_image_reads": 272,
+    "fetched_waybills": 136,
+    "get_waybill_detail_reads": 136,
+    "list_daily_waybill_reads": 2,
+    "list_settlement_waybill_reads": 0,
+    "offline_review_completed_waybills": 136,
+    "offline_review_job_count": 1,
+    "offline_review_live_prefix_observed": [
+      29,
+      41,
+      90,
+      117,
+      136
+    ],
+    "online_capture_elapsed_seconds": 114,
+    "online_capture_complete": true,
+    "platform_business_write_count": 0,
+    "redirect_count": 0,
+    "request_counts": {
+      "allowed": 410,
+      "attempted": 410,
+      "denied": 0,
+      "succeeded": 410
+    },
+    "route": "/wayBill",
+    "status": "succeeded",
+    "visible_prefix_count": 136,
+    "waybills": 136
+  },
+  "installed_release": {
+    "application_version": "1.0.0",
+    "build_git_commit": "d1e058669c6c29f5319b26c7e7278eb2b08450ad",
+    "changed_in_this_loop": false,
+    "resource_sha256": "54eb5b4c3a8314f6288beda61ed719e8f4a4b3eb96decadd2ca9842d5c3bd8ad",
+    "schema_revision": "0039_network_batch_default"
+  },
+  "projection_regression_correction": {
+    "current_source_observations": 136,
+    "incorrect_visible_count_before_fix": 78,
+    "reused_unchanged_observations": 58,
+    "root_cause": "The append-only daily store correctly reused the prior revision for unchanged field fingerprints, while the whole-run workspace incorrectly required the revision observation_id to belong to the current source snapshot.",
+    "verified_result": {
+      "all": 136,
+      "capture_mode": "whole_run_v1",
+      "needs_review": 2,
+      "online_capture_complete": true,
+      "reviewed": 134,
+      "source_job_id": "4e563b9aef5442349fd7575b62d38b9f",
+      "visible_prefix_count": 136
+    },
+    "write_effect": "No production row was modified; the correction changes only the current-source read projection."
+  },
+  "request_audit": {
+    "daily_deep_replay_verified": true,
+    "settlement_deep_replay_verified": true,
+    "total_platform_business_write_count": 0
+  },
+  "result": "passed",
+  "running_source_before_evidence_commit": {
+    "application_version": "1.0.0",
+    "browser_worker_source_sha256": "f0f174029045fd5805ed99f81a34cdfaa4d784fb3340a356b14b7440678041b1",
+    "implementation_commit": "402033fcc4ac08bcae8e9111096043df06b5a35c",
+    "launch_interpreter": ".venv\\Scripts\\python.exe",
+    "readiness_http_status": 200,
+    "resource_sha256": "9fa7a1ccfb3527f23a8717e07178f8611704220d7638c785a2da3be1fa971558",
+    "schema_revision": "0040_whole_run_capture",
+    "worker_matches_committed_source": true
+  },
+  "schema_version": 1,
+  "settlement_read": {
+    "audit_evidence_sha256": "cbb91d90dc5663d89bfee38260fe5f26c3ad78c998edc0842440b88d3850aed5",
+    "business_job_id": "ae57c4cd2d71414aa6a87fcfadbd8f80",
+    "capture_mode": "whole_run_v1",
+    "committed_online_results": 1,
+    "download_ticket_image_reads": 116,
+    "get_waybill_detail_reads": 58,
+    "list_reads": 2,
+    "offline_review_job_count": 1,
+    "online_capture_complete": true,
+    "platform_business_write_count": 0,
+    "redirect_count": 0,
+    "request_counts": {
+      "allowed": 234,
+      "attempted": 234,
+      "denied": 0,
+      "succeeded": 176
+    },
+    "route": "/billablewaybill",
+    "status": "succeeded",
+    "visible_prefix_count": 58,
+    "waybills": 58
+  },
+  "source_commit": "402033fcc4ac08bcae8e9111096043df06b5a35c",
+  "supersedes_acceptance_evidence": "verification/loops/loop-13/20260813T163158+0800/acceptance-evidence.json"
+}

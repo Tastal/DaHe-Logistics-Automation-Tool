@@ -22,6 +22,11 @@ from dahe.adapters.sqlite.schema import (
     DAILY_REPORT_SETTINGS,
     DAILY_REPORTS,
 )
+from dahe.application.chengfeng.contract_subject import (
+    SHANXI_GUIENBO,
+    contract_subject_label,
+    require_contract_subject_code,
+)
 from dahe.application.daily.report_workbook import (
     DailyReportSettings,
     DailyReportWorkbook,
@@ -43,6 +48,7 @@ class DailyReportConflictError(RuntimeError):
 @dataclass(frozen=True, slots=True)
 class DailyReportRecord:
     report_id: str
+    contract_subject_code: str
     business_date: date
     status: str
     output_directory: Path
@@ -62,6 +68,7 @@ class DailyReportRecord:
 
     def to_payload(self) -> dict[str, object]:
         return {
+            "contract_subject_code": self.contract_subject_code,
             "business_date": self.business_date.isoformat(),
             "confirmed_at": self.confirmed_at,
             "created_at": self.created_at,
@@ -116,6 +123,9 @@ def _record_from_row(row: object) -> DailyReportRecord:
     values = row._mapping  # type: ignore[attr-defined]
     return DailyReportRecord(
         report_id=str(values["report_id"]),
+        contract_subject_code=require_contract_subject_code(
+            values["contract_subject_code"]
+        ),
         business_date=date.fromisoformat(str(values["business_date"])),
         status=str(values["status"]),
         output_directory=Path(str(values["output_directory"])).resolve(),
@@ -259,13 +269,22 @@ class SqliteDailyReportRepository:
                 )
         return candidate
 
-    def get_report(self, report_id: str) -> DailyReportRecord:
+    def get_report(
+        self,
+        report_id: str,
+        *,
+        contract_subject_code: str | None = None,
+    ) -> DailyReportRecord:
+        query = select(DAILY_REPORTS).where(
+            DAILY_REPORTS.c.report_id == report_id
+        )
+        if contract_subject_code is not None:
+            query = query.where(
+                DAILY_REPORTS.c.contract_subject_code
+                == require_contract_subject_code(contract_subject_code)
+            )
         with self._runtime.engine.connect() as connection:
-            row = connection.execute(
-                select(DAILY_REPORTS).where(
-                    DAILY_REPORTS.c.report_id == report_id
-                )
-            ).one_or_none()
+            row = connection.execute(query).one_or_none()
         if row is None:
             raise DailyReportConflictError("daily report does not exist")
         return _record_from_row(row)
@@ -273,12 +292,21 @@ class SqliteDailyReportRepository:
     def find_report_for_business_date(
         self,
         business_date: date,
+        *,
+        contract_subject_code: str = SHANXI_GUIENBO,
     ) -> DailyReportRecord | None:
+        subject_code = require_contract_subject_code(contract_subject_code)
         with self._runtime.engine.connect() as connection:
             row = connection.execute(
                 select(DAILY_REPORTS)
-                .where(DAILY_REPORTS.c.business_date == business_date.isoformat())
-                .order_by(DAILY_REPORTS.c.created_at.desc())
+                .where(
+                    DAILY_REPORTS.c.business_date == business_date.isoformat(),
+                    DAILY_REPORTS.c.contract_subject_code == subject_code,
+                )
+                .order_by(
+                    DAILY_REPORTS.c.stale.asc(),
+                    DAILY_REPORTS.c.created_at.desc(),
+                )
                 .limit(1)
             ).one_or_none()
         return None if row is None else _record_from_row(row)
@@ -290,14 +318,20 @@ class SqliteDailyReportRepository:
         expected_settings_version: int,
         idempotency_key: str,
         request_hash: str,
+        contract_subject_code: str = SHANXI_GUIENBO,
     ) -> tuple[DailyReportRecord, bool]:
+        subject_code = require_contract_subject_code(contract_subject_code)
         replay = self._load_replay(
             idempotency_key=idempotency_key,
             operation="create",
             request_hash=request_hash,
+            contract_subject_code=subject_code,
         )
         if replay is not None:
-            return self.get_report(str(replay["report_id"])), True
+            return self.get_report(
+                str(replay["report_id"]),
+                contract_subject_code=subject_code,
+            ), True
         settings = self.get_settings()
         if settings.record_version != expected_settings_version:
             raise RecordVersionConflictError("daily report settings changed")
@@ -307,11 +341,13 @@ class SqliteDailyReportRepository:
             self._daily_store.list_latest_revisions_for_business_date(
                 business_date=business_date,
                 receive_place_keyword=settings.query_place_keyword,
+                contract_subject_code=subject_code,
             )
             if self._daily_items is None
             else self._daily_items.effective_revisions(
                 business_date=business_date,
                 receive_place_keyword=settings.query_place_keyword,
+                contract_subject_code=subject_code,
             )
         )
         rows = build_daily_report_rows(
@@ -324,52 +360,92 @@ class SqliteDailyReportRepository:
                 business_date=business_date,
                 settings=settings,
                 rows=rows,
+                contract_subject_code=subject_code,
+                contract_subject_label=contract_subject_label(subject_code),
             )
         except DailyReportWorkbookError as exc:
             raise DailyReportConflictError(str(exc)) from exc
-        report_id = uuid4().hex
+        existing_report = self.find_report_for_business_date(
+            business_date,
+            contract_subject_code=subject_code,
+        )
+        report_id = (
+            uuid4().hex
+            if existing_report is None
+            else existing_report.report_id
+        )
         created_at = _now()
         data_json = _json(
             {
                 "business_date": business_date.isoformat(),
+                "contract_subject_code": subject_code,
                 "rows": [row.evidence_payload() for row in rows],
                 "schema_version": 1,
             }
         )
         try:
             with self._runtime.commit_gate.transaction(self._runtime.engine) as connection:
-                connection.execute(
-                    DAILY_REPORTS.insert().values(
-                        report_id=report_id,
-                        business_date=business_date.isoformat(),
-                        status="confirmed",
-                        settings_record_version=settings.record_version,
-                        output_directory=str(settings.output_directory),
-                        file_name=generated.path.name,
-                        file_sha256=generated.file_sha256,
-                        data_snapshot_sha256=generated.data_snapshot_sha256,
-                        data_json=data_json,
-                        row_count=generated.row_count,
-                        loading_net_total=format(generated.loading_net_total, "f"),
-                        record_version=1,
-                        created_at=created_at,
-                        confirmed_at=created_at,
-                        stale=0,
+                report_values = {
+                        "report_id": report_id,
+                        "contract_subject_code": subject_code,
+                        "business_date": business_date.isoformat(),
+                        "status": "confirmed",
+                        "settings_record_version": settings.record_version,
+                        "output_directory": str(settings.output_directory),
+                        "file_name": generated.path.name,
+                        "file_sha256": generated.file_sha256,
+                        "data_snapshot_sha256": generated.data_snapshot_sha256,
+                        "data_json": data_json,
+                        "row_count": generated.row_count,
+                        "loading_net_total": format(generated.loading_net_total, "f"),
+                        "record_version": (
+                            1
+                            if existing_report is None
+                            else existing_report.record_version + 1
+                        ),
+                        "created_at": (
+                            created_at
+                            if existing_report is None
+                            else existing_report.created_at
+                        ),
+                        "confirmed_at": created_at,
+                        "stale": 0,
+                }
+                if existing_report is None:
+                    connection.execute(
+                        DAILY_REPORTS.insert().values(**report_values)
                     )
-                )
+                else:
+                    changed = connection.execute(
+                        update(DAILY_REPORTS)
+                        .where(
+                            DAILY_REPORTS.c.report_id == report_id,
+                            DAILY_REPORTS.c.record_version
+                            == existing_report.record_version,
+                        )
+                        .values(**report_values)
+                    )
+                    if changed.rowcount != 1:
+                        raise RecordVersionConflictError(
+                            "daily report changed"
+                        )
                 self._save_replay(
                     connection,
                     idempotency_key=idempotency_key,
                     operation="create",
                     request_hash=request_hash,
                     result={"report_id": report_id},
+                    contract_subject_code=subject_code,
                 )
         except Exception:
             # The file may have atomically replaced an earlier formal report.
             # Never delete that valid business artifact because a later local
             # metadata commit failed; diagnostics can reconcile the orphan.
             raise
-        return self.get_report(report_id), False
+        return self.get_report(
+            report_id,
+            contract_subject_code=subject_code,
+        ), False
 
     def confirm_report(
         self,
@@ -378,15 +454,24 @@ class SqliteDailyReportRepository:
         expected_record_version: int,
         idempotency_key: str,
         request_hash: str,
+        contract_subject_code: str = SHANXI_GUIENBO,
     ) -> tuple[DailyReportRecord, bool]:
+        subject_code = require_contract_subject_code(contract_subject_code)
         replay = self._load_replay(
             idempotency_key=idempotency_key,
             operation="confirm",
             request_hash=request_hash,
+            contract_subject_code=subject_code,
         )
         if replay is not None:
-            return self.get_report(str(replay["report_id"])), True
-        report = self.get_report(report_id)
+            return self.get_report(
+                str(replay["report_id"]),
+                contract_subject_code=subject_code,
+            ), True
+        report = self.get_report(
+            report_id,
+            contract_subject_code=subject_code,
+        )
         if report.record_version != expected_record_version:
             raise RecordVersionConflictError("daily report changed")
         if report.status != "pending_confirmation":
@@ -421,11 +506,15 @@ class SqliteDailyReportRepository:
                     operation="confirm",
                     request_hash=request_hash,
                     result={"report_id": report_id},
+                    contract_subject_code=subject_code,
                 )
         except Exception:
             os.replace(confirmed_path, report.path)
             raise
-        return self.get_report(report_id), False
+        return self.get_report(
+            report_id,
+            contract_subject_code=subject_code,
+        ), False
 
     def save_new_copy(
         self,
@@ -434,15 +523,24 @@ class SqliteDailyReportRepository:
         expected_record_version: int,
         idempotency_key: str,
         request_hash: str,
+        contract_subject_code: str = SHANXI_GUIENBO,
     ) -> tuple[DailyReportRecord, bool]:
+        subject_code = require_contract_subject_code(contract_subject_code)
         replay = self._load_replay(
             idempotency_key=idempotency_key,
             operation="save_new_copy",
             request_hash=request_hash,
+            contract_subject_code=subject_code,
         )
         if replay is not None:
-            return self.get_report(str(replay["report_id"])), True
-        report = self.get_report(report_id)
+            return self.get_report(
+                str(replay["report_id"]),
+                contract_subject_code=subject_code,
+            ), True
+        report = self.get_report(
+            report_id,
+            contract_subject_code=subject_code,
+        )
         if report.record_version != expected_record_version:
             raise RecordVersionConflictError("daily report changed")
         if report.status != "pending_confirmation" or not report.path.is_file():
@@ -489,11 +587,15 @@ class SqliteDailyReportRepository:
                     operation="save_new_copy",
                     request_hash=request_hash,
                     result={"report_id": report_id},
+                    contract_subject_code=subject_code,
                 )
         except Exception:
             destination.unlink(missing_ok=True)
             raise
-        return self.get_report(report_id), False
+        return self.get_report(
+            report_id,
+            contract_subject_code=subject_code,
+        ), False
 
     def _require_unchanged(self, report: DailyReportRecord) -> None:
         if not report.path.is_file() or _sha256_file(report.path) != report.file_sha256:
@@ -521,11 +623,14 @@ class SqliteDailyReportRepository:
         idempotency_key: str,
         operation: str,
         request_hash: str,
+        contract_subject_code: str = SHANXI_GUIENBO,
     ) -> dict[str, object] | None:
         with self._runtime.engine.connect() as connection:
             row = connection.execute(
                 select(DAILY_REPORT_IDEMPOTENCY).where(
-                    DAILY_REPORT_IDEMPOTENCY.c.idempotency_key == idempotency_key
+                    DAILY_REPORT_IDEMPOTENCY.c.idempotency_key == idempotency_key,
+                    DAILY_REPORT_IDEMPOTENCY.c.contract_subject_code
+                    == contract_subject_code,
                 )
             ).one_or_none()
         if row is None:
@@ -545,10 +650,12 @@ class SqliteDailyReportRepository:
         operation: str,
         request_hash: str,
         result: dict[str, object],
+        contract_subject_code: str = SHANXI_GUIENBO,
     ) -> None:
         connection.execute(  # type: ignore[attr-defined]
             DAILY_REPORT_IDEMPOTENCY.insert().values(
                 idempotency_key=idempotency_key,
+                contract_subject_code=contract_subject_code,
                 operation=operation,
                 request_hash=request_hash,
                 result_json=_json(result),

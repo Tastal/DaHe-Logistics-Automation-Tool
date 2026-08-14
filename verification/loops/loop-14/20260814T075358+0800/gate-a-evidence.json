@@ -1,0 +1,127 @@
+{
+  "accepted_at": "2026-08-13T23:53:58Z",
+  "automated_checks": {
+    "authoritative_command": ".\\.venv\\Scripts\\python.exe tools\\check.py",
+    "authoritative_elapsed_seconds": 1067,
+    "edge_e2e_command": "npm.cmd --prefix frontend run test:e2e",
+    "edge_e2e_tests_passed": 14,
+    "frontend": {
+      "test_files": 24,
+      "tests_passed": 143
+    },
+    "mypy_source_files": 361,
+    "mypy_status": "passed",
+    "python_tests_passed": 2994,
+    "python_tests_skipped": 9,
+    "ruff_status": "passed",
+    "skip_reason": "The current Windows account cannot create symbolic links; non-link path-safety coverage passed.",
+    "targeted_browser_tests_passed": 227,
+    "targeted_browser_tests_skipped": 1
+  },
+  "browser_contract": {
+    "cache_disabled_and_fresh_response_required": true,
+    "final_subject_confirmation_required": true,
+    "single_chengfeng_page_count": 1,
+    "subject_option_match": "exact visible option text",
+    "unrelated_browser_pages_managed": false,
+    "visible_edge_preserved": true
+  },
+  "installed_release": {
+    "application_version": "1.0.0",
+    "build_git_commit": "d1e058669c6c29f5319b26c7e7278eb2b08450ad",
+    "changed_in_gate_a": false,
+    "schema_revision_at_original_install": "0039_network_batch_default"
+  },
+  "kind": "loop_14_gate_a_dual_subject_evidence",
+  "real_platform_reads": {
+    "shanghai_daily": {
+      "audit_evidence_sha256": "9766429cd6f2809946e943d033c425be1ee5a76d742ad85ddba285401f05b226",
+      "business_date": "2026-08-13",
+      "cache_refresh_count": 2,
+      "capture_mode": "whole_run_v1",
+      "committed_online_results": 1,
+      "contract_subject_code": "shanghai_jinyisheng",
+      "frozen_and_published_total": 0,
+      "job_id": "f5b1ae895aeb4969a58d611e9ed5ff10",
+      "list_daily_waybill_reads": 1,
+      "page_count": 1,
+      "platform_business_write_count": 0,
+      "redirect_count": 0,
+      "route": "/wayBill",
+      "settlement_list_reads": 0,
+      "status": "succeeded"
+    },
+    "shanghai_settlement": {
+      "audit_evidence_sha256": "f6c7c9afc66fe13c468e6dfedfb7d1764fbc7e9455b8297fe23c9deb8f83c387",
+      "cache_refresh_count": 2,
+      "capture_mode": "whole_run_v1",
+      "committed_online_results": 1,
+      "contract_subject_code": "shanghai_jinyisheng",
+      "frozen_and_published_total": 0,
+      "job_id": "3c95b907c9a84ac398a0d66054c734de",
+      "list_waybill_reads": 1,
+      "page_count": 1,
+      "platform_business_write_count": 0,
+      "query_attempt_count": 2,
+      "redirect_count": 0,
+      "route": "/billablewaybill",
+      "status": "succeeded"
+    },
+    "shanxi_daily": {
+      "audit_evidence_sha256": "6bbd62abc5d4b7919c0f0abc3a687cd95efcf2bb5bf17f1ecdc68a6a1377b45b",
+      "business_date": "2026-08-13",
+      "cache_refresh_count": 1,
+      "capture_mode": "whole_run_v1",
+      "committed_online_results": 1,
+      "contract_subject_code": "shanxi_guienbo",
+      "download_ticket_image_reads": 118,
+      "frozen_and_published_total": 60,
+      "get_waybill_detail_reads": 60,
+      "job_id": "2e4a354964f544549de7fffd9c46eb8f",
+      "list_daily_waybill_reads": 1,
+      "page_count": 1,
+      "platform_business_write_count": 0,
+      "redirect_count": 0,
+      "route": "/wayBill",
+      "settlement_list_reads": 0,
+      "status": "succeeded",
+      "whole_task_elapsed_seconds": 140
+    },
+    "shanxi_settlement": {
+      "audit_evidence_sha256": "d0c1abc9844e5c3334d3a9b05de6a682a53d8b8759c7574517ffe7bf21355421",
+      "cache_refresh_count": 1,
+      "capture_mode": "whole_run_v1",
+      "committed_online_results": 1,
+      "contract_subject_code": "shanxi_guienbo",
+      "download_ticket_image_reads": 116,
+      "frozen_and_published_total": 58,
+      "get_waybill_detail_reads": 58,
+      "job_id": "eaf608935a5b46f8b11ae3b92d7ca075",
+      "list_waybill_reads": 2,
+      "page_count": 1,
+      "platform_business_write_count": 0,
+      "query_attempt_count": 1,
+      "redirect_count": 0,
+      "route": "/billablewaybill",
+      "status": "succeeded"
+    }
+  },
+  "request_audit": {
+    "all_four_seals_deep_loaded": true,
+    "total_denied_request_count": 0,
+    "total_platform_business_write_count": 0,
+    "total_redirect_count": 0
+  },
+  "result": "passed",
+  "running_source": {
+    "application_version": "1.1.0",
+    "browser_worker_engine_sha256": "28757c375c322e11de7b67dab73113c0f92de0a7cfb5c2ac259812e2f24450a0",
+    "implementation_commit": "157fa8763ed2a21a6dab8d96a3be2555c1ab8ded",
+    "launch_parent_interpreter": ".venv\\Scripts\\python.exe",
+    "readiness_http_status": 200,
+    "resource_sha256": "d5a3660f8e3b79b6332dffdc606a822ed5454774ef441ea965c26b26dfe65b8f",
+    "schema_revision": "0041_contract_subject_scope",
+    "worker_matches_committed_source": true
+  },
+  "schema_version": 1
+}

@@ -25,6 +25,7 @@ from dahe.adapters.sqlite.schema import (
     PLATFORM_ACCESS_EVENTS,
     PLATFORM_ACCESS_WINDOWS,
     PLATFORM_CONTROL_IDEMPOTENCY,
+    PLATFORM_JOB_SUBJECTS,
     SETTLEMENT_CAPTURE_IDENTITIES,
     SETTLEMENT_CAPTURE_INVOCATIONS,
     SETTLEMENT_CAPTURE_STRATEGIES,
@@ -35,6 +36,10 @@ from dahe.application.chengfeng.access_window import (
     AccessWindowError,
     AccessWindowGrant,
     issue_access_window,
+)
+from dahe.application.chengfeng.contract_subject import (
+    SHANXI_GUIENBO,
+    require_contract_subject_code,
 )
 from dahe.application.chengfeng.durable_capture import (
     CaptureCheckpointError,
@@ -1680,6 +1685,7 @@ class SqliteSettlementCaptureStore:
         business_session_confirmation_sha256: str | None = None,
         business_session_expires_at: datetime | None = None,
         capture_strategy: str = "legacy",
+        contract_subject_code: str = SHANXI_GUIENBO,
     ) -> SettlementCaptureStartRecord:
         """Create every scheduler-visible start authority in one transaction."""
 
@@ -1687,12 +1693,13 @@ class SqliteSettlementCaptureStore:
             raise SettlementCaptureStoreConflictError(
                 "settlement capture target is invalid"
             )
+        subject_code = require_contract_subject_code(contract_subject_code)
         capture_scope, capture_page_size = _capture_contract_for_target(
             target_kind,
             source_scope,
         )
-        if capture_strategy not in {"legacy", "batch_v1"} or (
-            capture_strategy == "batch_v1"
+        if capture_strategy not in {"legacy", "batch_v1", "whole_run_v1"} or (
+            capture_strategy in {"batch_v1", "whole_run_v1"}
             and target_kind
             is not ShadowBatchTargetKind.OPERATIONAL_COMPAT
         ):
@@ -1802,8 +1809,16 @@ class SqliteSettlementCaptureStore:
                 "business connection session expiry is invalid"
             )
         purpose = _purpose_for_target(target_kind)
-        conflict_key = f"settlement_capture:{target_kind.value}"
-        fixture_id = f"settlement-capture-{target_kind.value}-v1"
+        conflict_key = (
+            f"settlement_capture:{subject_code}"
+            if target_kind is ShadowBatchTargetKind.OPERATIONAL_COMPAT
+            else f"settlement_capture:{target_kind.value}"
+        )
+        fixture_id = (
+            f"settlement-capture-{target_kind.value}-{subject_code}-v1"
+            if target_kind is ShadowBatchTargetKind.OPERATIONAL_COMPAT
+            else f"settlement-capture-{target_kind.value}-v1"
+        )
         scope_fingerprint = hashlib.sha256(
             f"settlement_capture:{fixture_id}".encode()
         ).hexdigest()
@@ -2103,6 +2118,13 @@ class SqliteSettlementCaptureStore:
                         updated_at=timestamp,
                     )
                 )
+                connection.execute(
+                    PLATFORM_JOB_SUBJECTS.insert().values(
+                        job_id=job_id,
+                        contract_subject_code=subject_code,
+                        created_at=timestamp,
+                    )
+                )
                 if conflict is None:
                     connection.execute(
                         CONFLICT_KEYS.insert().values(
@@ -2181,6 +2203,7 @@ class SqliteSettlementCaptureStore:
                     SETTLEMENT_CAPTURE_INVOCATIONS.insert().values(
                         invocation_id=invocation_id,
                         job_id=job_id,
+                        contract_subject_code=subject_code,
                         access_window_id=grant.access_window_id,
                         scope=capture_scope,
                         page_size=capture_page_size,

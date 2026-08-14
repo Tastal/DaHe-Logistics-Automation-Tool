@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import hashlib
 import json
@@ -33,8 +33,9 @@ def _command_payload(
     request_id: str = "batch-fixture",
 ) -> dict[str, object]:
     return {
-        "schema_version": 6,
+        "schema_version": 9,
         "command": "read_operational_batch",
+                    "contract_subject_code": "shanxi_guienbo",
         "request_id": request_id,
         "details": [
             {

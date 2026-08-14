@@ -41,12 +41,17 @@ from dahe.application.daily.capture import (
 )
 from dahe.application.daily.live_execution import DailyLiveStageExecutor
 from dahe.application.daily.operational_capture import (
+    OperationalCaptureContractError,
     OperationalDailyStepResult,
 )
 from dahe.domain.daily.calendar import SHANGHAI, business_date_for
 from dahe.domain.daily.models import DailyCandidateSnapshot
 from dahe.jobs.daily_execution import DailyStageWork
-from dahe.ports.chengfeng import ChengfengStage, LoginRequiredError
+from dahe.ports.chengfeng import (
+    BrowserContextClosedError,
+    ChengfengStage,
+    LoginRequiredError,
+)
 from tests.unit.platform.test_loop9_daily_manifest import daily_manifest
 
 PROJECT_ROOT = Path(__file__).parents[2]
@@ -116,10 +121,18 @@ class _Browser:
         self._running = True
         return "msedge"
 
+    def start_operational(self) -> str:
+        self.start_count += 1
+        self._running = True
+        return "msedge"
+
     def prepare_daily(self) -> None:
         self.prepare_daily_count += 1
 
-    def prepare_operational_daily(self) -> None:
+    def prepare_operational_daily(
+        self,
+        _contract_subject_code: str = "shanxi_guienbo",
+    ) -> None:
         self.prepare_operational_daily_count += 1
         if self.error_code is not None:
             raise BrowserRuntimeError(
@@ -127,7 +140,10 @@ class _Browser:
                 code=self.error_code,
             )
 
-    def prepare_operational_compat(self) -> None:
+    def prepare_operational_compat(
+        self,
+        _contract_subject_code: str = "shanxi_guienbo",
+    ) -> None:
         self.prepare_operational_count += 1
         if self.error_code is not None:
             raise BrowserRuntimeError(
@@ -319,6 +335,7 @@ def _setup(
     browser_lifecycle: BrowserRuntimeLifecycle | None = None,
     settlement_validation_passed: bool = True,
     operational: bool = False,
+    capture_strategy: str = "batch_v1",
     network_only_measurement: bool = False,
     operational_coordinator: object | None = None,
     operational_materializer: object | None = None,
@@ -344,7 +361,11 @@ def _setup(
             (
                 "daily-operational-network-only-v1:"
                 if network_only_measurement
-                else "daily-operational-batch-v1:"
+                else (
+                    "daily-operational-whole-run-v1:"
+                    if capture_strategy == "whole_run_v1"
+                    else "daily-operational-batch-v1:"
+                )
             )
             + _request(JOB_ID).business_date.isoformat()
             if operational
@@ -444,6 +465,104 @@ def test_operational_daily_reconciles_running_browser_with_stopped_control(
         runtime.close()
 
 
+def test_operational_daily_rebuilds_stale_route_once_in_the_same_job(
+    tmp_path: Path,
+) -> None:
+    class RecoveringBrowser(_Browser):
+        def close(self) -> None:
+            super().close()
+            self.error_code = None
+
+    browser = RecoveringBrowser(error_code="browser_daily_route_unavailable")
+    runtime, executor, invocations, _access, control, _window_id = _setup(
+        tmp_path,
+        browser=browser,
+        operational=True,
+        operational_coordinator=_FastDailyCoordinator(),
+    )
+    try:
+        first = executor(_work())
+
+        assert first.outcome == "retry"
+        assert first.diagnostic_code == "CF-DAILY-BROWSER-RESTARTING"
+        assert browser.close_count == 1
+        assert control.get(SESSION_ID).browser_control_mode == "idle"
+        assert invocations.get_by_job(JOB_ID).status == "ready"
+
+        completed = executor(_work(attempt="daily-attempt-rebuilt"))
+
+        assert completed.outcome == "succeeded"
+        assert browser.start_count == 1
+        assert browser.prepare_operational_daily_count == 2
+        assert invocations.get_by_job(JOB_ID).status == "succeeded"
+    finally:
+        runtime.close()
+
+
+def test_whole_run_daily_rebuilds_worker_lost_during_detail_read(
+    tmp_path: Path,
+) -> None:
+    class RecoveringCoordinator(_FastDailyCoordinator):
+        def advance(self, **kwargs: object) -> object:
+            if self.calls == 0:
+                self.calls += 1
+                raise BrowserContextClosedError(
+                    stage=ChengfengStage.DETAIL_QUERY
+                )
+            return super().advance(**kwargs)
+
+    browser = _Browser()
+    coordinator = RecoveringCoordinator()
+    runtime, executor, invocations, _access, control, _window_id = _setup(
+        tmp_path,
+        browser=browser,
+        operational=True,
+        capture_strategy="whole_run_v1",
+        operational_coordinator=coordinator,
+    )
+    try:
+        first = executor(_work(attempt="daily-worker-lost"))
+
+        assert first.outcome == "retry"
+        assert first.diagnostic_code == "CF-DAILY-BROWSER-RESTARTING"
+        assert browser.close_count == 1
+        assert invocations.get_by_job(JOB_ID).status == "ready"
+        assert control.get(SESSION_ID).browser_control_mode == "idle"
+
+        completed = executor(_work(attempt="daily-worker-rebuilt"))
+
+        assert completed.outcome == "succeeded"
+        assert browser.start_count == 1
+        assert coordinator.calls == 2
+        assert invocations.get_by_job(JOB_ID).status == "succeeded"
+    finally:
+        runtime.close()
+
+
+def test_operational_daily_stops_after_one_stale_route_rebuild(
+    tmp_path: Path,
+) -> None:
+    browser = _Browser(error_code="browser_daily_route_unavailable")
+    runtime, executor, invocations, _access, _control, _window_id = _setup(
+        tmp_path,
+        browser=browser,
+        operational=True,
+        operational_coordinator=_FastDailyCoordinator(),
+    )
+    try:
+        first = executor(_work())
+        exhausted = executor(_work(attempt="daily-attempt-exhausted"))
+
+        assert first.outcome == "retry"
+        assert exhausted.outcome == "failed"
+        assert exhausted.diagnostic_code == "CF-DAILY-BROWSER-RUNTIME-FAILED"
+        assert browser.start_count == 1
+        assert browser.close_count == 2
+        assert invocations.get_by_job(JOB_ID).status == "failed"
+    finally:
+        runtime.close()
+
+
 def test_batch_v1_daily_executor_defers_final_ocr_until_terminal_reconciliation(
     tmp_path: Path,
 ) -> None:
@@ -485,6 +604,35 @@ def test_batch_v1_daily_executor_defers_final_ocr_until_terminal_reconciliation(
 
         assert materialized == [JOB_ID]
         assert access.get(window_id).consumed_at is not None
+        assert browser.park_count == 1
+        assert browser.close_count == 0
+        assert browser.running is True
+    finally:
+        runtime.close()
+
+
+def test_whole_run_v1_terminal_cleanup_parks_and_preserves_visible_runtime(
+    tmp_path: Path,
+) -> None:
+    browser = _Browser()
+    coordinator = _FastDailyCoordinator()
+    runtime, executor, _invocations, access, control, window_id = _setup(
+        tmp_path,
+        browser=browser,
+        operational=True,
+        capture_strategy="whole_run_v1",
+        operational_coordinator=coordinator,
+    )
+    try:
+        result = executor(_work())
+        assert result.outcome == "succeeded"
+
+        executor.close_terminal_job(JOB_ID)
+
+        assert access.get(window_id).consumed_at is not None
+        idle = control.get(SESSION_ID)
+        assert idle.browser_lifecycle == "ready"
+        assert idle.browser_control_mode == "idle"
         assert browser.park_count == 1
         assert browser.close_count == 0
         assert browser.running is True
@@ -546,6 +694,37 @@ def test_failed_batch_v1_daily_job_parks_and_preserves_visible_runtime(
         assert browser.park_count == 1
         assert browser.close_count == 0
         assert browser.running is True
+    finally:
+        runtime.close()
+
+
+def test_failed_whole_run_daily_job_never_materializes_partial_capture(
+    tmp_path: Path,
+) -> None:
+    browser = _Browser()
+    materialized: list[str] = []
+    runtime, executor, invocations, access, _control, window_id = _setup(
+        tmp_path,
+        browser=browser,
+        operational=True,
+        capture_strategy="whole_run_v1",
+        operational_coordinator=_FastDailyCoordinator(),
+        operational_materializer=materialized.append,
+    )
+    try:
+        current = invocations.get_by_job(JOB_ID)
+        invocations.fail(
+            job_id=JOB_ID,
+            expected_record_version=current.record_version,
+            diagnostic_code="CF-DAILY-TECHNICAL-FAILURE",
+            now=NOW,
+        )
+
+        executor.close_terminal_job(JOB_ID)
+
+        assert materialized == []
+        assert access.get(window_id).consumed_at is not None
+        assert browser.park_count == 1
     finally:
         runtime.close()
 
@@ -696,6 +875,39 @@ def test_batch_v1_reports_only_safe_unexpected_failure_metadata(
         assert result.outcome == "failed"
         assert observed == [
             (JOB_ID, "release_browser_control", "OSError")
+        ]
+        assert "sensitive detail" not in repr(observed)
+    finally:
+        runtime.close()
+
+
+def test_batch_v1_reports_safe_known_contract_failure_metadata(
+    tmp_path: Path,
+) -> None:
+    class ContractFailureCoordinator(_FastDailyCoordinator):
+        def advance(self, **kwargs: object) -> object:
+            del kwargs
+            raise OperationalCaptureContractError("sensitive detail")
+
+    observed: list[tuple[str, str, str]] = []
+    runtime, executor, _invocations, _access, _control, _window_id = _setup(
+        tmp_path,
+        browser=_Browser(),
+        operational=True,
+        operational_coordinator=ContractFailureCoordinator(),
+    )
+    executor._unexpected_error_observer = (
+        lambda job_id, step, error_type: observed.append(
+            (job_id, step, error_type)
+        )
+    )
+    try:
+        result = executor(_work(attempt="daily-known-contract-failed"))
+
+        assert result.outcome == "failed"
+        assert result.diagnostic_code == "DAILY-CAPTURE-CONTRACT-FAILED"
+        assert observed == [
+            (JOB_ID, "capture_batch", "OperationalCaptureContractError")
         ]
         assert "sensitive detail" not in repr(observed)
     finally:
@@ -1154,6 +1366,39 @@ def test_old_consumed_cleanup_never_touches_a_newer_automated_owner(
         runtime.close()
 
 
+def test_old_consumed_cleanup_never_closes_a_new_idle_runtime(
+    tmp_path: Path,
+) -> None:
+    browser = _Browser()
+    runtime, executor, invocations, access, control, window_id = _setup(
+        tmp_path,
+        browser=browser,
+    )
+    try:
+        current = invocations.get_by_job(JOB_ID)
+        invocations.fail(
+            job_id=JOB_ID,
+            expected_record_version=current.record_version,
+            diagnostic_code="CF-DAILY-TECHNICAL-FAILURE",
+            now=NOW,
+        )
+        access.retire(
+            access_window_id=window_id,
+            expected_record_version=1,
+            now=NOW,
+        )
+
+        executor.close_terminal_job(JOB_ID)
+
+        unchanged = control.get(SESSION_ID)
+        assert unchanged.browser_control_mode == "idle"
+        assert unchanged.browser_lifecycle == "ready"
+        assert browser.running is True
+        assert browser.close_count == 0
+    finally:
+        runtime.close()
+
+
 def test_cancelled_job_without_invocation_retires_only_its_window(
     tmp_path: Path,
 ) -> None:
@@ -1472,6 +1717,7 @@ def test_startup_retires_crashed_preflight_before_invocation(
     tmp_path: Path,
 ) -> None:
     browser = _Browser()
+    materialized: list[str] = []
     (
         runtime,
         executor,
@@ -1483,6 +1729,7 @@ def test_startup_retires_crashed_preflight_before_invocation(
         tmp_path,
         browser=browser,
         create_invocation=False,
+        operational_materializer=materialized.append,
     )
     try:
         invocations.reserve_start(
@@ -1513,5 +1760,6 @@ def test_startup_retires_crashed_preflight_before_invocation(
         assert stopped.browser_control_mode == "idle"
         assert browser.running is False
         assert invocations.orphaned_start_job_ids() == (JOB_ID,)
+        assert materialized == []
     finally:
         runtime.close()

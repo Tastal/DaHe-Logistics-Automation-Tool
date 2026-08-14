@@ -26,6 +26,8 @@ from dahe.adapters.sqlite.schema import (
     IDEMPOTENCY_RECORDS,
     JOBS,
     OCR_RUN_GENERATIONS,
+    OPERATIONAL_CAPTURE_RUNS,
+    OPERATIONAL_REVIEW_LINKS,
     WORK_ITEMS,
 )
 from dahe.jobs.audit_execution import LocalAuditObservationProjection
@@ -422,6 +424,183 @@ def test_settlement_workspace_reports_partial_ocr_image_progress(
     workspace = repository.get_settlement_workspace(view="all")
     assert workspace["latest_fetch"]["ocr_images_completed"] == 1
     assert workspace["latest_fetch"]["ocr_images_total"] == 2
+
+
+def test_whole_run_workspace_exposes_only_the_contiguous_review_prefix(
+    workflow: tuple[SqliteRuntime, SqliteAuditWorkflowRepository],
+) -> None:
+    runtime, repository = workflow
+    capture_job_id = "q" * 32
+    with runtime.commit_gate.transaction(runtime.engine) as connection:
+        connection.execute(
+            WORK_ITEMS.update()
+            .where(WORK_ITEMS.c.work_item_id == "w" * 32)
+            .values(item_index=0, ready_sequence=9)
+        )
+        for index, status in ((1, "running"), (2, "waiting_user")):
+            connection.execute(
+                WORK_ITEMS.insert().values(
+                    work_item_id=str(index) * 32,
+                    job_id="j" * 32,
+                    record_version=1,
+                    waybill_number=f"WHOLE-{index}",
+                    vehicle_number=f"vehicle-{index}",
+                    status=status,
+                    current_stage="audit.recognize",
+                    business_outcome=(
+                        "awaiting_review" if status == "waiting_user" else None
+                    ),
+                    decision="review" if status == "waiting_user" else None,
+                    review_reason=(
+                        "missing_ticket" if status == "waiting_user" else None
+                    ),
+                    item_index=index,
+                    attempt_count=0,
+                    download_complete=1,
+                    loading_ocr_complete=int(status == "waiting_user"),
+                    unloading_ocr_complete=int(status == "waiting_user"),
+                    ready_sequence=0,
+                )
+            )
+        connection.execute(
+            JOBS.insert().values(
+                job_id=capture_job_id,
+                task_type="settlement_capture",
+                scope_label="运费结算数据获取",
+                scope_fixture_id="capture:operational_compat",
+                scope_fingerprint=_sha("whole-run-prefix-scope"),
+                run_mode="operational",
+                status="succeeded",
+                current_stage="settlement_capture.complete",
+                job_kind="business",
+                ocr_execution_mode="none",
+                conflict_key="settlement_capture:operational_compat",
+                created_sequence=3,
+                record_version=2,
+                created_at="2026-08-07T03:00:00+00:00",
+                updated_at="2026-08-07T03:02:00+00:00",
+            )
+        )
+        connection.execute(
+            OPERATIONAL_CAPTURE_RUNS.insert().values(
+                job_id=capture_job_id,
+                scope="current",
+                total=3,
+                items_json="[]",
+                items_sha256=_sha("whole-run-items"),
+                next_item_index=3,
+                committed_batch_count=1,
+                capture_mode="whole_run_v1",
+                batch_size=3,
+                detail_concurrency=4,
+                image_concurrency=6,
+                status="complete",
+                record_version=2,
+                metadata_checked_count=3,
+                reused_count=0,
+                images_downloaded_count=6,
+                created_at="2026-08-07T03:00:00+00:00",
+                updated_at="2026-08-07T03:01:00+00:00",
+            )
+        )
+        connection.execute(
+            OPERATIONAL_REVIEW_LINKS.insert().values(
+                source_job_id=capture_job_id,
+                business_kind="settlement",
+                review_job_id="j" * 32,
+                eligible_item_count=3,
+                missing_item_count=0,
+                source_manifest_sha256=_sha("whole-run-manifest"),
+                created_at="2026-08-07T03:01:00+00:00",
+            )
+        )
+
+    workspace = repository.get_settlement_workspace(view="all")
+
+    assert workspace["latest_fetch"]["phase"] == "offline_review"
+    assert workspace["latest_fetch"]["visible_prefix_count"] == 1
+    assert workspace["latest_fetch"]["progress_total"] == 3
+    assert workspace["latest_fetch"]["status"] == "running"
+    assert workspace["counts"]["all"] == 1
+    assert [item["waybill_id"] for item in workspace["items"]] == ["OFFLINE-003"]
+
+
+def test_whole_run_workspace_completes_with_waiting_human_review_items(
+    workflow: tuple[SqliteRuntime, SqliteAuditWorkflowRepository],
+) -> None:
+    runtime, repository = workflow
+    capture_job_id = "v" * 32
+    with runtime.commit_gate.transaction(runtime.engine) as connection:
+        connection.execute(
+            JOBS.update()
+            .where(JOBS.c.job_id == "j" * 32)
+            .values(status="waiting_user")
+        )
+        connection.execute(
+            WORK_ITEMS.update()
+            .where(WORK_ITEMS.c.work_item_id == "w" * 32)
+            .values(item_index=0)
+        )
+        connection.execute(
+            JOBS.insert().values(
+                job_id=capture_job_id,
+                task_type="settlement_capture",
+                scope_label="settlement whole run",
+                scope_fixture_id="capture:operational_compat",
+                scope_fingerprint=_sha("whole-run-complete-scope"),
+                run_mode="operational",
+                status="succeeded",
+                current_stage="settlement_capture.complete",
+                job_kind="business",
+                ocr_execution_mode="none",
+                conflict_key="settlement_capture:operational_compat",
+                created_sequence=4,
+                record_version=2,
+                created_at="2026-08-07T04:00:00+00:00",
+                updated_at="2026-08-07T04:02:00+00:00",
+            )
+        )
+        connection.execute(
+            OPERATIONAL_CAPTURE_RUNS.insert().values(
+                job_id=capture_job_id,
+                scope="current",
+                total=1,
+                items_json="[]",
+                items_sha256=_sha("whole-run-complete-items"),
+                next_item_index=1,
+                committed_batch_count=1,
+                capture_mode="whole_run_v1",
+                batch_size=1,
+                detail_concurrency=4,
+                image_concurrency=6,
+                status="complete",
+                record_version=2,
+                metadata_checked_count=1,
+                reused_count=0,
+                images_downloaded_count=2,
+                created_at="2026-08-07T04:00:00+00:00",
+                updated_at="2026-08-07T04:01:00+00:00",
+            )
+        )
+        connection.execute(
+            OPERATIONAL_REVIEW_LINKS.insert().values(
+                source_job_id=capture_job_id,
+                business_kind="settlement",
+                review_job_id="j" * 32,
+                eligible_item_count=1,
+                missing_item_count=0,
+                source_manifest_sha256=_sha("whole-run-complete-manifest"),
+                created_at="2026-08-07T04:01:00+00:00",
+            )
+        )
+
+    workspace = repository.get_settlement_workspace(view="all")
+
+    assert workspace["latest_fetch"]["phase"] == "complete"
+    assert workspace["latest_fetch"]["is_complete"] is True
+    assert workspace["latest_fetch"]["is_terminal"] is True
+    assert workspace["latest_fetch"]["visible_prefix_count"] == 1
+    assert workspace["counts"]["all"] == 1
 
 
 def test_latest_settlement_ready_waybill_numbers_use_only_current_capture(

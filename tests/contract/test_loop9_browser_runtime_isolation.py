@@ -208,12 +208,20 @@ def test_human_login_opens_only_the_fixed_chengfeng_entry(
         def __init__(self) -> None:
             self.pages = [Page()]
             self.request_handler: object | None = None
+            self.page_handler: object | None = None
 
         def on(self, event: str, handler: object) -> None:
+            if event == "page":
+                self.page_handler = handler
+                return
             assert event == "request"
             self.request_handler = handler
 
         def remove_listener(self, event: str, handler: object) -> None:
+            if event == "page":
+                assert handler is self.page_handler
+                self.page_handler = None
+                return
             assert event == "request"
             assert handler is self.request_handler
             self.request_handler = None
@@ -456,6 +464,9 @@ def test_single_platform_page_selection_closes_only_chengfeng_duplicates(
 
         def close(self) -> None:
             self.closed = True
+
+        def evaluate(self, _script: str) -> dict[str, object]:
+            return {"ready_state": "complete", "body_element_count": 1}
 
     primary = Page("https://pc.chengfengkuaiyun.com/billablewaybill")
     duplicate = Page("https://pc.chengfengkuaiyun.com/wayBill")

@@ -11,6 +11,7 @@ from dahe.adapters.sqlite.schema import (
     DAILY_OPERATIONAL_OCR_BATCHES,
     JOBS,
     OPERATIONAL_CAPTURE_RUNS,
+    OPERATIONAL_REVIEW_LINKS,
     WORK_ITEMS,
 )
 
@@ -38,6 +39,7 @@ class DailyOperationalProgress:
     committed_batches: int
     first_ocr_batch_at: str | None
     last_ocr_job_updated_at: str | None
+    visible_prefix_count: int
 
 
 class SqliteDailyOperationalOcrStore:
@@ -157,13 +159,30 @@ class SqliteDailyOperationalOcrStore:
                     )
                 ).mappings()
             )
+            whole_link = (
+                connection.execute(
+                    select(OPERATIONAL_REVIEW_LINKS).where(
+                        OPERATIONAL_REVIEW_LINKS.c.source_job_id
+                        == daily_job_id
+                    )
+                )
+                .mappings()
+                .one_or_none()
+            )
             ocr_job_ids = tuple(
                 str(row["ocr_job_id"])
                 for row in rows
                 if row["ocr_job_id"] is not None
             )
+            if whole_link is not None:
+                ocr_job_ids = (
+                    ()
+                    if whole_link["review_job_id"] is None
+                    else (str(whole_link["review_job_id"]),)
+                )
             status_counts: dict[str, int] = {}
             last_ocr_job_updated_at: str | None = None
+            visible_prefix_count = 0
             if ocr_job_ids:
                 status_counts = {
                     str(status): int(count)
@@ -178,20 +197,46 @@ class SqliteDailyOperationalOcrStore:
                         JOBS.c.job_id.in_(ocr_job_ids)
                     )
                 ).scalar_one()
-        missing = sum(int(row["missing_ticket_count"]) for row in rows)
+                if whole_link is not None:
+                    item_statuses = tuple(
+                        str(status)
+                        for status in connection.execute(
+                            select(WORK_ITEMS.c.status)
+                            .where(WORK_ITEMS.c.job_id == ocr_job_ids[0])
+                            .order_by(WORK_ITEMS.c.item_index)
+                        ).scalars()
+                    )
+                    for status in item_statuses:
+                        if status not in {"succeeded", "failed", "waiting_user"}:
+                            break
+                        visible_prefix_count += 1
+        missing = (
+            int(whole_link["missing_item_count"])
+            if whole_link is not None
+            else sum(int(row["missing_ticket_count"]) for row in rows)
+        )
+        recognized = status_counts.get("succeeded", 0) + status_counts.get(
+            "waiting_user", 0
+        )
+        if whole_link is not None and visible_prefix_count >= int(
+            whole_link["eligible_item_count"]
+        ):
+            visible_prefix_count += missing
         return DailyOperationalProgress(
             total=0 if run is None else int(run.total),
             fetched=(
                 0 if run is None else int(run.next_item_index)
             ),
-            recognized=status_counts.get("succeeded", 0),
+            recognized=recognized,
             missing_ticket=missing,
             technical_failed=status_counts.get("failed", 0),
             committed_batches=(
                 0 if run is None else int(run.committed_batch_count)
             ),
             first_ocr_batch_at=(
-                None
+                str(whole_link["created_at"])
+                if whole_link is not None
+                else None
                 if not rows
                 else min(str(row["created_at"]) for row in rows)
             ),
@@ -200,6 +245,7 @@ class SqliteDailyOperationalOcrStore:
                 if last_ocr_job_updated_at is None
                 else str(last_ocr_job_updated_at)
             ),
+            visible_prefix_count=visible_prefix_count,
         )
 
 

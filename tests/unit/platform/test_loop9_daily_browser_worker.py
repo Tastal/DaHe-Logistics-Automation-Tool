@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import json
 import sys
@@ -71,6 +71,30 @@ def _daily_payload() -> dict[str, object]:
     }
 
 
+def test_daily_scope_hash_excludes_pagination_controls(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    engine_module, _ = _load_worker_modules(monkeypatch)
+    first_page = _daily_parameters()
+    second_page = {
+        **first_page,
+        "pageNumber": 2,
+        "pageSize": 50,
+    }
+
+    assert engine_module._daily_scope_sha256(first_page) == (
+        engine_module._daily_scope_sha256(second_page)
+    )
+
+    changed_range = {
+        **first_page,
+        "loadEndTime": "2026-07-29 14:30:00",
+    }
+    assert engine_module._daily_scope_sha256(first_page) != (
+        engine_module._daily_scope_sha256(changed_range)
+    )
+
+
 @pytest.mark.parametrize(
     ("now", "expected_start", "expected_end"),
     [
@@ -113,7 +137,7 @@ def test_daily_protocol_accepts_only_fixed_commands(
     prepared = protocol.parse_command(
         json.dumps(
             {
-                "schema_version": 6,
+                "schema_version": 9,
                 "command": "prepare_daily",
                 "request_id": "prepare-daily-1",
             }
@@ -124,7 +148,7 @@ def test_daily_protocol_accepts_only_fixed_commands(
     automated_transition = protocol.parse_command(
         json.dumps(
             {
-                "schema_version": 6,
+                "schema_version": 9,
                 "command": "prepare_daily_from_automated",
                 "request_id": "prepare-daily-automated-1",
             }
@@ -135,10 +159,25 @@ def test_daily_protocol_accepts_only_fixed_commands(
         protocol.PrepareDailyFromAutomatedCommand,
     )
 
+    operational_daily = protocol.parse_command(
+        json.dumps(
+            {
+                "schema_version": 9,
+                "command": "prepare_operational_daily",
+                    "contract_subject_code": "shanxi_guienbo",
+                "request_id": "prepare-operational-daily-1",
+            }
+        )
+    )
+    assert isinstance(
+        operational_daily,
+        protocol.PrepareOperationalDailyCommand,
+    )
+
     read = protocol.parse_command(
         json.dumps(
             {
-                "schema_version": 6,
+                "schema_version": 9,
                 "command": "read_daily_json",
                 "request_id": "read-daily-1",
                 "operation": "list_daily_waybills",
@@ -155,13 +194,13 @@ def test_daily_protocol_accepts_only_fixed_commands(
 
     unsafe = (
         {
-            "schema_version": 6,
+            "schema_version": 9,
             "command": "prepare_daily",
             "request_id": "prepare-daily-url",
             "url": "https://example.invalid",
         },
         {
-            "schema_version": 6,
+            "schema_version": 9,
             "command": "read_daily_json",
             "request_id": "read-daily-url",
             "operation": "list_daily_waybills",
@@ -170,7 +209,7 @@ def test_daily_protocol_accepts_only_fixed_commands(
             "parameters": _daily_parameters(),
         },
         {
-            "schema_version": 6,
+            "schema_version": 9,
             "command": "read_daily_json",
             "request_id": "read-daily-method",
             "operation": "list_daily_waybills",
@@ -179,7 +218,7 @@ def test_daily_protocol_accepts_only_fixed_commands(
             "parameters": _daily_parameters(),
         },
         {
-            "schema_version": 6,
+            "schema_version": 9,
             "command": "read_json",
             "request_id": "read-daily-via-settlement",
             "operation": "list_daily_waybills",
@@ -314,6 +353,42 @@ def test_automated_daily_response_contains_freshness_and_single_tab_evidence(
             read_result=None,
             prepare_result={**evidence, "page_count": 2},
         )
+
+
+def test_direct_operational_daily_response_uses_the_same_safe_evidence_contract(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _, protocol = _load_worker_modules(monkeypatch)
+    command = protocol.PrepareOperationalDailyCommand(
+        request_id="prepare-operational-daily-fresh"
+    )
+    evidence = {
+        "schema_version": 1,
+        "evidence_kind": "chengfeng_daily_freshness",
+        "cache_disabled_during_reload": True,
+        "ignore_cache_reload": True,
+        "cache_refresh_count": 1,
+        "fresh_query_response_observed": True,
+        "page_count": 1,
+        "route": "/wayBill",
+        "contract_subject_code": "shanxi_guienbo",
+        "contract_subject_confirmed": True,
+    }
+
+    output = json.loads(
+        protocol.response(
+            command,
+            ok=True,
+            selected_browser="msedge",
+            discovery=[_daily_protocol_observation()],
+            browser_open=True,
+            read_result=None,
+            prepare_result=evidence,
+        )
+    )
+
+    assert output["discovery"] == [_daily_protocol_observation()]
+    assert output["prepare_result"] == evidence
 
 
 class _NativeResponse:
@@ -590,7 +665,7 @@ class _PageOwnedDailyPage:
 
     def goto(self, url: str, **options: object) -> _NavigationResponse:
         assert url == DAILY_ENTRY
-        assert options == {"wait_until": "commit", "timeout": 60_000}
+        assert options == {"wait_until": "domcontentloaded", "timeout": 60_000}
         if self._handler is None:
             self.url = DAILY_ENTRY
             self._events.append("human-daily-navigation")
@@ -645,7 +720,11 @@ class _PageOwnedDailyPage:
     def reload(self, **options: object) -> _NavigationResponse:
         assert options == {"wait_until": "domcontentloaded", "timeout": 60_000}
         self._events.append("daily-page-cache-refreshed")
-        return self.goto(DAILY_ENTRY, wait_until="commit", timeout=60_000)
+        return self.goto(
+            DAILY_ENTRY,
+            wait_until="domcontentloaded",
+            timeout=60_000,
+        )
 
     def bring_to_front(self) -> None:
         self._events.append("daily-human-page-selected")
@@ -810,6 +889,9 @@ class _PageOwnedControl:
         assert visible is True
         return self
 
+    def is_visible(self) -> bool:
+        return True
+
     def wait_for(self, *, state: str, timeout: int) -> None:
         assert state == "visible"
         assert timeout == 60_000
@@ -969,6 +1051,7 @@ def _prepared_daily_engine(
             return self.blank_page
 
     worker = engine_module.BrowserEngine()
+    worker._install_single_chengfeng_page_guard = lambda: None
     context = Context()
     worker._context = context
     worker._wait_for_session_headers = lambda pages: (
@@ -991,6 +1074,12 @@ def _prepared_page_owned_daily_engine(
     scope_matches: bool = True,
     emit_navigation_request: bool = True,
 ) -> tuple[Any, list[str], Any]:
+    engine_module._ensure_contract_subject = (
+        lambda _page, *, contract_subject_code, login_page: {
+            "contract_subject_code": contract_subject_code,
+            "contract_subject_switch_performed": False,
+        }
+    )
     events: list[str] = []
     page = _PageOwnedDailyPage(
         payload=payload,
@@ -1070,6 +1159,7 @@ def _prepared_page_owned_daily_engine(
 
     context = Context()
     worker = engine_module.BrowserEngine()
+    worker._install_single_chengfeng_page_guard = lambda: None
     worker._context = context
     worker._automated_prepared = True
     worker._operational_compat_prepared = True
@@ -1265,6 +1355,61 @@ def test_prepare_daily_from_automated_captures_daily_page_headers_privately(
 
     assert len([page for page in context.pages if not page.is_closed()]) == 1
     assert worker._human_page.url == DAILY_ENTRY
+
+
+def test_prepare_operational_daily_does_not_require_settlement_preparation(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    engine_module, _ = _load_worker_modules(monkeypatch)
+    worker, events, context = _prepared_page_owned_daily_engine(
+        engine_module,
+        payload=_daily_payload(),
+    )
+    worker._automated_prepared = False
+    worker._operational_compat_prepared = False
+    worker._session_headers = None
+
+    observation = worker.prepare_operational_daily()
+
+    assert observation["path"] == "/api/hz/orderItem/queryOrderItemListPC"
+    assert events.count("daily-query-clicked") == 2
+    assert events.count("daily-page-cache-refreshed") == 1
+    assert not any("billablewaybill" in event.lower() for event in events)
+    assert len([page for page in context.pages if not page.is_closed()]) == 1
+    assert worker._human_page.url == DAILY_ENTRY
+
+
+def test_prepare_operational_daily_accepts_zero_after_fresh_retry(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    engine_module, _ = _load_worker_modules(monkeypatch)
+    empty = _daily_payload()
+    empty["data"] = {"total": 0, "list": []}
+    worker, events, context = _prepared_page_owned_daily_engine(
+        engine_module,
+        payload=empty,
+    )
+
+    observation = worker.prepare_operational_daily()
+
+    assert observation["path"] == "/api/hz/orderItem/queryOrderItemListPC"
+    assert worker._daily_cache_refresh_count == 2
+    assert events.count("daily-page-cache-refreshed") == 2
+    assert events.count("daily-query-clicked") == 3
+    assert len([page for page in context.pages if not page.is_closed()]) == 1
+    assert worker._daily_probe_content is not None
+    normalized = json.loads(worker._daily_probe_content)
+    assert normalized == {
+        "_dahe_scope": {
+            "platform_display_total": 0,
+            "query_scope_sha256": worker._daily_authority_scope_sha256,
+            "response_page_count": 1,
+            "response_total": 0,
+            "scope_complete": True,
+            "scope_diagnostic_code": None,
+        },
+        "data": {"list": [], "total": 0},
+    }
 
 
 def test_prepare_daily_from_automated_uses_the_authenticated_page_network(

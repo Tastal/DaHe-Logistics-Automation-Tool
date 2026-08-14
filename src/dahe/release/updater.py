@@ -4,6 +4,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -13,12 +14,13 @@ from collections.abc import Callable
 from dataclasses import asdict, dataclass
 from http.client import HTTPMessage
 from pathlib import Path, PurePosixPath
-from typing import IO, Protocol, cast
+from typing import IO, Any, Protocol, cast
 from urllib.error import HTTPError
 from urllib.parse import urlsplit
 from urllib.request import HTTPRedirectHandler, Request, build_opener
 from uuid import uuid4
 
+from dahe import __version__
 from dahe.adapters.ocr.runtime_layout import resolve_active_composition
 from dahe.release.database_upgrade import (
     DatabaseUpgradeResult,
@@ -44,6 +46,8 @@ _ALLOWED_DOWNLOAD_HOSTS = frozenset(
 _MAX_ARCHIVE_ENTRIES = 20_000
 _MAX_RUNTIME_ARCHIVE_ENTRIES = 100_000
 _MAX_RUNTIME_UNCOMPRESSED_SIZE = 16 * 1024**3
+_CONTENT_RANGE = re.compile(r"^bytes ([0-9]+)-([0-9]+)/([0-9]+)$")
+_DOWNLOAD_ATTEMPTS = 4
 
 
 class UpdaterError(RuntimeError):
@@ -91,41 +95,128 @@ class _DownloadRedirectHandler(HTTPRedirectHandler):
 
 
 class GithubAssetDownloader:
+    def __init__(
+        self,
+        *,
+        opener: Any | None = None,
+        sleep: Callable[[float], None] = time.sleep,
+    ) -> None:
+        self._opener = opener or build_opener(_DownloadRedirectHandler())
+        self._sleep = sleep
+
     def download(self, asset: ReleaseAsset, destination: Path) -> None:
         destination.parent.mkdir(parents=True, exist_ok=True)
-        temporary = destination.with_name(f".{destination.name}.download")
-        digest = hashlib.sha256()
-        size = 0
-        request = Request(
-            asset.url,
-            headers={"Accept": "application/octet-stream", "User-Agent": "DaHeUpdater/1"},
-            method="GET",
-        )
-        try:
-            with (
-                build_opener(_DownloadRedirectHandler()).open(
-                    request,
-                    timeout=30,
-                ) as response,
-                temporary.open("xb") as handle,
+        partial = destination.with_name(f"{destination.name}.partial")
+        metadata = partial.with_name(f"{partial.name}.json")
+        expected_metadata = json.dumps(
+            asdict(asset),
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode("utf-8")
+        if destination.is_file():
+            if (
+                destination.stat().st_size == asset.size
+                and _sha256_file(destination) == asset.sha256
             ):
-                while True:
-                    chunk = cast(bytes, response.read(1024 * 1024))
-                    if not chunk:
-                        break
-                    size += len(chunk)
-                    if size > asset.size:
-                        raise UpdaterError("download exceeded its declared size")
-                    digest.update(chunk)
-                    handle.write(chunk)
-                handle.flush()
-                os.fsync(handle.fileno())
-            if size != asset.size or digest.hexdigest() != asset.sha256:
-                raise UpdaterError("download hash or size differs from the release")
-            os.replace(temporary, destination)
-        except Exception:
-            temporary.unlink(missing_ok=True)
-            raise
+                partial.unlink(missing_ok=True)
+                metadata.unlink(missing_ok=True)
+                return
+            destination.unlink()
+        if partial.is_file():
+            try:
+                partial_matches = metadata.read_bytes() == expected_metadata
+            except OSError:
+                partial_matches = False
+            if not partial_matches:
+                partial.unlink(missing_ok=True)
+                metadata.unlink(missing_ok=True)
+        elif metadata.exists():
+            metadata.unlink(missing_ok=True)
+        if not metadata.is_file():
+            temporary_metadata = metadata.with_name(f".{metadata.name}.tmp")
+            temporary_metadata.write_bytes(expected_metadata)
+            os.replace(temporary_metadata, metadata)
+        last_error: Exception | None = None
+        for attempt in range(_DOWNLOAD_ATTEMPTS):
+            try:
+                offset = partial.stat().st_size if partial.is_file() else 0
+                if offset > asset.size:
+                    partial.unlink()
+                    offset = 0
+                if offset == asset.size:
+                    if _sha256_file(partial) != asset.sha256:
+                        partial.unlink()
+                        metadata.unlink(missing_ok=True)
+                        raise UpdaterError(
+                            "download hash differs from the release"
+                        )
+                    os.replace(partial, destination)
+                    metadata.unlink(missing_ok=True)
+                    return
+                headers = {
+                    "Accept": "application/octet-stream",
+                    "User-Agent": "DaHeUpdater/1",
+                }
+                if offset:
+                    headers["Range"] = f"bytes={offset}-"
+                request = Request(asset.url, headers=headers, method="GET")
+                with self._opener.open(request, timeout=30) as response:
+                    status = int(getattr(response, "status", 0))
+                    append = offset > 0 and status == 206
+                    if offset and status == 200:
+                        offset = 0
+                        append = False
+                    elif status == 206:
+                        raw_range = str(response.headers.get("Content-Range", ""))
+                        match = _CONTENT_RANGE.fullmatch(raw_range)
+                        if (
+                            match is None
+                            or int(match.group(1)) != offset
+                            or int(match.group(2)) != asset.size - 1
+                            or int(match.group(3)) != asset.size
+                        ):
+                            raise UpdaterError(
+                                "download content range is invalid"
+                            )
+                    elif status != 200:
+                        raise UpdaterError("download response status is invalid")
+                    mode = "ab" if append else "wb"
+                    size = offset
+                    with partial.open(mode) as handle:
+                        while True:
+                            chunk = cast(bytes, response.read(1024 * 1024))
+                            if not chunk:
+                                break
+                            size += len(chunk)
+                            if size > asset.size:
+                                partial.unlink(missing_ok=True)
+                                metadata.unlink(missing_ok=True)
+                                raise UpdaterError(
+                                    "download exceeded its declared size"
+                                )
+                            handle.write(chunk)
+                        handle.flush()
+                        os.fsync(handle.fileno())
+                if size < asset.size:
+                    raise OSError("update download ended before declared size")
+                if size != asset.size or _sha256_file(partial) != asset.sha256:
+                    partial.unlink(missing_ok=True)
+                    metadata.unlink(missing_ok=True)
+                    raise UpdaterError(
+                        "download hash or size differs from the release"
+                    )
+                os.replace(partial, destination)
+                metadata.unlink(missing_ok=True)
+                return
+            except Exception as exc:
+                last_error = exc
+                if isinstance(exc, UpdaterError) and "hash" in str(exc):
+                    raise
+                if attempt + 1 < _DOWNLOAD_ATTEMPTS:
+                    self._sleep(float(2**attempt))
+        if isinstance(last_error, UpdaterError):
+            raise last_error
+        raise UpdaterError("update download failed after retries") from last_error
 
 
 def safe_extract_application_zip(archive: Path, destination: Path) -> None:
@@ -359,13 +450,19 @@ class UpdateInstaller:
         )
         os.replace(temporary, self.state_path)
 
-    def install(self, *, manifest_path: Path, wait_pid: int) -> UpdateResult:
+    def install(
+        self,
+        *,
+        manifest_path: Path,
+        wait_pid: int,
+        application_path: Path | None = None,
+    ) -> UpdateResult:
         current = read_version_pointer(self.install_root)
         content = manifest_path.resolve(strict=True).read_bytes()
         manifest = parse_update_manifest(
             content,
             current_version=current.version,
-            updater_version="1.0.0",
+            updater_version=__version__,
         )
         available = shutil.disk_usage(self.install_root).free
         database = self.data_root / "database" / "dahe.sqlite3"
@@ -375,14 +472,26 @@ class UpdateInstaller:
             raise UpdaterError("insufficient disk space for a recoverable update")
         run_root = self.data_root / "updates" / f"install-{uuid4().hex}"
         run_root.mkdir(parents=True, exist_ok=False)
-        archive = run_root / manifest.application.file_name
+        download_root = self.data_root / "updates" / "downloads"
+        download_root.mkdir(parents=True, exist_ok=True)
+        archive = download_root / manifest.application.file_name
         staging = run_root / "version"
         final = self.install_root / "versions" / manifest.version
         database_result: DatabaseUpgradeResult | None = None
         pointer_switched = False
         current_stopped = False
         try:
-            self.downloader.download(manifest.application, archive)
+            if application_path is None:
+                self.downloader.download(manifest.application, archive)
+            else:
+                imported = application_path.resolve(strict=True)
+                if (
+                    imported.name != manifest.application.file_name
+                    or imported.stat().st_size != manifest.application.size
+                    or _sha256_file(imported) != manifest.application.sha256
+                ):
+                    raise UpdaterError("imported application asset is invalid")
+                archive = imported
             safe_extract_application_zip(archive, staging)
             identity = load_release_identity(
                 staging,
@@ -477,6 +586,7 @@ def main() -> None:
     install.add_argument("--data-root", type=Path, required=True)
     install.add_argument("--wait-pid", type=int, required=True)
     install.add_argument("--install-root", type=Path)
+    install.add_argument("--application", type=Path)
     bootstrap = operations.add_parser("bootstrap-cpu-runtime")
     bootstrap.add_argument("--archive", type=Path, required=True)
     bootstrap.add_argument("--manifest", type=Path, required=True)
@@ -532,6 +642,7 @@ def main() -> None:
         ).install(
             manifest_path=arguments.manifest,
             wait_pid=arguments.wait_pid,
+            application_path=arguments.application,
         )
         print(json.dumps(asdict(result), sort_keys=True))
         code = 0

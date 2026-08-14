@@ -25,6 +25,10 @@ from dahe.adapters.sqlite.daily_reports import (
     SqliteDailyReportRepository,
 )
 from dahe.api.errors import ApiError
+from dahe.application.chengfeng.contract_subject import (
+    SHANXI_GUIENBO,
+    require_contract_subject_code,
+)
 from dahe.application.daily.report_workbook import (
     DailyReportSettings,
     validate_report_output_directory,
@@ -75,6 +79,7 @@ class CreateDailyReportRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     business_date: date
+    contract_subject_code: str = SHANXI_GUIENBO
     expected_settings_version: int = Field(ge=1)
 
 
@@ -82,6 +87,7 @@ class VersionedDailyReportRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     expected_record_version: int = Field(ge=1)
+    contract_subject_code: str = SHANXI_GUIENBO
 
 
 def _hash(operation: str, payload: BaseModel) -> str:
@@ -183,12 +189,16 @@ def build_daily_report_router(
         idempotency_key: str = Depends(require_write),
     ) -> dict[str, object]:
         require_enabled()
+        subject_code = require_contract_subject_code(
+            payload.contract_subject_code
+        )
         result = handle(
             lambda: repository.create_report(
                 business_date=payload.business_date,
                 expected_settings_version=payload.expected_settings_version,
                 idempotency_key=idempotency_key,
                 request_hash=_hash("create_report", payload),
+                contract_subject_code=subject_code,
             )
         )
         report, replayed = result
@@ -197,19 +207,31 @@ def build_daily_report_router(
     @router.get("/reports")
     def find_report(
         business_date: date,
+        contract_subject_code: str = SHANXI_GUIENBO,
         _: None = Depends(require_session),
     ) -> dict[str, object]:
         require_enabled()
-        report = repository.find_report_for_business_date(business_date)
+        subject_code = require_contract_subject_code(contract_subject_code)
+        report = repository.find_report_for_business_date(
+            business_date,
+            contract_subject_code=subject_code,
+        )
         return {"report": None if report is None else _report_payload(report)}
 
     @router.get("/reports/{report_id}")
     def get_report(
         report_id: str,
+        contract_subject_code: str = SHANXI_GUIENBO,
         _: None = Depends(require_session),
     ) -> dict[str, object]:
         require_enabled()
-        result = handle(lambda: repository.get_report(report_id))
+        subject_code = require_contract_subject_code(contract_subject_code)
+        result = handle(
+            lambda: repository.get_report(
+                report_id,
+                contract_subject_code=subject_code,
+            )
+        )
         assert isinstance(result, DailyReportRecord)
         return _report_payload(result)
 
@@ -220,12 +242,16 @@ def build_daily_report_router(
         idempotency_key: str = Depends(require_write),
     ) -> dict[str, object]:
         require_enabled()
+        subject_code = require_contract_subject_code(
+            payload.contract_subject_code
+        )
         result = handle(
             lambda: repository.confirm_report(
                 report_id=report_id,
                 expected_record_version=payload.expected_record_version,
                 idempotency_key=idempotency_key,
                 request_hash=_hash(f"confirm:{report_id}", payload),
+                contract_subject_code=subject_code,
             )
         )
         report, replayed = result
@@ -238,12 +264,16 @@ def build_daily_report_router(
         idempotency_key: str = Depends(require_write),
     ) -> dict[str, object]:
         require_enabled()
+        subject_code = require_contract_subject_code(
+            payload.contract_subject_code
+        )
         result = handle(
             lambda: repository.save_new_copy(
                 report_id=report_id,
                 expected_record_version=payload.expected_record_version,
                 idempotency_key=idempotency_key,
                 request_hash=_hash(f"save_new_copy:{report_id}", payload),
+                contract_subject_code=subject_code,
             )
         )
         report, replayed = result
@@ -256,7 +286,15 @@ def build_daily_report_router(
         _: str = Depends(require_write),
     ) -> dict[str, object]:
         require_enabled()
-        report = handle(lambda: repository.get_report(report_id))
+        subject_code = require_contract_subject_code(
+            payload.contract_subject_code
+        )
+        report = handle(
+            lambda: repository.get_report(
+                report_id,
+                contract_subject_code=subject_code,
+            )
+        )
         assert isinstance(report, DailyReportRecord)
         if report.record_version != payload.expected_record_version:
             raise ApiError(409, "record_version_conflict", "报表已更新，请刷新后重试。")

@@ -1,0 +1,88 @@
+{
+  "accepted_at": "2026-08-12T10:55:00+00:00",
+  "automated_checks": {
+    "authoritative_command": ".\\.venv\\Scripts\\python.exe tools\\check.py",
+    "frontend": {
+      "build": "passed",
+      "test_files": 24,
+      "tests_passed": 141
+    },
+    "mypy_source_files": 356,
+    "mypy_status": "passed",
+    "python_tests_passed": 2947,
+    "python_tests_skipped": 9,
+    "ruff_status": "passed",
+    "skip_reason": "The current Windows account cannot create symbolic links."
+  },
+  "browser_contract": {
+    "final_owned_edge_root_processes": 1,
+    "final_visible_edge_windows": 1,
+    "single_chengfeng_page": true,
+    "unrelated_browser_pages_managed": false,
+    "visible_window_preserved": true
+  },
+  "daily_read": {
+    "audit_evidence_sha256": "4197c1bafb0755653d61c5b950e852ca2f0093fac8db795c730ffc2da42057a9",
+    "audit_job_id_sha256": "dac172b4664f966e3838317495a6cfc17da73e21fea487788dfbb2c3060ab808",
+    "business_job_id": "8aea3439c4ff478490e2705c5e3073a8",
+    "cache_refresh_count": 1,
+    "download_ticket_image_reads": 51,
+    "get_waybill_detail_reads": 30,
+    "list_reads": 1,
+    "page_count": 1,
+    "platform_business_write_count": 0,
+    "route": "/wayBill",
+    "status": "succeeded",
+    "waybills": 30
+  },
+  "installed_release": {
+    "application_version": "1.0.0",
+    "build_git_commit": "d1e058669c6c29f5319b26c7e7278eb2b08450ad",
+    "changed_in_loop_11": false
+  },
+  "kind": "loop_11_platform_connection_and_shutdown_evidence",
+  "platform_request_audit": {
+    "allowed_operation_names": [
+      "download_ticket_image",
+      "get_waybill_detail",
+      "list_daily_waybills",
+      "list_waybills"
+    ],
+    "forbidden_business_write_count": 0
+  },
+  "result": "passed",
+  "running_source": {
+    "application_version": "1.0.0",
+    "build_git_commit": "development",
+    "launch_interpreter": ".venv\\Scripts\\python.exe",
+    "readiness_http_status": 200,
+    "resource_sha256": "b735e1ab963354e96035573101679bf7186ee0d7260cd6198ce2bd6e00044309",
+    "schema_revision": "0039_network_batch_default"
+  },
+  "schema_version": 1,
+  "settlement_read": {
+    "audit_evidence_sha256": "012d5b09aa8b94b30cfed415b093abbf457f460de9155bc1ca3cfa98c3db0192",
+    "audit_job_id": "b414599061d34c4b897502302ef5e1d5",
+    "audit_job_id_sha256": "24685bf1980aedcfdcad67f1d4b6ba21edd18e31eea1990fc25083c82388b6f6",
+    "business_job_id": "eea77dc544374a7f8313d25facc36460",
+    "cache_refresh_count": 2,
+    "download_ticket_image_reads": 26,
+    "get_waybill_detail_reads": 13,
+    "list_reads": 1,
+    "page_count": 1,
+    "platform_business_write_count": 0,
+    "query_attempt_count": 1,
+    "route": "/billablewaybill",
+    "status": "succeeded",
+    "waybills": 13
+  },
+  "shutdown_restart": {
+    "business_job_id": "8234e09b99a441a7995536a10eff8409",
+    "elapsed_seconds_after_restart_first_read": 0,
+    "elapsed_seconds_after_restart_second_read": 0,
+    "finished_at": "2026-08-12T10:26:00.290248+00:00",
+    "is_terminal": true,
+    "status": "cancelled"
+  },
+  "source_commit": "7facc79dd70763fdbd4dceee293acd3851d233cb"
+}

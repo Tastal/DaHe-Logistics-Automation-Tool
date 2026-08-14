@@ -5,7 +5,7 @@ import inspect
 import json
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, replace
-from typing import Protocol
+from typing import Literal, Protocol
 
 from dahe.application.chengfeng.durable_capture import (
     CHECKPOINT_SCHEMA_VERSION,
@@ -31,6 +31,8 @@ OPERATIONAL_BATCH_SIZE = 20
 OPERATIONAL_LIST_PAGE_SIZE = 50
 OPERATIONAL_DETAIL_CONCURRENCY = 4
 OPERATIONAL_IMAGE_CONCURRENCY = 6
+WHOLE_RUN_CAPTURE_MODE = "whole_run_v1"
+BATCH_CAPTURE_MODE = "batch_v1"
 
 
 class OperationalCaptureContractError(ValueError):
@@ -82,6 +84,7 @@ class OperationalCaptureRun:
     image_concurrency: int
     status: str
     record_version: int
+    capture_mode: str = BATCH_CAPTURE_MODE
     metadata_checked_count: int = 0
     reused_count: int = 0
     images_downloaded_count: int = 0
@@ -100,6 +103,7 @@ class OperationalBatchCaptureStore(Protocol):
         job_id: str,
         scope: str,
         items: tuple[WaybillSummary, ...],
+        capture_mode: str,
         batch_size: int,
         detail_concurrency: int,
         image_concurrency: int,
@@ -237,7 +241,7 @@ def _validated_checkpoints(
 
 
 class FastOperationalSettlementCaptureCoordinator:
-    """Freeze one list, then commit complete frozen-size batches."""
+    """Freeze one authoritative list and publish only validated capture units."""
 
     def __init__(
         self,
@@ -261,6 +265,7 @@ class FastOperationalSettlementCaptureCoordinator:
         concurrency_provider: Callable[[], tuple[int, int]] | None = None,
         batch_size_provider: Callable[[], int] | None = None,
         progress_sink: Callable[[str, str, int, int], None] | None = None,
+        capture_mode: str = BATCH_CAPTURE_MODE,
     ) -> None:
         self._adapter = adapter
         self._navigation_authorizer = navigation_authorizer
@@ -290,6 +295,9 @@ class FastOperationalSettlementCaptureCoordinator:
             lambda: OPERATIONAL_BATCH_SIZE
         )
         self._progress_sink = progress_sink
+        if capture_mode not in {BATCH_CAPTURE_MODE, WHOLE_RUN_CAPTURE_MODE}:
+            raise OperationalCaptureContractError("operational capture mode is invalid")
+        self._capture_mode = capture_mode
 
     def _batch_size(self) -> int:
         value = self._batch_size_provider()
@@ -298,6 +306,11 @@ class FastOperationalSettlementCaptureCoordinator:
                 "operational batch size must be 20, 50, or 100"
             )
         return value
+
+    def _capture_unit_size(self, total: int) -> int:
+        if self._capture_mode == WHOLE_RUN_CAPTURE_MODE:
+            return max(1, total)
+        return self._batch_size()
 
     def _authorize(self, authority: BrowserCommandAuthority) -> None:
         self._navigation_authorizer.authorize(authority)
@@ -331,7 +344,8 @@ class FastOperationalSettlementCaptureCoordinator:
                 job_id=invocation.job_id,
                 scope=invocation.scope,
                 items=frozen_items,
-                batch_size=self._batch_size(),
+                capture_mode=self._capture_mode,
+                batch_size=self._capture_unit_size(len(frozen_items)),
                 detail_concurrency=detail_concurrency,
                 image_concurrency=image_concurrency,
                 authority=authority,
@@ -387,7 +401,8 @@ class FastOperationalSettlementCaptureCoordinator:
             job_id=invocation.job_id,
             scope=invocation.scope,
             items=tuple(items),
-            batch_size=self._batch_size(),
+            capture_mode=self._capture_mode,
+            batch_size=self._capture_unit_size(len(items)),
             detail_concurrency=detail_concurrency,
             image_concurrency=image_concurrency,
             authority=authority,
@@ -526,7 +541,14 @@ class FastOperationalSettlementCaptureCoordinator:
         detail_concurrency: int,
         image_concurrency: int,
     ) -> tuple[OperationalWaybillEvidence, ...]:
-        batch_reader = getattr(self._adapter, "read_waybill_batch", None)
+        reader_name = (
+            "read_waybill_whole_run"
+            if self._capture_mode == WHOLE_RUN_CAPTURE_MODE
+            else "read_waybill_batch"
+        )
+        batch_reader = getattr(self._adapter, reader_name, None)
+        if not callable(batch_reader) and self._capture_mode == WHOLE_RUN_CAPTURE_MODE:
+            batch_reader = getattr(self._adapter, "read_waybill_batch", None)
         if not callable(batch_reader):
             evidence: list[OperationalWaybillEvidence] = []
             for summary in summaries:
@@ -554,9 +576,13 @@ class FastOperationalSettlementCaptureCoordinator:
                 )
             return tuple(evidence)
         attempts = (
-            (detail_concurrency, image_concurrency),
-            (min(detail_concurrency, 2), min(image_concurrency, 3)),
-            (1, 1),
+            ((detail_concurrency, image_concurrency),)
+            if self._capture_mode == WHOLE_RUN_CAPTURE_MODE
+            else (
+                (detail_concurrency, image_concurrency),
+                (min(detail_concurrency, 2), min(image_concurrency, 3)),
+                (1, 1),
+            )
         )
         last_error: TransientNetworkError | None = None
         progress_sink = self._progress_sink
@@ -651,7 +677,7 @@ class FastOperationalSettlementCaptureCoordinator:
                 invocation=invocation,
                 authority=authority,
             )
-            if run.total > 0:
+            if run.total > 0 and run.capture_mode != WHOLE_RUN_CAPTURE_MODE:
                 return OperationalCaptureStepResult(
                     has_more=True,
                     platform_read_performed=True,
@@ -1016,6 +1042,30 @@ def scheduled_job_from_operational_batch(
     return scheduled_job_from_operational_checkpoints(
         checkpoints=(normalized,),
         pipeline_fingerprint=pipeline_fingerprint,
+    )
+
+
+def scheduled_whole_run_review_job(
+    *,
+    checkpoint: DurableCaptureCheckpoint,
+    pipeline_fingerprint: str,
+    source_job_id: str,
+    business_kind: Literal["settlement", "daily"],
+    scope_label: str,
+) -> ScheduledJobSpec:
+    """Bind one offline review job to one atomic platform capture."""
+    if len(source_job_id) != 32:
+        raise OperationalCaptureContractError("whole-run source job id is invalid")
+    base = scheduled_job_from_operational_batch(
+        checkpoint=checkpoint,
+        pipeline_fingerprint=pipeline_fingerprint,
+    )
+    return replace(
+        base,
+        fixture_id=f"{business_kind}-whole-run:{source_job_id}",
+        job_kind="business" if business_kind == "settlement" else "observation",
+        scope_label=scope_label,
+        conflict_key=f"{business_kind}-ocr:{source_job_id}:whole",
     )
 
 

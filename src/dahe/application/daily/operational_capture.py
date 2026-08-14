@@ -12,6 +12,7 @@ from dahe.application.chengfeng.durable_capture import (
     DurableCaptureCheckpoint,
 )
 from dahe.application.chengfeng.operational_capture import (
+    WHOLE_RUN_CAPTURE_MODE,
     FastOperationalSettlementCaptureCoordinator,
     OperationalBatchCaptureStore,
     OperationalCaptureContractError,
@@ -99,7 +100,6 @@ class FastOperationalDailyCaptureCoordinator:
         daily_store: DailyReadStore,
         clock: Callable[[], datetime],
         concurrency_provider: Callable[[], tuple[int, int]] | None = None,
-        batch_size_provider: Callable[[], int] | None = None,
         progress_sink: Callable[[str, str, int, int], None] | None = None,
     ) -> None:
         self._detail_adapter = detail_adapter
@@ -108,7 +108,6 @@ class FastOperationalDailyCaptureCoordinator:
         self._daily_store = daily_store
         self._clock = clock
         self._concurrency_provider = concurrency_provider
-        self._batch_size_provider = batch_size_provider
         self._progress_sink = progress_sink
 
     def advance(
@@ -125,11 +124,7 @@ class FastOperationalDailyCaptureCoordinator:
             job_id=invocation.job_id,
             access_window_id=invocation.access_window_id,
             scope=scope,
-            page_size=(
-                20
-                if self._batch_size_provider is None
-                else self._batch_size_provider()
-            ),
+            page_size=1,
             record_version=invocation.record_version,
         )
 
@@ -239,8 +234,8 @@ class FastOperationalDailyCaptureCoordinator:
             summary_matches_detail=matches,
             detail_normalizer=normalize_detail,
             concurrency_provider=self._concurrency_provider,
-            batch_size_provider=self._batch_size_provider,
             progress_sink=self._progress_sink,
+            capture_mode=WHOLE_RUN_CAPTURE_MODE,
         )
         step = coordinator.advance(
             invocation=view,
