@@ -54,6 +54,23 @@ class UpdaterError(RuntimeError):
     """Raised while leaving the current installed version usable."""
 
 
+class CpuRuntimeBootstrapError(UpdaterError):
+    """Raised with safe, structured evidence for installer diagnostics."""
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        error_code: str,
+        stage: str,
+        winerror: int | None = None,
+    ) -> None:
+        super().__init__(message)
+        self.error_code = error_code
+        self.stage = stage
+        self.winerror = winerror
+
+
 class AssetDownloader(Protocol):
     def download(self, asset: ReleaseAsset, destination: Path) -> None: ...
 
@@ -269,13 +286,29 @@ def bootstrap_cpu_runtime(
     manifest_path: Path,
     target: Path,
 ) -> None:
-    resolved_archive = archive.resolve(strict=True)
-    resolved_manifest = manifest_path.resolve(strict=True)
+    stage = "locate"
+    staging: Path | None = None
+    try:
+        resolved_archive = archive.resolve(strict=True)
+        resolved_manifest = manifest_path.resolve(strict=True)
+    except OSError as exc:
+        raise CpuRuntimeBootstrapError(
+            "CPU runtime package is missing or inaccessible",
+            error_code="cpu_runtime_package_missing",
+            stage=stage,
+            winerror=getattr(exc, "winerror", None),
+        ) from exc
+    stage = "manifest"
     try:
         manifest = json.loads(resolved_manifest.read_text(encoding="utf-8"))
     except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
-        raise UpdaterError("CPU runtime manifest is unreadable") from exc
-    expected_fields = {
+        raise CpuRuntimeBootstrapError(
+            "CPU runtime manifest is unreadable",
+            error_code="cpu_runtime_manifest_invalid",
+            stage=stage,
+            winerror=getattr(exc, "winerror", None),
+        ) from exc
+    expected_v1 = {
         "schema_version",
         "archive_file_name",
         "archive_sha256",
@@ -284,34 +317,84 @@ def bootstrap_cpu_runtime(
         "uncompressed_size",
         "active_composition_sha256",
     }
-    if not isinstance(manifest, dict) or set(manifest) != expected_fields:
-        raise UpdaterError("CPU runtime manifest fields are invalid")
-    integer_fields = (
+    expected_v2 = expected_v1 | {
+        "layout",
+        "maximum_relative_file_path",
+        "maximum_relative_directory_path",
+    }
+    if (
+        not isinstance(manifest, dict)
+        or (
+            manifest.get("schema_version") == 1
+            and set(manifest) != expected_v1
+        )
+        or (
+            manifest.get("schema_version") == 2
+            and set(manifest) != expected_v2
+        )
+        or manifest.get("schema_version") not in {1, 2}
+    ):
+        raise CpuRuntimeBootstrapError(
+            "CPU runtime manifest fields are invalid",
+            error_code="cpu_runtime_manifest_invalid",
+            stage=stage,
+        )
+    integer_fields = [
         manifest["archive_size"],
         manifest["entry_count"],
         manifest["uncompressed_size"],
-    )
-    if (
-        manifest["schema_version"] != 1
-        or manifest["archive_file_name"] != "ocr-cpu.zip"
-        or resolved_archive.name != manifest["archive_file_name"]
-        or not isinstance(manifest["archive_sha256"], str)
-        or len(manifest["archive_sha256"]) != 64
-        or not isinstance(manifest["active_composition_sha256"], str)
-        or len(manifest["active_composition_sha256"]) != 64
-        or any(
-            isinstance(value, bool) or not isinstance(value, int) or value <= 0
-            for value in integer_fields
+    ]
+    if manifest["schema_version"] == 2:
+        integer_fields.extend(
+            (
+                manifest["maximum_relative_file_path"],
+                manifest["maximum_relative_directory_path"],
+            )
         )
-        or manifest["entry_count"] > _MAX_RUNTIME_ARCHIVE_ENTRIES
-        or manifest["uncompressed_size"] > _MAX_RUNTIME_UNCOMPRESSED_SIZE
-        or resolved_archive.stat().st_size != manifest["archive_size"]
-        or _sha256_file(resolved_archive) != manifest["archive_sha256"]
-    ):
-        raise UpdaterError("CPU runtime archive hash or bounds are invalid")
+    stage = "archive_verify"
+    try:
+        archive_valid = not (
+            manifest["archive_file_name"] != "ocr-cpu.zip"
+            or resolved_archive.name != manifest["archive_file_name"]
+            or not isinstance(manifest["archive_sha256"], str)
+            or len(manifest["archive_sha256"]) != 64
+            or not isinstance(manifest["active_composition_sha256"], str)
+            or len(manifest["active_composition_sha256"]) != 64
+            or any(
+                isinstance(value, bool)
+                or not isinstance(value, int)
+                or value <= 0
+                for value in integer_fields
+            )
+            or manifest["entry_count"] > _MAX_RUNTIME_ARCHIVE_ENTRIES
+            or manifest["uncompressed_size"] > _MAX_RUNTIME_UNCOMPRESSED_SIZE
+            or resolved_archive.stat().st_size != manifest["archive_size"]
+            or _sha256_file(resolved_archive) != manifest["archive_sha256"]
+            or (
+                manifest["schema_version"] == 2
+                and manifest["layout"] != "flat_v2"
+            )
+        )
+    except OSError as exc:
+        raise CpuRuntimeBootstrapError(
+            "CPU runtime archive became inaccessible",
+            error_code="cpu_runtime_io_blocked",
+            stage=stage,
+            winerror=getattr(exc, "winerror", None),
+        ) from exc
+    if not archive_valid:
+        raise CpuRuntimeBootstrapError(
+            "CPU runtime archive hash or bounds are invalid",
+            error_code="cpu_runtime_archive_invalid",
+            stage=stage,
+        )
     destination = target.resolve()
     if destination.name != "ocr-cpu" or destination == Path(destination.anchor):
-        raise UpdaterError("CPU runtime target is invalid")
+        raise CpuRuntimeBootstrapError(
+            "CPU runtime target is invalid",
+            error_code="cpu_runtime_target_invalid",
+            stage="target",
+        )
     pointer_name = "active-composition.json"
     if destination.exists():
         pointer = destination / pointer_name
@@ -321,16 +404,44 @@ def bootstrap_cpu_runtime(
         ):
             resolve_active_composition(destination, allow_legacy=False)
             return
-        raise UpdaterError("a different CPU runtime already exists")
-    staging = destination.with_name(f".{destination.name}-{uuid4().hex}.staging")
-    destination.parent.mkdir(parents=True, exist_ok=True)
+        raise CpuRuntimeBootstrapError(
+            "a different CPU runtime already exists",
+            error_code="cpu_runtime_target_conflict",
+            stage="target",
+        )
+    staging = destination.with_name(f".c-{uuid4().hex[:8]}")
+    stage = "disk_preflight"
     try:
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        free_bytes = shutil.disk_usage(destination.parent).free
+    except OSError as exc:
+        raise CpuRuntimeBootstrapError(
+            "CPU runtime installation directory is inaccessible",
+            error_code="cpu_runtime_io_blocked",
+            stage=stage,
+            winerror=getattr(exc, "winerror", None),
+        ) from exc
+    required_bytes = int(manifest["uncompressed_size"]) + 64 * 1024**2
+    if free_bytes < required_bytes:
+        raise CpuRuntimeBootstrapError(
+            "CPU runtime installation needs more free disk space",
+            error_code="cpu_runtime_insufficient_space",
+            stage=stage,
+        )
+    try:
+        stage = "archive_inspect"
         with zipfile.ZipFile(resolved_archive) as bundle:
             members = bundle.infolist()
             if len(members) != manifest["entry_count"]:
-                raise UpdaterError("CPU runtime archive entry count is invalid")
+                raise CpuRuntimeBootstrapError(
+                    "CPU runtime archive entry count is invalid",
+                    error_code="cpu_runtime_archive_invalid",
+                    stage=stage,
+                )
             seen: set[PurePosixPath] = set()
             total_size = 0
+            maximum_file_path = 0
+            maximum_directory_path = 0
             for member in members:
                 logical = PurePosixPath(member.filename)
                 if (
@@ -342,13 +453,61 @@ def bootstrap_cpu_runtime(
                     or (member.external_attr >> 16) & 0o170000 == 0o120000
                     or logical in seen
                 ):
-                    raise UpdaterError("CPU runtime archive contains an unsafe path")
+                    raise CpuRuntimeBootstrapError(
+                        "CPU runtime archive contains an unsafe path",
+                        error_code="cpu_runtime_archive_unsafe",
+                        stage=stage,
+                    )
                 seen.add(logical)
                 total_size += member.file_size
                 if total_size > manifest["uncompressed_size"]:
-                    raise UpdaterError("CPU runtime archive expanded beyond its manifest")
+                    raise CpuRuntimeBootstrapError(
+                        "CPU runtime archive expanded beyond its manifest",
+                        error_code="cpu_runtime_archive_invalid",
+                        stage=stage,
+                    )
+                maximum_file_path = max(maximum_file_path, len(member.filename))
+                maximum_directory_path = max(
+                    maximum_directory_path,
+                    len(logical.parent.as_posix()) if logical.parent.parts else 0,
+                )
             if total_size != manifest["uncompressed_size"]:
-                raise UpdaterError("CPU runtime archive size is invalid")
+                raise CpuRuntimeBootstrapError(
+                    "CPU runtime archive size is invalid",
+                    error_code="cpu_runtime_archive_invalid",
+                    stage=stage,
+                )
+            if manifest["schema_version"] == 2 and (
+                maximum_file_path != manifest["maximum_relative_file_path"]
+                or maximum_directory_path
+                != manifest["maximum_relative_directory_path"]
+            ):
+                raise CpuRuntimeBootstrapError(
+                    "CPU runtime archive path manifest is invalid",
+                    error_code="cpu_runtime_archive_invalid",
+                    stage=stage,
+                )
+            stage = "path_preflight"
+            for member in members:
+                logical_path = Path(*PurePosixPath(member.filename).parts)
+                projected_file = staging / logical_path
+                if os.name == "nt" and len(os.fspath(projected_file)) > 259:
+                    raise CpuRuntimeBootstrapError(
+                        "CPU runtime path is unsupported on this Windows account",
+                        error_code="cpu_runtime_path_unsupported",
+                        stage=stage,
+                    )
+                if os.name == "nt" and any(
+                    len(os.fspath(parent)) > 247
+                    for parent in projected_file.parents
+                    if parent != staging.parent
+                ):
+                    raise CpuRuntimeBootstrapError(
+                        "CPU runtime directory is unsupported on this Windows account",
+                        error_code="cpu_runtime_path_unsupported",
+                        stage=stage,
+                    )
+            stage = "extract"
             staging.mkdir(parents=True, exist_ok=False)
             for member in members:
                 logical = PurePosixPath(member.filename)
@@ -356,19 +515,56 @@ def bootstrap_cpu_runtime(
                 output.parent.mkdir(parents=True, exist_ok=True)
                 with bundle.open(member) as source, output.open("xb") as handle:
                     shutil.copyfileobj(source, handle, length=1024 * 1024)
+        stage = "composition_verify"
         pointer = staging / pointer_name
         if (
             not pointer.is_file()
             or _sha256_file(pointer) != manifest["active_composition_sha256"]
         ):
-            raise UpdaterError("CPU runtime composition pointer is invalid")
+            raise CpuRuntimeBootstrapError(
+                "CPU runtime composition pointer is invalid",
+                error_code="cpu_runtime_composition_invalid",
+                stage=stage,
+            )
         resolve_active_composition(staging, allow_legacy=False)
+        stage = "activate"
         staging.rename(destination)
     except Exception as exc:
-        shutil.rmtree(staging, ignore_errors=True)
-        if isinstance(exc, UpdaterError):
+        if staging is not None:
+            shutil.rmtree(staging, ignore_errors=True)
+        if isinstance(exc, CpuRuntimeBootstrapError):
             raise
-        raise UpdaterError("CPU runtime bootstrap failed") from exc
+        if isinstance(exc, zipfile.BadZipFile):
+            raise CpuRuntimeBootstrapError(
+                "CPU runtime archive is unreadable",
+                error_code="cpu_runtime_archive_invalid",
+                stage=stage,
+            ) from exc
+        if isinstance(exc, OSError):
+            winerror = getattr(exc, "winerror", None)
+            if winerror in {112}:
+                code = "cpu_runtime_insufficient_space"
+                message = "CPU runtime installation needs more free disk space"
+            elif winerror in {206}:
+                code = "cpu_runtime_path_unsupported"
+                message = "CPU runtime path is unsupported on this Windows account"
+            elif winerror in {2, 5, 32, 33} or isinstance(exc, PermissionError):
+                code = "cpu_runtime_io_blocked"
+                message = "CPU runtime files were removed, blocked, or are in use"
+            else:
+                code = "cpu_runtime_io_failed"
+                message = "CPU runtime file operation failed"
+            raise CpuRuntimeBootstrapError(
+                message,
+                error_code=code,
+                stage=stage,
+                winerror=winerror,
+            ) from exc
+        raise CpuRuntimeBootstrapError(
+            "CPU runtime composition validation failed",
+            error_code="cpu_runtime_composition_invalid",
+            stage=stage,
+        ) from exc
 
 
 def remove_installed_cpu_runtime(install_root: Path) -> None:
@@ -604,12 +800,21 @@ def main() -> None:
             error_path.unlink(missing_ok=True)
             code = 0
         except UpdaterError as exc:
+            error_code = getattr(
+                exc,
+                "error_code",
+                "cpu_runtime_bootstrap_failed",
+            )
+            stage = getattr(exc, "stage", "unknown")
+            winerror = getattr(exc, "winerror", None)
             temporary = error_path.with_name(f".{error_path.name}.{uuid4().hex}.tmp")
             temporary.write_text(
                 json.dumps(
                     {
-                        "schema_version": 1,
-                        "error_code": "cpu_runtime_bootstrap_failed",
+                        "schema_version": 2,
+                        "error_code": error_code,
+                        "stage": stage,
+                        "winerror": winerror,
                         "message": str(exc),
                     },
                     sort_keys=True,
@@ -619,7 +824,10 @@ def main() -> None:
                 newline="\n",
             )
             os.replace(temporary, error_path)
-            print(f"DaHe CPU runtime setup failed: {exc}", file=sys.stderr)
+            print(
+                f"DaHe CPU runtime setup failed [{error_code}/{stage}]: {exc}",
+                file=sys.stderr,
+            )
             code = 2
         raise SystemExit(code)
     if arguments.operation == "remove-cpu-runtime":

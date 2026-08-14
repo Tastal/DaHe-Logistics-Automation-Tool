@@ -82,7 +82,7 @@ describe("Loop 9 review client", () => {
       .fn()
       .mockResolvedValueOnce(
         jsonResponse({
-          application_version: "1.1.0",
+          application_version: "1.1.1",
           csrf_token: "csrf-loop9",
           locked_set_review_enabled: false,
           loop9_review_enabled: true,
@@ -127,7 +127,7 @@ describe("Loop 9 review client", () => {
       .fn()
       .mockResolvedValueOnce(
         jsonResponse({
-          application_version: "1.1.0",
+          application_version: "1.1.1",
           csrf_token: "csrf-loop9",
           locked_set_review_enabled: false,
           loop9_review_enabled: true,

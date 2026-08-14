@@ -1,0 +1,109 @@
+{
+  "accepted_at": "2026-08-14T02:21:17.965Z",
+  "automated_checks": {
+    "authoritative_command": ".\\.venv\\Scripts\\python.exe tools\\check.py",
+    "authoritative_elapsed_seconds": 885.5,
+    "frontend_tests_passed": 144,
+    "mypy_source_files": 361,
+    "python_tests_passed": 3006,
+    "python_tests_skipped": 9,
+    "ruff_status": "passed",
+    "skip_reason": "The current Windows account cannot create symbolic links; non-link path-safety coverage passed.",
+    "targeted_build_tests_passed": 16,
+    "targeted_update_and_migration_tests_passed": 87
+  },
+  "database_acceptance": {
+    "empty_database_startup_check": "passed",
+    "integrity_after_update": "ok",
+    "production_backup_sha256": "a5cc0ac57556225bb49b0a4acca1d43c42c409a7dc5dc82f8b9a1a4d378c5e16",
+    "production_counts_preserved": {
+      "daily_manual_revisions": 6,
+      "daily_observations": 1910,
+      "daily_reports": 7,
+      "jobs": 385,
+      "operational_capture_runs": 111,
+      "work_items": 3890
+    },
+    "repeated_0041_startup": "passed",
+    "schema_0039_to_0041": {
+      "key_table_counts_preserved": true,
+      "source_sha256": "c6b41e9c5ed4e5880ff9f63c2fc20eab784258f57d74f3ed9f561ca4516f4747"
+    },
+    "schema_0040_to_0041": {
+      "platform_job_subjects": 169,
+      "source_sha256": "94bd723a000babc84ec6ce5c54ee252ae21ff54070662f2f05fbe723a893adba"
+    },
+    "target_schema_revision": "0041_contract_subject_scope"
+  },
+  "defender": {
+    "application_zip_and_executable": "no threats",
+    "gpu_addon": "no threats",
+    "installed_application": "no threats",
+    "installed_launcher": "no threats",
+    "installed_stable_and_versioned_updaters": "no threats",
+    "release_directory": "no threats",
+    "setup": "no threats",
+    "signature_version": "1.457.150.0"
+  },
+  "formal_assets": {
+    "DaHe-Logistics-Automation-Tool-1.1.0-Setup.exe": {
+      "sha256": "a79c0447fb7a1f63e8e9cdbda9f8d29b97db6bc95a447e6cffbac701d1b5969c",
+      "size": 420397766
+    },
+    "DaHe-Logistics-Automation-Tool-1.1.0-gpu-addon-win-x64.zip": {
+      "sha256": "89e2347afce3ba11f2488e556064f8f999454ca411d0324e3ed94f17dea74c95",
+      "size": 2019019478
+    },
+    "DaHe-Logistics-Automation-Tool-1.1.0-win-x64.zip": {
+      "sha256": "b41e255a25a4936f69b96e642394b5459d1157d5baa9977c05f47ddae518d991",
+      "size": 57511735
+    },
+    "SHA256SUMS.txt": {
+      "sha256": "2279fed28920a3cfa59473458b893c5d14d35926891c0550a445751a03ebd279",
+      "size": 440
+    },
+    "update-manifest.json": {
+      "sha256": "469c93e961a50d162027a22a775923f3ccba430019b0a1328401d1d131652271",
+      "size": 1222
+    }
+  },
+  "formal_build": {
+    "application_version": "1.1.0",
+    "asset_count": 5,
+    "elapsed_seconds": 931.2,
+    "minimum_schema_revision": "0039_network_batch_default",
+    "public_build_commit": "485e32f6a633e1bfdd314f62012f2d99edc4e920",
+    "resource_sha256": "521e64ebafd2ac71f9ff1aa40ac2a4d23a2a5388c5c62f5ea28b75118306b454",
+    "target_schema_revision": "0041_contract_subject_scope"
+  },
+  "installation": {
+    "desktop_shortcut_count": 1,
+    "fresh_install_readiness_http_status": 200,
+    "fresh_install_setup_exit_code": 0,
+    "fresh_install_uac_prompt_observed": false,
+    "installed_previous_version_retained": true,
+    "installed_update_result": {
+      "from_version": "1.0.0",
+      "state": "succeeded",
+      "to_version": "1.1.0"
+    },
+    "nsis_request_execution_level": "user",
+    "second_cold_start_seconds": 13.73,
+    "unique_shortcut_target": "DaHeLauncher.exe"
+  },
+  "kind": "loop_14_gate_b_update_build_install_evidence",
+  "portable_runtime_staging": {
+    "browser_seconds": 15.906,
+    "cpu_seconds": 212.797,
+    "generation_id": "0f2fe40fc73c46afaed6d24bac61ef3f",
+    "gpu_seconds": 227.109,
+    "result": "passed",
+    "total_seconds": 455.812
+  },
+  "release_tools": {
+    "nsis_3_12_sha256": "56581f90db321581c5381193d796fffcf2d24b2f8fed2160a6c6a3baa67f2c4f",
+    "python_3_12_10_embed_sha256": "4acbed6dd1c744b0376e3b1cf57ce906f9dc9e95e68824584c8099a63025a3c3"
+  },
+  "result": "passed",
+  "schema_version": 1
+}

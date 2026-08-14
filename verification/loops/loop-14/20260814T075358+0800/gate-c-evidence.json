@@ -1,0 +1,55 @@
+{
+  "accepted_at": "2026-08-14T02:24:35.143Z",
+  "diagnostics": {
+    "compressed_size": 879668,
+    "entries": [
+      "environment.json",
+      "breadcrumbs.jsonl",
+      "runtime-logs.jsonl",
+      "README.txt"
+    ],
+    "forbidden_content_matches": 0,
+    "forbidden_file_count": 0,
+    "package_sha256": "c5439981482353e539b4999757d7ac64944a18ddc4cffb658e4f7a7b176d7921",
+    "uncompressed_size": 20447263
+  },
+  "git_bundle": {
+    "complete_history": true,
+    "head_commit": "38bfa0094925bfaaf467765f93f741cd13a0d610",
+    "path": "local source-history/DaHe-internal-history-through-38bfa00.bundle",
+    "sha256": "b87af067a9174f176978e95fd63a4d412ce222fc4a957847a6deb660d750cebb",
+    "size": 12628547,
+    "status": "verified"
+  },
+  "github": {
+    "asset_count": 5,
+    "downloaded_assets_match_local": true,
+    "main_commit": "485e32f6a633e1bfdd314f62012f2d99edc4e920",
+    "public_source_gitleaks_findings": 0,
+    "release_published_at": "2026-08-14T01:55:57Z",
+    "release_url": "https://github.com/Tastal/DaHe-Logistics-Automation-Tool/releases/tag/v1.1.0",
+    "repository": "Tastal/DaHe-Logistics-Automation-Tool",
+    "tag_commit": "485e32f6a633e1bfdd314f62012f2d99edc4e920"
+  },
+  "installed_identity": {
+    "application_version": "1.1.0",
+    "build_git_commit": "485e32f6a633e1bfdd314f62012f2d99edc4e920",
+    "process_executable": "versions/1.1.0/DaHeApp.exe",
+    "readiness_http_status": 200,
+    "resource_sha256": "521e64ebafd2ac71f9ff1aa40ac2a4d23a2a5388c5c62f5ea28b75118306b454",
+    "schema_revision": "0041_contract_subject_scope",
+    "update_check_state": "up_to_date"
+  },
+  "kind": "loop_14_gate_c_release_deployment_evidence",
+  "remaining_cleanup": {
+    "blocked_by_desktop_policy": true,
+    "business_impact": "none",
+    "targets": [
+      "old local candidate release directories",
+      "Loop 14 isolated fresh-install acceptance directories"
+    ]
+  },
+  "result": "passed",
+  "schema_version": 1,
+  "source_export_manifest": "verification/loops/loop-14/20260814T075358+0800/source-export-manifest.json"
+}

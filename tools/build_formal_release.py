@@ -20,7 +20,11 @@ from dahe.adapters.ocr.runtime_inventory import (
     query_installed_inventory,
     validate_runtime_inventory,
 )
-from dahe.adapters.ocr.runtime_layout import resolve_active_composition
+from dahe.adapters.ocr.runtime_layout import (
+    activate_flat_composition,
+    resolve_active_composition,
+    write_flat_composition_manifest,
+)
 from dahe.adapters.ocr.source_fingerprint import (
     installed_worker_source_sha256,
     python_source_tree_sha256,
@@ -67,6 +71,10 @@ REVISION = "0041_contract_subject_scope"
 MINIMUM_SCHEMA_REVISION = "0039_network_batch_default"
 REPOSITORY = "Tastal/DaHe-Logistics-Automation-Tool"
 GITHUB_RELEASE_ASSET_LIMIT_BYTES = 2 * 1024 * 1024 * 1024
+LEGACY_WINDOWS_FILE_PATH_LIMIT = 259
+LEGACY_WINDOWS_DIRECTORY_PATH_LIMIT = 247
+MAX_WINDOWS_USER_NAME_LENGTH = 20
+CPU_RUNTIME_STAGING_NAME = ".c-00000000"
 
 
 def _sha256(path: Path) -> str:
@@ -400,11 +408,10 @@ def _copy_cpu_runtime(
     composition = resolve_active_composition(source, allow_legacy=False)
     if composition.generation_dir is None or composition.generation_id is None:
         raise RuntimeError("active OCR generation is unavailable")
-    generation = target / "generations" / composition.generation_id
-    generation.mkdir(parents=True)
+    target.mkdir(parents=True)
     _stage_ocr_runtime(
         composition.cpu_runtime,
-        generation / "ocr-cpu",
+        target / "c",
         kind=RuntimeKind.CPU,
         source_root=source_root,
         embed_archive=embed_archive,
@@ -413,13 +420,13 @@ def _copy_cpu_runtime(
     )
     shutil.copytree(
         composition.models_dir.parent,
-        generation / "model-cache",
+        target / "m",
     )
     shutil.copytree(
         composition.qualification_path.parent,
-        generation / "qualification",
+        target / "q",
     )
-    qualification_path = generation / "qualification" / "qualification.json"
+    qualification_path = target / "q" / "qualification.json"
     qualification = _cpu_only_qualification(
         json.loads(qualification_path.read_text(encoding="utf-8"))
     )
@@ -427,34 +434,13 @@ def _copy_cpu_runtime(
         json.dumps(qualification, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
     )
-    original = json.loads(
-        (composition.generation_dir / "composition-manifest.json").read_text(
-            encoding="utf-8"
-        )
+    write_flat_composition_manifest(
+        runtime_root=target,
+        generation_id=composition.generation_id,
     )
-    original["gpu_runtime"] = None
-    original["runtime_installation_sha256"] = {
-        "cpu": _sha256(
-            generation / "ocr-cpu" / "runtime-installation.json"
-        )
-    }
-    original["qualification_sha256"] = _sha256(qualification_path)
-    manifest_path = generation / "composition-manifest.json"
-    manifest_path.write_text(
-        json.dumps(original, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
-        encoding="utf-8",
-    )
-    pointer = {
-        "schema_version": 1,
-        "generation_id": composition.generation_id,
-        "composition_manifest": (
-            f"generations/{composition.generation_id}/composition-manifest.json"
-        ),
-        "composition_manifest_sha256": _sha256(manifest_path),
-    }
-    (target / "active-composition.json").write_text(
-        json.dumps(pointer, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
-        encoding="utf-8",
+    activate_flat_composition(
+        runtime_root=target,
+        generation_id=composition.generation_id,
     )
     verified = resolve_active_composition(target, allow_legacy=False)
     if verified.gpu_runtime is not None:
@@ -528,16 +514,38 @@ def _package_cpu_runtime_archive(
         raise RuntimeError("CPU runtime package is empty")
     _zip_tree(runtime_root, archive)
     pointer = runtime_root / "active-composition.json"
+    maximum_relative_file_path = max(
+        len(path.relative_to(runtime_root).as_posix()) for path in files
+    )
+    directories = {
+        parent
+        for path in files
+        for parent in path.relative_to(runtime_root).parents
+        if parent != Path(".")
+    }
+    maximum_relative_directory_path = max(
+        (len(path.as_posix()) for path in directories),
+        default=0,
+    )
+    _validate_cpu_runtime_legacy_path_budget(
+        files=files,
+        runtime_root=runtime_root,
+    )
     manifest_path.write_text(
         json.dumps(
             {
-                "schema_version": 1,
+                "schema_version": 2,
+                "layout": "flat_v2",
                 "archive_file_name": archive.name,
                 "archive_sha256": _sha256(archive),
                 "archive_size": archive.stat().st_size,
                 "entry_count": len(files),
                 "uncompressed_size": sum(path.stat().st_size for path in files),
                 "active_composition_sha256": _sha256(pointer),
+                "maximum_relative_file_path": maximum_relative_file_path,
+                "maximum_relative_directory_path": (
+                    maximum_relative_directory_path
+                ),
             },
             indent=2,
             sort_keys=True,
@@ -545,6 +553,37 @@ def _package_cpu_runtime_archive(
         + "\n",
         encoding="utf-8",
     )
+
+
+def _validate_cpu_runtime_legacy_path_budget(
+    *,
+    files: list[Path],
+    runtime_root: Path,
+) -> None:
+    user_name = "U" * MAX_WINDOWS_USER_NAME_LENGTH
+    install_root = Path(
+        f"C:/Users/{user_name}/AppData/Local/Programs/"
+        "DaHeLogisticsAutomationTool/runtimes"
+    )
+    targets = (
+        install_root / "ocr-cpu",
+        install_root / CPU_RUNTIME_STAGING_NAME,
+    )
+    for source in files:
+        relative = source.relative_to(runtime_root)
+        for target in targets:
+            projected = target / relative
+            if len(os.fspath(projected)) > LEGACY_WINDOWS_FILE_PATH_LIMIT:
+                raise RuntimeError(
+                    "CPU runtime file exceeds the legacy Windows path budget"
+                )
+            for parent in projected.parents:
+                if parent == target.parent:
+                    break
+                if len(os.fspath(parent)) > LEGACY_WINDOWS_DIRECTORY_PATH_LIMIT:
+                    raise RuntimeError(
+                        "CPU runtime directory exceeds the legacy Windows path budget"
+                    )
 
 
 def _stage_installer_payload(payload: Path, staging_root: Path) -> Path:

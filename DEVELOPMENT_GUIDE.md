@@ -230,6 +230,8 @@ deduplication must never remove a current-source waybill from the workspace.
 
 浏览器、CPU OCR 和 GPU OCR 正式运行时必须分别使用固定版本和 SHA-256 的 Python 官方 64 位嵌入式发行包，根目录 `python.exe` 是唯一正式解释器。构建时只从已验证的隔离环境复制锁定依赖并重新放入嵌入式布局，不发布虚拟环境的 `Scripts`、`pyvenv.cfg`、`direct_url.json`、缓存或字节码。浏览器正式运行时只带 Worker 及其锁定依赖，使用系统已安装的 Microsoft Edge；构建期 smoke store、浏览器 Profile、Cookie、历史记录和登录资料不得进入发布资产。正式构建发现开发机绝对路径、源码指纹不一致、依赖清单不一致或运行时无法独立启动时必须失败；开发环境仍可使用各自的虚拟环境。CPU/GPU 保持物理隔离，GPU 不可用或不匹配时继续使用已验证的 CPU 运行时。
 
+正式 CPU OCR 包必须使用 ADR-071 的扁平 composition 布局，同时只读兼容既有 generation 布局。构建必须按 20 字符 Windows 用户名投影普通用户安装路径，并在文件超过 259 字符或目录超过 247 字符时失败；安装器必须使用短暂存目录、先检查磁盘与路径预算、完整校验后原子启用。产品不得为了安装成功而修改系统长路径策略、请求管理员权限或隐藏底层错误阶段。
+
 独立 `DaHeUpdater.exe` 只从 `Tastal/DaHe-Logistics-Automation-Tool` 的 HTTPS 正式 Release 读取固定清单，不接入公共代理或另一在线发布源。应用 ZIP 下载使用绑定清单身份的持久化 partial 文件、HTTP Range、严格 Content-Range/大小/SHA-256 校验和有限退避重试；服务器忽略 Range 时从头安全重下，清单变化或哈希失败时删除旧 partial。也可以由人员本地导入正式 `update-manifest.json` 和应用 ZIP，但必须复用同一版本、防降级、Schema、文件名、大小和哈希门禁；已校验导入状态必须可跨主程序重启继续安装。它必须拒绝降级、异常文件名、非 GitHub 下载域、哈希或大小不匹配及 Schema 范围不支持的更新。网络失败不影响业务；检查可自动，安装必须由用户确认，且只在无运行、暂停或待恢复任务时进行。新版不覆盖当前版本；当前指针仅在资源校验、数据库预检和正式迁移通过后原子切换。应用 ZIP 必须携带同版本更新器，主程序优先使用版本目录内更新器，稳定根目录更新器只保留为旧版本首次升级入口。
 
 每个 Release 清单必须声明最低 Schema、目标 Schema、Alembic revision 和最低更新器版本。更新前在数据库副本上完整迁移和预检；通过后才停止本项目进程、用 SQLite online backup 备份正式库并迁移。新版 readiness 未通过且业务界面尚未开放时，自动恢复备份并切回旧版；新版产生用户操作后不得自动覆盖数据回滚。每个 Release 至少验证空数据库、上一正式 Schema 和重复迁移。

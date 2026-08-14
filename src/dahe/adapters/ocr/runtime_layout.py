@@ -12,6 +12,8 @@ from uuid import uuid4
 
 POINTER_SCHEMA_VERSION = 1
 COMPOSITION_SCHEMA_VERSION = 1
+FLAT_POINTER_SCHEMA_VERSION = 2
+FLAT_COMPOSITION_SCHEMA_VERSION = 2
 POINTER_NAME = "active-composition.json"
 COMPOSITION_MANIFEST_NAME = "composition-manifest.json"
 GENERATION_ID_PATTERN = re.compile(r"^[0-9a-f]{32}$")
@@ -331,6 +333,196 @@ def _load_generation(
     )
 
 
+def _load_flat_composition(
+    *,
+    runtime_root: Path,
+    generation_id: str,
+    expected_manifest_sha256: str,
+) -> ActiveOcrComposition:
+    if GENERATION_ID_PATTERN.fullmatch(generation_id) is None:
+        raise OcrRuntimeLayoutError("composition generation identity is invalid")
+    manifest_path = runtime_root / COMPOSITION_MANIFEST_NAME
+    if (
+        manifest_path.is_symlink()
+        or _is_reparse_point(manifest_path)
+        or not manifest_path.is_file()
+    ):
+        raise OcrRuntimeLayoutError("OCR composition manifest is unsafe")
+    if _sha256_file(manifest_path) != expected_manifest_sha256:
+        raise OcrRuntimeLayoutError("OCR composition manifest hash changed")
+    manifest = _read_json(manifest_path, label="OCR composition manifest")
+    if set(manifest) != {
+        "schema_version",
+        "generation_id",
+        "cpu_runtime",
+        "gpu_runtime",
+        "models_dir",
+        "qualification_path",
+        "model_manifest_sha256",
+        "qualification_sha256",
+        "runtime_installation_sha256",
+    }:
+        raise OcrRuntimeLayoutError("OCR composition manifest fields are invalid")
+    if (
+        manifest["schema_version"] != FLAT_COMPOSITION_SCHEMA_VERSION
+        or manifest["generation_id"] != generation_id
+        or manifest["cpu_runtime"] != "c"
+        or manifest["gpu_runtime"] is not None
+        or manifest["models_dir"] != "m/official_models"
+        or manifest["qualification_path"] != "q/qualification.json"
+    ):
+        raise OcrRuntimeLayoutError("OCR composition manifest is invalid")
+    hashes = manifest["runtime_installation_sha256"]
+    if (
+        not isinstance(hashes, dict)
+        or set(hashes) != {"cpu"}
+        or not isinstance(hashes["cpu"], str)
+        or SHA256_PATTERN.fullmatch(hashes["cpu"]) is None
+    ):
+        raise OcrRuntimeLayoutError("OCR composition runtime hashes are invalid")
+    for name in ("model_manifest_sha256", "qualification_sha256"):
+        value = manifest[name]
+        if not isinstance(value, str) or SHA256_PATTERN.fullmatch(value) is None:
+            raise OcrRuntimeLayoutError("OCR composition hashes are invalid")
+
+    expected_entries = {
+        POINTER_NAME,
+        COMPOSITION_MANIFEST_NAME,
+        "c",
+        "m",
+        "q",
+    }
+    if {entry.name for entry in os.scandir(runtime_root)} != expected_entries:
+        raise OcrRuntimeLayoutError(
+            "flat composition contains unexpected top-level entries"
+        )
+    if {entry.name for entry in os.scandir(runtime_root / "m")} != {
+        "official_models"
+    }:
+        raise OcrRuntimeLayoutError("flat model cache contains unexpected entries")
+    if {entry.name for entry in os.scandir(runtime_root / "q")} != {
+        "qualification.json"
+    }:
+        raise OcrRuntimeLayoutError(
+            "flat qualification contains unexpected entries"
+        )
+
+    cpu_runtime = _safe_generation_child(runtime_root, "c", kind="directory")
+    models_dir = _safe_generation_child(
+        runtime_root,
+        "m/official_models",
+        kind="directory",
+    )
+    qualification_path = _safe_generation_child(
+        runtime_root,
+        "q/qualification.json",
+        kind="file",
+    )
+    model_manifest = _safe_generation_child(
+        runtime_root,
+        "m/official_models/model-manifest.json",
+        kind="file",
+    )
+    runtime_manifest = _safe_generation_child(
+        runtime_root,
+        "c/runtime-installation.json",
+        kind="file",
+    )
+    if _sha256_file(model_manifest) != manifest["model_manifest_sha256"]:
+        raise OcrRuntimeLayoutError("active model manifest hash changed")
+    if _sha256_file(qualification_path) != manifest["qualification_sha256"]:
+        raise OcrRuntimeLayoutError("active qualification hash changed")
+    if _sha256_file(runtime_manifest) != hashes["cpu"]:
+        raise OcrRuntimeLayoutError("active runtime installation manifest hash changed")
+    qualification = _read_json(
+        qualification_path,
+        label="active OCR qualification",
+    )
+    reports = qualification.get("reports")
+    if (
+        not isinstance(reports, list)
+        or any(
+            not isinstance(report, dict)
+            or report.get("runtime_kind") not in {"cpu", "gpu"}
+            for report in reports
+        )
+        or {str(report["runtime_kind"]) for report in reports} != {"cpu"}
+    ):
+        raise OcrRuntimeLayoutError(
+            "active qualification runtime set is invalid"
+        )
+    return ActiveOcrComposition(
+        generation_id=generation_id,
+        generation_dir=runtime_root,
+        cpu_runtime=cpu_runtime,
+        gpu_runtime=None,
+        models_dir=models_dir,
+        qualification_path=qualification_path,
+    )
+
+
+def write_flat_composition_manifest(
+    *,
+    runtime_root: Path,
+    generation_id: str,
+) -> Path:
+    resolved_root = runtime_root.resolve(strict=True)
+    if GENERATION_ID_PATTERN.fullmatch(generation_id) is None:
+        raise OcrRuntimeLayoutError("composition generation identity is invalid")
+    cpu_manifest = resolved_root / "c" / "runtime-installation.json"
+    model_manifest = (
+        resolved_root / "m" / "official_models" / "model-manifest.json"
+    )
+    qualification = resolved_root / "q" / "qualification.json"
+    if any(
+        not path.is_file()
+        for path in (cpu_manifest, model_manifest, qualification)
+    ):
+        raise OcrRuntimeLayoutError(
+            "flat composition cannot be sealed before every artifact exists"
+        )
+    payload = {
+        "schema_version": FLAT_COMPOSITION_SCHEMA_VERSION,
+        "generation_id": generation_id,
+        "cpu_runtime": "c",
+        "gpu_runtime": None,
+        "models_dir": "m/official_models",
+        "qualification_path": "q/qualification.json",
+        "model_manifest_sha256": _sha256_file(model_manifest),
+        "qualification_sha256": _sha256_file(qualification),
+        "runtime_installation_sha256": {
+            "cpu": _sha256_file(cpu_manifest),
+        },
+    }
+    target = resolved_root / COMPOSITION_MANIFEST_NAME
+    _write_json_atomic(target, payload)
+    return target
+
+
+def activate_flat_composition(
+    *,
+    runtime_root: Path,
+    generation_id: str,
+) -> ActiveOcrComposition:
+    resolved_root = runtime_root.resolve(strict=True)
+    manifest_path = resolved_root / COMPOSITION_MANIFEST_NAME
+    if not manifest_path.is_file():
+        raise OcrRuntimeLayoutError("flat OCR composition manifest is missing")
+    manifest_sha256 = _sha256_file(manifest_path)
+    pointer = {
+        "schema_version": FLAT_POINTER_SCHEMA_VERSION,
+        "generation_id": generation_id,
+        "composition_manifest": COMPOSITION_MANIFEST_NAME,
+        "composition_manifest_sha256": manifest_sha256,
+    }
+    _write_json_atomic(resolved_root / POINTER_NAME, pointer)
+    return _load_flat_composition(
+        runtime_root=resolved_root,
+        generation_id=generation_id,
+        expected_manifest_sha256=manifest_sha256,
+    )
+
+
 def write_composition_manifest(
     *,
     generation_dir: Path,
@@ -472,22 +664,35 @@ def resolve_active_composition(
         )
     generation_id = pointer["generation_id"]
     manifest_sha256 = pointer["composition_manifest_sha256"]
-    expected_relative = (
-        f"generations/{generation_id}/{COMPOSITION_MANIFEST_NAME}"
-        if isinstance(generation_id, str)
-        else None
-    )
+    schema_version = pointer["schema_version"]
     if (
-        pointer["schema_version"] != POINTER_SCHEMA_VERSION
-        or not isinstance(generation_id, str)
+        not isinstance(generation_id, str)
         or GENERATION_ID_PATTERN.fullmatch(generation_id) is None
-        or pointer["composition_manifest"] != expected_relative
         or not isinstance(manifest_sha256, str)
         or SHA256_PATTERN.fullmatch(manifest_sha256) is None
     ):
         raise OcrRuntimeLayoutError("active OCR composition pointer is invalid")
-    return _load_generation(
-        runtime_root=resolved_root,
-        generation_id=generation_id,
-        expected_manifest_sha256=manifest_sha256,
-    )
+    if schema_version == POINTER_SCHEMA_VERSION:
+        expected_relative = (
+            f"generations/{generation_id}/{COMPOSITION_MANIFEST_NAME}"
+        )
+        if pointer["composition_manifest"] != expected_relative:
+            raise OcrRuntimeLayoutError(
+                "active OCR composition pointer is invalid"
+            )
+        return _load_generation(
+            runtime_root=resolved_root,
+            generation_id=generation_id,
+            expected_manifest_sha256=manifest_sha256,
+        )
+    if schema_version == FLAT_POINTER_SCHEMA_VERSION:
+        if pointer["composition_manifest"] != COMPOSITION_MANIFEST_NAME:
+            raise OcrRuntimeLayoutError(
+                "active OCR composition pointer is invalid"
+            )
+        return _load_flat_composition(
+            runtime_root=resolved_root,
+            generation_id=generation_id,
+            expected_manifest_sha256=manifest_sha256,
+        )
+    raise OcrRuntimeLayoutError("active OCR composition pointer is invalid")

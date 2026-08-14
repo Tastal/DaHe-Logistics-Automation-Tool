@@ -22,6 +22,7 @@ from tools.build_formal_release import (
     _run_pyinstaller,
     _source_application_version,
     _stage_installer_payload,
+    _validate_cpu_runtime_legacy_path_budget,
 )
 
 
@@ -315,7 +316,7 @@ def test_cpu_runtime_archive_has_bounded_install_manifest(tmp_path: Path) -> Non
     runtime.mkdir()
     pointer = runtime / "active-composition.json"
     pointer.write_bytes(b"pointer")
-    nested = runtime / "generations" / "runtime.bin"
+    nested = runtime / "c" / "runtime.bin"
     nested.parent.mkdir()
     nested.write_bytes(b"runtime")
     archive = tmp_path / "payload" / "runtimes" / "ocr-cpu.zip"
@@ -325,10 +326,39 @@ def test_cpu_runtime_archive_has_bounded_install_manifest(tmp_path: Path) -> Non
     _package_cpu_runtime_archive(runtime, archive, manifest)
 
     payload = json.loads(manifest.read_text(encoding="utf-8"))
+    assert payload["schema_version"] == 2
+    assert payload["layout"] == "flat_v2"
     assert payload["archive_file_name"] == "ocr-cpu.zip"
     assert payload["entry_count"] == 2
     assert payload["uncompressed_size"] == len(b"pointerruntime")
     assert payload["active_composition_sha256"] == hashlib.sha256(b"pointer").hexdigest()
+    assert payload["maximum_relative_file_path"] == len(
+        "active-composition.json"
+    )
+
+
+def test_legacy_deep_cpu_runtime_fails_default_windows_path_budget(
+    tmp_path: Path,
+) -> None:
+    runtime = tmp_path / "runtime"
+    deep = (
+        runtime
+        / "generations"
+        / ("a" * 32)
+        / "ocr-cpu"
+        / "Lib"
+        / "site-packages"
+        / ("nested-package" * 7)
+        / "runtime.py"
+    )
+    deep.parent.mkdir(parents=True)
+    deep.write_bytes(b"runtime")
+
+    with pytest.raises(RuntimeError, match="path budget"):
+        _validate_cpu_runtime_legacy_path_budget(
+            files=[deep],
+            runtime_root=runtime,
+        )
 
 
 def test_main_application_uses_hidden_launcher_compatible_console_onedir(

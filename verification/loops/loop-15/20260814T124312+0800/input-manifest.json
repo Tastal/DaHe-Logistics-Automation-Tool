@@ -1,0 +1,30 @@
+{
+  "baseline": {
+    "internal_commit": "36288ed72c7d47e594f73cb990469352203d78b6",
+    "public_commit": "485e32f6a633e1bfdd314f62012f2d99edc4e920",
+    "public_release": "v1.1.0",
+    "schema_revision": "0041_contract_subject_scope"
+  },
+  "boundaries": {
+    "business_changes": false,
+    "database_migration": false,
+    "real_chengfeng_access": false,
+    "target_release": "1.1.1"
+  },
+  "failure_evidence": {
+    "company_account_installed_max_path": 296,
+    "company_account_staging_max_path": 338,
+    "cpu_archive_entry_count": 15339,
+    "cpu_archive_uncompressed_size": 867487727,
+    "developer_long_paths_enabled": true,
+    "installer_error": "cpu_runtime_bootstrap_failed"
+  },
+  "kind": "loop_15_cpu_runtime_installer_repair_input",
+  "required_outcomes": [
+    "Flat formal CPU composition with legacy read compatibility",
+    "Legacy Windows path-budget gate without machine policy changes",
+    "Stage-specific path-redacted bootstrap diagnostics",
+    "Five verified v1.1.1 release assets"
+  ],
+  "schema_version": 1
+}

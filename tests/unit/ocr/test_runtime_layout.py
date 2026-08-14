@@ -9,8 +9,10 @@ import pytest
 from dahe.adapters.ocr.runtime_layout import (
     OcrRuntimeLayoutError,
     activate_composition,
+    activate_flat_composition,
     resolve_active_composition,
     write_composition_manifest,
+    write_flat_composition_manifest,
 )
 
 
@@ -62,6 +64,40 @@ def _generation(runtime_root: Path, generation_id: str) -> Path:
     return generation
 
 
+def _flat(runtime_root: Path, generation_id: str) -> None:
+    cpu = runtime_root / "c"
+    cpu.mkdir(parents=True)
+    (cpu / "runtime-installation.json").write_text(
+        json.dumps({"runtime": "cpu"}),
+        encoding="utf-8",
+    )
+    models = runtime_root / "m" / "official_models"
+    models.mkdir(parents=True)
+    (models / "model-manifest.json").write_text(
+        json.dumps({"model": generation_id}),
+        encoding="utf-8",
+    )
+    qualification = runtime_root / "q" / "qualification.json"
+    qualification.parent.mkdir(parents=True)
+    qualification.write_text(
+        json.dumps(
+            {
+                "generation": generation_id,
+                "reports": [{"runtime_kind": "cpu"}],
+            }
+        ),
+        encoding="utf-8",
+    )
+    write_flat_composition_manifest(
+        runtime_root=runtime_root,
+        generation_id=generation_id,
+    )
+    activate_flat_composition(
+        runtime_root=runtime_root,
+        generation_id=generation_id,
+    )
+
+
 def test_legacy_layout_is_read_only_compatibility_when_pointer_is_absent(
     tmp_path: Path,
 ) -> None:
@@ -99,6 +135,38 @@ def test_activation_is_one_atomic_pointer_after_a_complete_generation(
     ).resolve()
     assert (runtime_root / "ocr-cpu").is_dir()
     assert (runtime_root / "ocr-gpu").is_dir()
+
+
+def test_flat_formal_layout_preserves_generation_identity_without_deep_path(
+    tmp_path: Path,
+) -> None:
+    runtime_root = tmp_path / "runtime"
+    runtime_root.mkdir()
+    generation_id = "a" * 32
+    _flat(runtime_root, generation_id)
+
+    active = resolve_active_composition(runtime_root, allow_legacy=False)
+
+    assert active.generation_id == generation_id
+    assert active.generation_dir == runtime_root.resolve()
+    assert active.cpu_runtime == (runtime_root / "c").resolve()
+    assert active.gpu_runtime is None
+    assert active.models_dir == (runtime_root / "m" / "official_models").resolve()
+    assert active.qualification_path == (
+        runtime_root / "q" / "qualification.json"
+    ).resolve()
+
+
+def test_flat_formal_layout_rejects_unexpected_top_level_content(
+    tmp_path: Path,
+) -> None:
+    runtime_root = tmp_path / "runtime"
+    runtime_root.mkdir()
+    _flat(runtime_root, "a" * 32)
+    (runtime_root / "unexpected.tmp").write_bytes(b"partial")
+
+    with pytest.raises(OcrRuntimeLayoutError, match="unexpected"):
+        resolve_active_composition(runtime_root, allow_legacy=False)
 
 
 def test_failed_candidate_does_not_change_the_previous_pointer(

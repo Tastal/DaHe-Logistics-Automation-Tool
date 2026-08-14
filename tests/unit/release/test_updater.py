@@ -12,6 +12,10 @@ from pathlib import Path
 import pytest
 
 from dahe import __version__
+from dahe.adapters.ocr.runtime_layout import (
+    activate_flat_composition,
+    write_flat_composition_manifest,
+)
 from dahe.adapters.sqlite.runtime import SqliteRuntime
 from dahe.release.launcher import (
     VersionPointer,
@@ -21,6 +25,7 @@ from dahe.release.launcher import (
 )
 from dahe.release.update_manifest import ReleaseAsset
 from dahe.release.updater import (
+    CpuRuntimeBootstrapError,
     GithubAssetDownloader,
     UpdateInstaller,
     UpdaterError,
@@ -31,7 +36,7 @@ from dahe.release.updater import (
 
 PROJECT_ROOT = Path(__file__).parents[3]
 REVISION = "0041_contract_subject_scope"
-NEW_VERSION = "1.1.1"
+NEW_VERSION = "1.1.2"
 
 
 class _DownloadResponse(io.BytesIO):
@@ -459,6 +464,162 @@ def test_cpu_runtime_bootstrap_rejects_archive_hash_mismatch(tmp_path: Path) -> 
     with pytest.raises(UpdaterError, match="hash"):
         bootstrap_cpu_runtime(archive=archive, manifest_path=manifest, target=target)
     assert not target.exists()
+
+
+def _flat_cpu_archive(tmp_path: Path) -> tuple[Path, Path]:
+    runtime = tmp_path / "flat-runtime"
+    cpu = runtime / "c"
+    cpu.mkdir(parents=True)
+    (cpu / "runtime-installation.json").write_text("{}", encoding="utf-8")
+    models = runtime / "m" / "official_models"
+    models.mkdir(parents=True)
+    (models / "model-manifest.json").write_text("{}", encoding="utf-8")
+    qualification = runtime / "q" / "qualification.json"
+    qualification.parent.mkdir(parents=True)
+    qualification.write_text(
+        json.dumps({"reports": [{"runtime_kind": "cpu"}]}),
+        encoding="utf-8",
+    )
+    write_flat_composition_manifest(
+        runtime_root=runtime,
+        generation_id="a" * 32,
+    )
+    activate_flat_composition(
+        runtime_root=runtime,
+        generation_id="a" * 32,
+    )
+    files = sorted(path for path in runtime.rglob("*") if path.is_file())
+    archive = tmp_path / "ocr-cpu.zip"
+    with zipfile.ZipFile(archive, "w", compression=zipfile.ZIP_DEFLATED) as bundle:
+        for path in files:
+            bundle.write(path, path.relative_to(runtime).as_posix())
+    relative_files = [path.relative_to(runtime) for path in files]
+    directories = {
+        parent
+        for path in relative_files
+        for parent in path.parents
+        if parent != Path(".")
+    }
+    pointer = runtime / "active-composition.json"
+    manifest = tmp_path / "cpu-runtime-manifest.json"
+    manifest.write_text(
+        json.dumps(
+            {
+                "schema_version": 2,
+                "layout": "flat_v2",
+                "archive_file_name": "ocr-cpu.zip",
+                "archive_sha256": hashlib.sha256(archive.read_bytes()).hexdigest(),
+                "archive_size": archive.stat().st_size,
+                "entry_count": len(files),
+                "uncompressed_size": sum(path.stat().st_size for path in files),
+                "active_composition_sha256": hashlib.sha256(
+                    pointer.read_bytes()
+                ).hexdigest(),
+                "maximum_relative_file_path": max(
+                    len(path.as_posix()) for path in relative_files
+                ),
+                "maximum_relative_directory_path": max(
+                    (len(path.as_posix()) for path in directories),
+                    default=0,
+                ),
+            }
+        ),
+        encoding="utf-8",
+    )
+    return archive, manifest
+
+
+def test_flat_cpu_runtime_bootstrap_installs_atomically_with_short_staging(
+    tmp_path: Path,
+) -> None:
+    archive, manifest = _flat_cpu_archive(tmp_path)
+    target = tmp_path / "runtimes" / "ocr-cpu"
+
+    bootstrap_cpu_runtime(archive=archive, manifest_path=manifest, target=target)
+
+    assert (target / "c" / "runtime-installation.json").is_file()
+    assert not tuple(target.parent.glob(".c-*"))
+
+
+def test_cpu_runtime_bootstrap_is_idempotent_only_for_the_same_runtime(
+    tmp_path: Path,
+) -> None:
+    archive, manifest = _flat_cpu_archive(tmp_path)
+    target = tmp_path / "runtimes" / "ocr-cpu"
+
+    bootstrap_cpu_runtime(archive=archive, manifest_path=manifest, target=target)
+    bootstrap_cpu_runtime(archive=archive, manifest_path=manifest, target=target)
+
+    pointer = target / "active-composition.json"
+    pointer.write_text(pointer.read_text(encoding="utf-8") + " ", encoding="utf-8")
+    with pytest.raises(CpuRuntimeBootstrapError) as failure:
+        bootstrap_cpu_runtime(
+            archive=archive,
+            manifest_path=manifest,
+            target=target,
+        )
+    assert failure.value.error_code == "cpu_runtime_target_conflict"
+    assert failure.value.stage == "target"
+
+
+@pytest.mark.parametrize(
+    ("winerror", "expected_code"),
+    (
+        (206, "cpu_runtime_path_unsupported"),
+        (2, "cpu_runtime_io_blocked"),
+    ),
+)
+def test_cpu_runtime_bootstrap_reports_safe_extract_failures_and_cleans_staging(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    winerror: int,
+    expected_code: str,
+) -> None:
+    archive, manifest = _flat_cpu_archive(tmp_path)
+    target = tmp_path / "runtimes" / "ocr-cpu"
+
+    def fail_copy(*_args: object, **_kwargs: object) -> None:
+        error = OSError("simulated Windows extraction failure")
+        error.winerror = winerror
+        raise error
+
+    monkeypatch.setattr("dahe.release.updater.shutil.copyfileobj", fail_copy)
+
+    with pytest.raises(CpuRuntimeBootstrapError) as failure:
+        bootstrap_cpu_runtime(archive=archive, manifest_path=manifest, target=target)
+    assert failure.value.error_code == expected_code
+    assert failure.value.stage == "extract"
+    assert failure.value.winerror == winerror
+    assert not target.exists()
+    assert not tuple(target.parent.glob(".c-*"))
+
+
+def test_cpu_runtime_bootstrap_reports_disk_stage_and_can_retry(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    archive, manifest = _flat_cpu_archive(tmp_path)
+    target = tmp_path / "runtimes" / "ocr-cpu"
+    actual = shutil.disk_usage(tmp_path)
+    results = iter(
+        (
+            type(actual)(actual.total, actual.used, 0),
+            actual,
+        )
+    )
+    monkeypatch.setattr(
+        "dahe.release.updater.shutil.disk_usage",
+        lambda _path: next(results),
+    )
+
+    with pytest.raises(CpuRuntimeBootstrapError) as failure:
+        bootstrap_cpu_runtime(archive=archive, manifest_path=manifest, target=target)
+    assert failure.value.error_code == "cpu_runtime_insufficient_space"
+    assert failure.value.stage == "disk_preflight"
+    assert not target.exists()
+
+    bootstrap_cpu_runtime(archive=archive, manifest_path=manifest, target=target)
+    assert (target / "active-composition.json").is_file()
 
 
 def test_remove_installed_cpu_runtime_handles_deep_program_paths(tmp_path: Path) -> None:

@@ -1,0 +1,46 @@
+{
+  "gate_id": "loop-15-gate-a-flat-runtime-and-diagnostics",
+  "recorded_at": "2026-08-14T13:30:00+08:00",
+  "implementation_commit": "ff0b0dc",
+  "application_version": "1.1.1",
+  "schema_revision": "0041_contract_subject_scope",
+  "chengfeng_platform_accessed": false,
+  "product_and_schema_changed": false,
+  "outcomes": {
+    "formal_cpu_layout": "flat_v2",
+    "flat_directories": [
+      "c",
+      "m",
+      "q"
+    ],
+    "legacy_layout_read_compatibility": true,
+    "short_staging_pattern": ".c-<8-hex>",
+    "maximum_legacy_file_path": 259,
+    "maximum_legacy_directory_path": 247,
+    "structured_bootstrap_error_schema": 2
+  },
+  "commands": [
+    {
+      "command": ".venv\\Scripts\\python.exe -m pytest tests\\unit\\release\\test_updater.py tests\\unit\\ocr\\test_runtime_layout.py tests\\unit\\tools\\test_build_formal_release.py -q",
+      "result": "41 passed, 1 skipped"
+    },
+    {
+      "command": ".venv\\Scripts\\python.exe -m ruff check .",
+      "result": "passed"
+    },
+    {
+      "command": ".venv\\Scripts\\python.exe -m mypy src",
+      "result": "299 source files passed"
+    },
+    {
+      "command": "npm.cmd --prefix frontend run check",
+      "result": "24 files and 144 tests passed; lint, typecheck, and build passed"
+    },
+    {
+      "command": ".venv\\Scripts\\python.exe tools\\check.py",
+      "result": "3016 passed, 9 skipped in 712.74 seconds; stderr empty"
+    }
+  ],
+  "skip_reason": "Nine tests require Windows symbolic-link privileges unavailable to this account; the same safety cases remain covered where links are available.",
+  "remaining_gate": "Build the formal package and prove the packaged flat runtime on an isolated ordinary-user installation."
+}
