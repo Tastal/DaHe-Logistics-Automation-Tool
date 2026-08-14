@@ -20,7 +20,7 @@ ORIGIN = "http://127.0.0.1:8877"
 
 
 def _manifest() -> bytes:
-    version = "1.1.2"
+    version = "1.1.3"
     root = "https://github.com/Tastal/DaHe-Logistics-Automation-Tool"
     payload = {
         "schema_version": 1,

@@ -21,6 +21,7 @@ from dahe.adapters.ocr.runtime_inventory import (
     validate_runtime_inventory,
 )
 from dahe.adapters.ocr.runtime_layout import (
+    ActiveOcrComposition,
     activate_flat_composition,
     resolve_active_composition,
     write_flat_composition_manifest,
@@ -153,7 +154,7 @@ def _run_pyinstaller(
     dist_root: Path,
     work_root: Path,
     one_file: bool,
-    windowed: bool = True,
+    windowed: bool = False,
 ) -> Path:
     command = [
         os.fspath(Path(sys.executable)),
@@ -452,6 +453,8 @@ def _write_gpu_addon(
     target: Path,
     *,
     generation_id: str,
+    cpu_composition: ActiveOcrComposition,
+    packaged_cpu_composition: ActiveOcrComposition,
     source_root: Path,
     embed_archive: Path,
     embed_archive_sha256: str | None = None,
@@ -461,7 +464,7 @@ def _write_gpu_addon(
         character not in "0123456789abcdef" for character in generation_id
     ):
         raise RuntimeError("qualified GPU generation is invalid")
-    runtime_target = target / "ocr-gpu"
+    runtime_target = target / "g"
     _stage_ocr_runtime(
         source,
         runtime_target,
@@ -471,20 +474,100 @@ def _write_gpu_addon(
         embed_archive_sha256=embed_archive_sha256,
         run_smoke=run_smoke,
     )
+    try:
+        qualification = json.loads(
+            cpu_composition.qualification_path.read_text(encoding="utf-8")
+        )
+    except (OSError, json.JSONDecodeError) as exc:
+        raise RuntimeError("qualified GPU profile is unavailable") from exc
+    reports = qualification.get("reports") if isinstance(qualification, dict) else None
+    gpu_reports = [
+        report
+        for report in reports or []
+        if isinstance(report, dict)
+        and report.get("runtime_kind") == "gpu"
+        and report.get("status") == "qualified"
+    ]
+    if len(gpu_reports) != 1:
+        raise RuntimeError("qualified GPU profile is unavailable")
+    gpu_report = gpu_reports[0]
+    precision = gpu_report.get("precision")
+    batch_size = gpu_report.get("batch_size")
+    memory_safety_ratio = gpu_report.get("memory_safety_ratio")
+    if (
+        precision not in {"fp32", "fp16"}
+        or type(batch_size) is not int
+        or not 1 <= int(batch_size) <= 64
+        or str(memory_safety_ratio) not in {"0.80", "0.85", "0.90", "0.95"}
+    ):
+        raise RuntimeError("qualified GPU profile is invalid")
+    if packaged_cpu_composition.generation_id != generation_id:
+        raise RuntimeError("packaged CPU generation does not match GPU add-on")
+    cpu_manifest = (
+        packaged_cpu_composition.cpu_runtime / "runtime-installation.json"
+    )
+    model_manifest = (
+        packaged_cpu_composition.models_dir / "model-manifest.json"
+    )
+    staged_runtime_manifest = runtime_target / "runtime-installation.json"
+    worker_source_sha256 = python_source_tree_sha256(
+        source_root / "ocr-runtime" / "src" / "dahe_ocr_worker"
+    )
     manifest = {
-        "schema_version": 1,
+        "schema_version": 2,
+        "layout": "gpu_overlay_v1",
         "application_version": __version__,
         "generation_id": generation_id,
+        "gpu_runtime": "g",
         "runtime_installation_sha256": _sha256(
-            runtime_target / "runtime-installation.json"
+            staged_runtime_manifest
         ),
-        "installation": "optional_manual_addon",
-        "cpu_fallback_required": True,
+        "cpu_runtime_installation_sha256": _sha256(cpu_manifest),
+        "model_manifest_sha256": _sha256(model_manifest),
+        "worker_source_sha256": worker_source_sha256,
+        "precision": precision,
+        "batch_size": batch_size,
+        "memory_safety_ratio": str(memory_safety_ratio),
     }
     (target / "gpu-addon-manifest.json").write_text(
         json.dumps(manifest, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
     )
+    _validate_gpu_runtime_legacy_path_budget(
+        files=sorted(path for path in target.rglob("*") if path.is_file()),
+        package_root=target,
+    )
+
+
+def _validate_gpu_runtime_legacy_path_budget(
+    *,
+    files: list[Path],
+    package_root: Path,
+) -> None:
+    user_name = "U" * MAX_WINDOWS_USER_NAME_LENGTH
+    runtimes_root = Path(
+        f"C:/Users/{user_name}/AppData/Local/Programs/"
+        "DaHeLogisticsAutomationTool/runtimes"
+    )
+    targets = (
+        runtimes_root,
+        runtimes_root / ".g-00000000",
+    )
+    for source in files:
+        relative = source.relative_to(package_root)
+        for target in targets:
+            projected = target / relative
+            if len(os.fspath(projected)) > LEGACY_WINDOWS_FILE_PATH_LIMIT:
+                raise RuntimeError(
+                    "GPU runtime file exceeds the legacy Windows path budget"
+                )
+            for parent in projected.parents:
+                if parent == target.parent:
+                    break
+                if len(os.fspath(parent)) > LEGACY_WINDOWS_DIRECTORY_PATH_LIMIT:
+                    raise RuntimeError(
+                        "GPU runtime directory exceeds the legacy Windows path budget"
+                    )
 
 
 def _zip_tree(source: Path, destination: Path) -> None:
@@ -794,6 +877,10 @@ def main() -> int:
         embed_archive=embed_archive,
         embed_archive_sha256=release_tools.python_embed.asset_sha256,
     )
+    packaged_cpu_composition = resolve_active_composition(
+        cpu_runtime_package,
+        allow_legacy=False,
+    )
     _package_cpu_runtime_archive(
         cpu_runtime_package,
         payload / "runtimes" / "ocr-cpu.zip",
@@ -834,6 +921,8 @@ def main() -> int:
         gpu_runtime,
         gpu_root,
         generation_id=source_composition.generation_id,
+        cpu_composition=source_composition,
+        packaged_cpu_composition=packaged_cpu_composition,
         source_root=source_root,
         embed_archive=embed_archive,
         embed_archive_sha256=release_tools.python_embed.asset_sha256,

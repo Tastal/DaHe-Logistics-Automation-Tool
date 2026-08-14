@@ -1,0 +1,64 @@
+{
+  "company_computer_acceptance": {
+    "application_version": "pending",
+    "cpu_ocr_smoke": "pending",
+    "readiness_http_status": "pending",
+    "required_download": "DaHe-Logistics-Automation-Tool-1.1.1-Setup.exe",
+    "schema_revision": "pending",
+    "shortcut_count": "pending",
+    "status": "pending_user_installation"
+  },
+  "github": {
+    "asset_count": 5,
+    "is_draft": false,
+    "is_latest": true,
+    "main_commit": "1e7da4ce0a81610dc16367ebfba56dc9ca74c7d0",
+    "public_source_gitleaks_findings": 0,
+    "published_at": "2026-08-14T07:32:01Z",
+    "release_url": "https://github.com/Tastal/DaHe-Logistics-Automation-Tool/releases/tag/v1.1.1",
+    "repository": "Tastal/DaHe-Logistics-Automation-Tool",
+    "tag_commit": "1e7da4ce0a81610dc16367ebfba56dc9ca74c7d0",
+    "v1_1_0_asset_count_preserved": 5
+  },
+  "kind": "loop_15_gate_c_release_and_company_handoff_evidence",
+  "local_development_machine": {
+    "installed_application_version": "1.1.0",
+    "installed_build_git_commit": "485e32f6a633e1bfdd314f62012f2d99edc4e920",
+    "installed_schema_revision": "0041_contract_subject_scope",
+    "readiness_http_status": 200,
+    "update_check": {
+      "available_version": "1.1.1",
+      "current_version": "1.1.0",
+      "error_code": null,
+      "install_invoked": false,
+      "state": "available",
+      "update_available": true
+    }
+  },
+  "published_assets": {
+    "DaHe-Logistics-Automation-Tool-1.1.1-Setup.exe": {
+      "downloaded_sha256": "fcbf3526809cb883750e5318ddf9ae586f75b6e2e363def2dc614f866d096438",
+      "size": 420372503
+    },
+    "DaHe-Logistics-Automation-Tool-1.1.1-gpu-addon-win-x64.zip": {
+      "downloaded_sha256": "475f3fe9e469b36609ec01ee840b9ed7ead6b4406ea288a7f0c5fb91ccb17523",
+      "size": 2019019477
+    },
+    "DaHe-Logistics-Automation-Tool-1.1.1-win-x64.zip": {
+      "downloaded_sha256": "07c37c4bfdeb0587befa62a5870fbed2b52de02f6e5b63d755816e974a4a1b54",
+      "size": 57519452
+    },
+    "SHA256SUMS.txt": {
+      "downloaded_sha256": "49763011eb03102fa808dfcdd529e0dd45ae39635cf3c7f6456a3c1723de5edf",
+      "size": 440
+    },
+    "update-manifest.json": {
+      "downloaded_sha256": "e563db4984761cdbc3b931ed1db2cb9eef1604f220fc1cbfe0e6248935542e29",
+      "size": 1222
+    }
+  },
+  "recorded_at": "2026-08-14T15:34:38.7362124+08:00",
+  "result": "pending_company_computer_acceptance",
+  "schema_version": 1,
+  "source_export_manifest": "verification/loops/loop-15/20260814T124312+0800/source-export-manifest.json"
+}

@@ -13,8 +13,13 @@ from contextlib import closing
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
+from dahe.adapters.ocr.runtime_layout import (
+    OcrRuntimeLayoutError,
+    resolve_active_composition,
+)
 from dahe.diagnostics.breadcrumbs import BreadcrumbStore
 from dahe.diagnostics.runtime_log import redact_runtime_text
+from dahe.release.gpu_addon import gpu_addon_status
 from dahe.release.identity import ReleaseIdentity
 
 MAX_BUNDLE_BYTES = 20 * 1024 * 1024
@@ -89,6 +94,51 @@ def _gpu_snapshot() -> dict[str, object]:
     }
 
 
+def _ocr_runtime_snapshot(runtime_root: Path) -> dict[str, object]:
+    try:
+        composition = resolve_active_composition(
+            runtime_root,
+            allow_legacy=False,
+        )
+    except (OcrRuntimeLayoutError, OSError):
+        return {
+            "gpu_addon_state": "cpu_unavailable",
+            "gpu_qualified": False,
+            "primary_runtime": "none",
+            "cpu_fallback_available": False,
+            "gpu_package_version": None,
+            "diagnostic_code": "ocr_cpu_unavailable",
+        }
+    if composition.gpu_runtime is not None:
+        return {
+            "gpu_addon_state": "active_composition",
+            "gpu_qualified": True,
+            "primary_runtime": "gpu",
+            "cpu_fallback_available": True,
+            "gpu_package_version": None,
+            "diagnostic_code": None,
+        }
+    runtimes_root = runtime_root.resolve().parent
+    if (runtimes_root / "active-gpu-addon.json").is_file():
+        status = gpu_addon_status(runtimes_root.parent)
+        return {
+            "gpu_addon_state": status.state,
+            "gpu_qualified": status.gpu_qualified,
+            "primary_runtime": status.primary_runtime,
+            "cpu_fallback_available": status.cpu_fallback_available,
+            "gpu_package_version": status.package_version,
+            "diagnostic_code": status.diagnostic_code,
+        }
+    return {
+        "gpu_addon_state": "not_installed",
+        "gpu_qualified": False,
+        "primary_runtime": "cpu",
+        "cpu_fallback_available": True,
+        "gpu_package_version": None,
+        "diagnostic_code": "gpu_addon_not_installed",
+    }
+
+
 def environment_snapshot(
     *,
     data_root: Path,
@@ -131,6 +181,7 @@ def environment_snapshot(
         "runtime": {
             "edge_worker": _runtime_version(browser_runtime_root),
             "ocr_cpu": _runtime_version(ocr_runtime_root),
+            **_ocr_runtime_snapshot(ocr_runtime_root),
         },
         "resources": {
             "disk_free_bytes": disk.free,

@@ -5,6 +5,7 @@ import io
 import json
 import shutil
 import sqlite3
+import sys
 import zipfile
 from contextlib import closing
 from pathlib import Path
@@ -17,6 +18,7 @@ from dahe.adapters.ocr.runtime_layout import (
     write_flat_composition_manifest,
 )
 from dahe.adapters.sqlite.runtime import SqliteRuntime
+from dahe.release.gpu_addon import GpuAddonInstallResult, GpuAddonStatus
 from dahe.release.launcher import (
     VersionPointer,
     compute_resource_sha256,
@@ -30,13 +32,14 @@ from dahe.release.updater import (
     UpdateInstaller,
     UpdaterError,
     bootstrap_cpu_runtime,
+    main,
     remove_installed_cpu_runtime,
     safe_extract_application_zip,
 )
 
 PROJECT_ROOT = Path(__file__).parents[3]
 REVISION = "0041_contract_subject_scope"
-NEW_VERSION = "1.1.2"
+NEW_VERSION = "1.1.3"
 
 
 class _DownloadResponse(io.BytesIO):
@@ -635,3 +638,82 @@ def test_remove_installed_cpu_runtime_handles_deep_program_paths(tmp_path: Path)
 
     assert not runtime.exists()
     assert install_root.exists()
+
+
+def test_gpu_status_cli_returns_authoritative_json(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    tmp_path: Path,
+) -> None:
+    monkeypatch.setattr(
+        "dahe.release.updater.gpu_addon_status",
+        lambda _root: GpuAddonStatus(
+            state="active",
+            gpu_qualified=True,
+            primary_runtime="gpu",
+            cpu_fallback_available=True,
+            package_version="1.1.2",
+            diagnostic_code=None,
+        ),
+    )
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        ["DaHeUpdater", "gpu-status", "--install-root", str(tmp_path), "--json"],
+    )
+
+    with pytest.raises(SystemExit) as result:
+        main()
+
+    assert result.value.code == 0
+    assert json.loads(capsys.readouterr().out)["primary_runtime"] == "gpu"
+
+
+def test_gpu_install_cli_calls_addon_installer_and_returns_json(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    tmp_path: Path,
+) -> None:
+    calls: list[tuple[Path, Path, Path]] = []
+
+    def install_gpu(
+        *,
+        manifest_path: Path,
+        package_path: Path,
+        install_root: Path,
+    ) -> GpuAddonInstallResult:
+        calls.append((manifest_path, package_path, install_root))
+        return GpuAddonInstallResult(
+            state="active",
+            package_version="1.1.2",
+            primary_runtime="gpu",
+            gpu_qualified=True,
+            cpu_fallback_available=True,
+            diagnostic_code=None,
+        )
+
+    manifest = tmp_path / "update-manifest.json"
+    package = tmp_path / "gpu.zip"
+    monkeypatch.setattr("dahe.release.updater.install_gpu_addon", install_gpu)
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "DaHeUpdater",
+            "gpu-install",
+            "--manifest",
+            str(manifest),
+            "--package",
+            str(package),
+            "--install-root",
+            str(tmp_path),
+            "--json",
+        ],
+    )
+
+    with pytest.raises(SystemExit) as result:
+        main()
+
+    assert result.value.code == 0
+    assert calls == [(manifest, package, tmp_path)]
+    assert json.loads(capsys.readouterr().out)["gpu_qualified"] is True

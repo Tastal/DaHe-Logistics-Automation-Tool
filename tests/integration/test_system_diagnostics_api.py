@@ -69,6 +69,23 @@ def test_local_diagnostic_package_and_environment_exclude_business_data(
     assert environment.json()["database"]["schema_revision"] == (
         "0041_contract_subject_scope"
     )
+    runtime = environment.json()["runtime"]
+    assert set(runtime) == {
+        "edge_worker",
+        "ocr_cpu",
+        "gpu_addon_state",
+        "gpu_qualified",
+        "primary_runtime",
+        "cpu_fallback_available",
+        "gpu_package_version",
+        "diagnostic_code",
+    }
+    assert runtime["gpu_addon_state"] == "cpu_unavailable"
+    assert runtime["gpu_qualified"] is False
+    assert runtime["primary_runtime"] == "none"
+    assert runtime["cpu_fallback_available"] is False
+    assert runtime["gpu_package_version"] is None
+    assert runtime["diagnostic_code"] == "ocr_cpu_unavailable"
     assert exported.status_code == 200
     assert len(exported.content) <= 20 * 1024 * 1024
     with zipfile.ZipFile(io.BytesIO(exported.content)) as bundle:

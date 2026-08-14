@@ -26,6 +26,11 @@ from dahe.release.database_upgrade import (
     DatabaseUpgradeResult,
     ReleaseDatabaseUpgrade,
 )
+from dahe.release.gpu_addon import (
+    GpuAddonError,
+    gpu_addon_status,
+    install_gpu_addon,
+)
 from dahe.release.identity import load_release_identity
 from dahe.release.launcher import (
     VersionPointer,
@@ -788,6 +793,14 @@ def main() -> None:
     bootstrap.add_argument("--manifest", type=Path, required=True)
     bootstrap.add_argument("--target", type=Path, required=True)
     operations.add_parser("remove-cpu-runtime")
+    gpu_install = operations.add_parser("gpu-install")
+    gpu_install.add_argument("--manifest", type=Path, required=True)
+    gpu_install.add_argument("--package", type=Path, required=True)
+    gpu_install.add_argument("--install-root", type=Path, required=True)
+    gpu_install.add_argument("--json", action="store_true", dest="as_json")
+    gpu_status = operations.add_parser("gpu-status")
+    gpu_status.add_argument("--install-root", type=Path, required=True)
+    gpu_status.add_argument("--json", action="store_true", dest="as_json")
     arguments = parser.parse_args()
     if arguments.operation == "bootstrap-cpu-runtime":
         error_path = arguments.manifest.resolve().parent / "cpu-runtime-bootstrap-error.json"
@@ -836,6 +849,46 @@ def main() -> None:
             code = 0
         except UpdaterError as exc:
             print(f"DaHe CPU runtime removal failed: {exc}", file=sys.stderr)
+            code = 2
+        raise SystemExit(code)
+    if arguments.operation == "gpu-status":
+        status = gpu_addon_status(arguments.install_root)
+        if arguments.as_json:
+            print(json.dumps(asdict(status), sort_keys=True))
+        else:
+            print(status.state)
+        raise SystemExit(0 if status.state == "active" else 3)
+    if arguments.operation == "gpu-install":
+        try:
+            gpu_result = install_gpu_addon(
+                manifest_path=arguments.manifest,
+                package_path=arguments.package,
+                install_root=arguments.install_root,
+            )
+            if arguments.as_json:
+                print(json.dumps(asdict(gpu_result), sort_keys=True))
+            else:
+                print(gpu_result.state)
+            code = 0
+        except GpuAddonError as exc:
+            payload = {
+                "state": "failed",
+                "gpu_qualified": False,
+                "primary_runtime": "cpu",
+                "cpu_fallback_available": True,
+                "package_version": None,
+                "diagnostic_code": exc.error_code,
+                "stage": exc.stage,
+                "winerror": exc.winerror,
+            }
+            if arguments.as_json:
+                print(json.dumps(payload, sort_keys=True))
+            else:
+                print(
+                    f"DaHe GPU add-on setup failed "
+                    f"[{exc.error_code}/{exc.stage}]: {exc}",
+                    file=sys.stderr,
+                )
             code = 2
         raise SystemExit(code)
     install_root = (

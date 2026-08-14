@@ -17,6 +17,13 @@ composition layouts remain readable for application updates. A release build
 must pass the traditional Windows path budget without relying on the machine's
 global long-path policy.
 
+Formal GPU packages use the independently installed overlay in ADR-072. The
+versioned updater, rather than manual extraction, binds that overlay to the
+installed CPU generation and current application release, performs a
+machine-local qualification, and publishes its pointer only after success.
+Application rollback can ignore the overlay, and GPU failure never rewrites the
+CPU composition.
+
 `DaHeUpdater.exe` is separate from the application. It checks only the fixed `Tastal/DaHe-Logistics-Automation-Tool` release manifest over HTTPS, follows only approved GitHub asset redirects and verifies version direction, names, sizes and SHA-256 values. Application ZIP downloads retain a manifest-bound partial file, resume only after a valid `206` and exact `Content-Range`, restart safely when the server returns `200`, and use bounded exponential retry. A changed manifest or failed hash removes the partial file. A local manifest and application ZIP may be imported by the operator, pass the same version, downgrade, Schema, name, size and hash rules, and remain installable after an application restart. Public proxy sites and a second online release source are not accepted. Each application ZIP carries its versioned updater; the application prefers that copy and retains the stable root updater only for the first upgrade from an older release. A check runs at startup and every six hours, but installation is explicit and blocked while any task is active, paused or recoverable. Failures leave the current version usable.
 
 Before pointer switch, the updater extracts to a new version directory, validates the release identity, copies the SQLite database, runs the declared Alembic migration and integrity preflight on the copy, then takes an SQLite online backup and performs the formal migration. The new application must return the exact readiness identity. Failure before the user interface opens restores the database backup and old pointer. After user activity begins, database rollback is never automatic.

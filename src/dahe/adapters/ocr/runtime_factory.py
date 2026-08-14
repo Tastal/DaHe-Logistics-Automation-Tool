@@ -67,6 +67,10 @@ from dahe.jobs.ocr_execution import (
     OcrRuntimeIdentity,
     RuntimeKindName,
 )
+from dahe.release.gpu_addon import (
+    GpuAddonError,
+    resolve_gpu_overlay_composition,
+)
 
 _WORKER_ENVIRONMENT = {
     "PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK": "True",
@@ -89,6 +93,21 @@ def _runtime_output_sink(
         )
 
     return sink
+
+
+def _resolve_composition_with_optional_gpu_overlay(
+    runtime_root: Path,
+) -> ActiveOcrComposition:
+    composition = resolve_active_composition(
+        runtime_root,
+        allow_legacy=False,
+    )
+    if composition.gpu_runtime is not None:
+        return composition
+    try:
+        return resolve_gpu_overlay_composition(runtime_root)
+    except (GpuAddonError, OcrRuntimeLayoutError, OSError):
+        return composition
 
 
 class OcrRuntimeCompositionError(RuntimeError):
@@ -522,9 +541,8 @@ def build_ocr_execution_backend(
             require_active_composition=runtime_root is None,
         ).resolve()
         data_root = resolve_data_root(config).resolve(strict=True)
-        composition = resolve_active_composition(
+        composition = _resolve_composition_with_optional_gpu_overlay(
             selected_runtime_root,
-            allow_legacy=False,
         )
     except (
         ConfigurationPathError,
@@ -649,9 +667,8 @@ def build_ocr_execution_backend(
             )
             gateways[kind.value] = started_gateway
         try:
-            current_composition = resolve_active_composition(
+            current_composition = _resolve_composition_with_optional_gpu_overlay(
                 selected_runtime_root,
-                allow_legacy=False,
             )
             qualification_is_current = (
                 _sha256_file(selected_qualification) == selected_qualification_sha256

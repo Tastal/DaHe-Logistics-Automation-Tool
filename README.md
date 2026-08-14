@@ -27,9 +27,10 @@ operator can select `山西贵恩博` or `上海晋亿晟` without navigating th
 the selected subject is verified only when a settlement or daily read starts,
 and its tasks, reviews, history, reuse index and reports remain isolated. Schema
 `0041_contract_subject_scope` assigns all pre-existing records to Shanxi. The
-1.1.1 installer keeps GitHub as the only online source, retains validated resumable
+1.1.2 installer keeps GitHub as the only online source, retains validated resumable
 application-ZIP downloads and supports an equally validated local package
-import for unstable networks.
+import for unstable networks. Its formal GPU add-on is installed and qualified
+by the versioned updater; copying the GPU ZIP by hand does not activate it.
 
 The committed development checkout is the authoritative latest implementation.
 Run and verify it only through `.venv\Scripts\python.exe`. An installed build is
@@ -270,7 +271,7 @@ frontend build pass. Keep the local archive under `dist/releases/<version>`;
 the binaries are ignored by Git while `dist/README.md` documents the layout:
 
 ```powershell
-$releaseOutput = Join-Path $PWD "dist\releases\1.1.1"
+$releaseOutput = Join-Path $PWD "dist\releases\1.1.2"
 .\.venv\Scripts\python.exe tools\build_formal_release.py `
   --output-root $releaseOutput `
   --browser-runtime-root "$env:LOCALAPPDATA\DaHeLogistics\runtimes\browser" `
@@ -297,20 +298,44 @@ The installer uses normal-user scope and retains product data on uninstall.
 See ADR-041 and ADR-067.
 
 For an ordinary first installation, download and run only the Setup executable.
-The application ZIP is the payload used by the in-product updater, and the GPU
-add-on ZIP is optional acceleration after the CPU installation is healthy.
+The application ZIP is the payload used by the in-product updater. On a machine
+that needs GPU OCR, also download the matching GPU add-on ZIP and the release
+manifest, then let the installed versioned updater verify, qualify and activate
+the add-on; do not extract it manually:
+
+```powershell
+& "$env:LOCALAPPDATA\Programs\DaHeLogisticsAutomationTool\versions\1.1.2\DaHeUpdater.exe" `
+  gpu-install `
+  --manifest .\update-manifest.json `
+  --package .\DaHe-Logistics-Automation-Tool-1.1.2-gpu-addon-win-x64.zip `
+  --install-root "$env:LOCALAPPDATA\Programs\DaHeLogisticsAutomationTool" `
+  --json
+
+& "$env:LOCALAPPDATA\Programs\DaHeLogisticsAutomationTool\versions\1.1.2\DaHeUpdater.exe" `
+  gpu-status `
+  --install-root "$env:LOCALAPPDATA\Programs\DaHeLogisticsAutomationTool" `
+  --json
+```
+
+Activation succeeds only after NVIDIA discovery, GPU Worker hello/preflight,
+two synthetic OCR fixtures and CPU/GPU critical-field parity pass on that
+computer. Failure leaves the verified CPU composition unchanged.
 
 The application ZIP carries the updater for that version. The installed
 application prefers this versioned updater; the stable root updater remains as
 the compatibility entry for the first upgrade from an older release. The
-1.1.1 manifest accepts Schema `0039_network_batch_default` and migrates to
+1.1.2 manifest accepts Schema `0039_network_batch_default` and migrates to
 `0041_contract_subject_scope`.
 
 The formal CPU OCR payload uses the flat composition layout documented in
 ADR-071. The build projects every archive member below a 20-character Windows
 user name and rejects files over 259 characters or directories over 247
 characters before NSIS is allowed to run. Development and existing 1.1.0 OCR
-compositions remain readable; new installers write only the flat layout.
+compositions remain readable; new installers write only the flat layout. The
+formal GPU package uses the short `g` overlay layout, stores machine-bound
+qualification under `gq`, and publishes `active-gpu-addon.json` only after all
+checks pass. Application startup rechecks the GPU UUID, driver and memory and
+falls back to CPU when that qualification is no longer current.
 
 The three source runtime arguments must point to already qualified browser,
 CPU OCR and GPU OCR environments. The builder does not publish their virtual

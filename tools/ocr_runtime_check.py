@@ -20,6 +20,7 @@ from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
+from dahe import __version__
 from dahe.adapters.ocr.coordinator import OcrImageOutput
 from dahe.adapters.ocr.devices import NvidiaDevice, discover_nvidia_devices
 from dahe.adapters.ocr.diff_report import compare_runtime_outputs
@@ -55,11 +56,7 @@ from dahe.domain.audit.ticket_roles import TicketRole
 
 ROOT = Path(__file__).resolve().parents[1]
 EXPECTED_MAIN_PYTHON = (ROOT / ".venv" / "Scripts" / "python.exe").resolve()
-APPLICATION_VERSION = str(
-    json.loads((ROOT / "version-manifest.json").read_text(encoding="utf-8"))[
-        "application_version"
-    ]
-)
+APPLICATION_VERSION = __version__
 QUALIFICATION_IMAGE_IDS = ("loading", "unloading")
 
 

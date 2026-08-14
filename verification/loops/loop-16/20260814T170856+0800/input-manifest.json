@@ -1,0 +1,28 @@
+{
+  "allowed_external_resources": [
+    "GitHub repository Tastal/DaHe-Logistics-Automation-Tool",
+    "GitHub v1.1.2 release assets",
+    "Tailscale path to DESKTOP-0D9G483",
+    "company computer local NVIDIA driver and GPU"
+  ],
+  "application_version": "1.1.2",
+  "assumptions": [
+    "Schema remains 0041_contract_subject_scope",
+    "GPU acceptance requires an active qualified GPU worker and cannot use CPU fallback as evidence",
+    "no NVIDIA driver update is authorized",
+    "remote deployment stops if a DaHe business or OCR task is active"
+  ],
+  "chengfeng_platform_access": false,
+  "frozen_input": "DaHe v1.1.2 GPU installation and company-computer remote deployment plan",
+  "loop_id": "loop-16",
+  "product_or_schema_change": false,
+  "remote_host": "DESKTOP-0D9G483",
+  "schema_revision": "0041_contract_subject_scope",
+  "source_baseline": "cea550b",
+  "write_boundaries": [
+    "project source and release evidence",
+    "GitHub v1.1.2 public source and release",
+    "DaHe v1.1.2 program files on the company computer after read-only preflight",
+    "temporary SSH deployment key and exact deployment staging directory"
+  ]
+}

@@ -8,6 +8,7 @@ from pathlib import Path
 
 import pytest
 
+from dahe.adapters.ocr.runtime_layout import ActiveOcrComposition
 from tools.build_formal_release import (
     GITHUB_RELEASE_ASSET_LIMIT_BYTES,
     MINIMUM_SCHEMA_REVISION,
@@ -23,6 +24,8 @@ from tools.build_formal_release import (
     _source_application_version,
     _stage_installer_payload,
     _validate_cpu_runtime_legacy_path_budget,
+    _validate_gpu_runtime_legacy_path_budget,
+    _write_gpu_addon,
 )
 
 
@@ -361,6 +364,130 @@ def test_legacy_deep_cpu_runtime_fails_default_windows_path_budget(
         )
 
 
+def test_gpu_addon_uses_short_overlay_layout_and_binds_cpu_evidence(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    source_root = tmp_path / "source"
+    worker = source_root / "ocr-runtime" / "src" / "dahe_ocr_worker" / "worker.py"
+    worker.parent.mkdir(parents=True)
+    worker.write_text("VERSION = 1\n", encoding="utf-8")
+    cpu_root = tmp_path / "cpu-root"
+    cpu = cpu_root / "c"
+    models = cpu_root / "m" / "official_models"
+    qualification = cpu_root / "q" / "qualification.json"
+    cpu.mkdir(parents=True)
+    models.mkdir(parents=True)
+    qualification.parent.mkdir(parents=True)
+    (cpu / "runtime-installation.json").write_text(
+        json.dumps({"runtime_kind": "cpu"}), encoding="utf-8"
+    )
+    (models / "model-manifest.json").write_text("{}", encoding="utf-8")
+    qualification.write_text(
+        json.dumps(
+            {
+                "schema_version": 2,
+                "reports": [
+                    {
+                        "runtime_kind": "gpu",
+                        "status": "qualified",
+                        "precision": "fp16",
+                        "batch_size": 6,
+                        "memory_safety_ratio": "0.90",
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    composition = ActiveOcrComposition(
+        generation_id="a" * 32,
+        generation_dir=cpu_root,
+        cpu_runtime=cpu,
+        gpu_runtime=tmp_path / "source-gpu",
+        models_dir=models,
+        qualification_path=qualification,
+    )
+    packaged_cpu_root = tmp_path / "packaged-cpu"
+    packaged_cpu = packaged_cpu_root / "c"
+    packaged_models = packaged_cpu_root / "m" / "official_models"
+    packaged_cpu.mkdir(parents=True)
+    packaged_models.mkdir(parents=True)
+    (packaged_cpu / "runtime-installation.json").write_text(
+        json.dumps({"runtime_kind": "cpu", "layout": "portable_embed"}),
+        encoding="utf-8",
+    )
+    (packaged_models / "model-manifest.json").write_text(
+        (models / "model-manifest.json").read_text(encoding="utf-8"),
+        encoding="utf-8",
+    )
+    packaged_composition = ActiveOcrComposition(
+        generation_id="a" * 32,
+        generation_dir=packaged_cpu_root,
+        cpu_runtime=packaged_cpu,
+        gpu_runtime=None,
+        models_dir=packaged_models,
+        qualification_path=packaged_cpu_root / "q" / "qualification.json",
+    )
+
+    def stage(
+        _source: Path,
+        target: Path,
+        **_kwargs: object,
+    ) -> None:
+        target.mkdir(parents=True)
+        (target / "python.exe").write_bytes(b"portable")
+        (target / "runtime-installation.json").write_text(
+            json.dumps({"runtime_kind": "gpu"}), encoding="utf-8"
+        )
+
+    monkeypatch.setattr("tools.build_formal_release._stage_ocr_runtime", stage)
+    target = tmp_path / "addon"
+    target.mkdir()
+
+    _write_gpu_addon(
+        tmp_path / "source-gpu",
+        target,
+        generation_id="a" * 32,
+        cpu_composition=composition,
+        packaged_cpu_composition=packaged_composition,
+        source_root=source_root,
+        embed_archive=tmp_path / "unused.zip",
+        run_smoke=False,
+    )
+
+    manifest = json.loads(
+        (target / "gpu-addon-manifest.json").read_text(encoding="utf-8")
+    )
+    assert {path.name for path in target.iterdir()} == {
+        "g",
+        "gpu-addon-manifest.json",
+    }
+    assert manifest["schema_version"] == 2
+    assert manifest["layout"] == "gpu_overlay_v1"
+    assert manifest["gpu_runtime"] == "g"
+    assert manifest["generation_id"] == "a" * 32
+    assert manifest["cpu_runtime_installation_sha256"] == hashlib.sha256(
+        (packaged_cpu / "runtime-installation.json").read_bytes()
+    ).hexdigest()
+
+
+def test_deep_gpu_overlay_fails_default_windows_path_budget(tmp_path: Path) -> None:
+    package = tmp_path / "gpu-package"
+    deep = package / "g"
+    while len(str(deep / "runtime.py")) <= 300:
+        deep /= "long-package-directory"
+    deep.mkdir(parents=True)
+    file = deep / "runtime.py"
+    file.write_bytes(b"runtime")
+
+    with pytest.raises(RuntimeError, match="path budget"):
+        _validate_gpu_runtime_legacy_path_budget(
+            files=[file],
+            package_root=package,
+        )
+
+
 def test_main_application_uses_hidden_launcher_compatible_console_onedir(
     monkeypatch,
     tmp_path: Path,
@@ -399,7 +526,7 @@ def test_main_application_uses_hidden_launcher_compatible_console_onedir(
     )
 
 
-def test_small_stable_updater_is_separate_onefile(
+def test_small_stable_updater_is_separate_console_onefile(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
@@ -416,7 +543,8 @@ def test_small_stable_updater_is_separate_onefile(
         assert "--onefile" in command
         assert "--onedir" not in command
         assert "--noupx" in command
-        assert "--windowed" in command
+        assert "--console" in command
+        assert "--windowed" not in command
         return subprocess.CompletedProcess(command, 0)
 
     monkeypatch.setattr(subprocess, "run", fake_run)

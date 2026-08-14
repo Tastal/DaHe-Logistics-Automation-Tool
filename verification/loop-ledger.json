@@ -1,44 +1,45 @@
 {
   "acceptance": null,
-  "current_loop": "loop-15",
+  "current_loop": "loop-16",
   "gate_results": [
     {
-      "evidence": "verification/loops/loop-15/20260814T124312+0800/gate-a-flat-runtime-and-diagnostics.json",
-      "id": "loop-15-gate-a-flat-runtime-and-diagnostics",
+      "evidence": "verification/loops/loop-16/20260814T170856+0800/gate-a-gpu-overlay-and-diagnostics.json",
+      "id": "loop-16-gate-a-gpu-overlay-and-diagnostics",
       "status": "passed"
     },
     {
-      "evidence": null,
-      "id": "loop-15-gate-b-formal-build-and-install",
+      "evidence": "verification/loops/loop-16/20260814T170856+0800/gate-b-formal-build-and-release.json",
+      "id": "loop-16-gate-b-formal-build-and-release",
       "status": "pending"
     },
     {
-      "evidence": null,
-      "id": "loop-15-gate-c-github-release-and-company-handoff",
+      "evidence": "verification/loops/loop-16/20260814T170856+0800/gate-c-company-gpu-deployment.json",
+      "id": "loop-16-gate-c-company-gpu-deployment",
       "status": "pending"
     }
   ],
   "input_manifest": {
-    "path": "verification/loops/loop-15/20260814T124312+0800/input-manifest.json",
-    "sha256": "265bca3c12813ce51d0d62d979229911be4e61bd1c803de95345499230547bd8"
+    "path": "verification/loops/loop-16/20260814T170856+0800/input-manifest.json",
+    "sha256": "6968cc468aa63d7acc0b6703c06ad9b9ad58e61636aad992ec8de6192a483125"
   },
   "last_accepted_git_commit": "38bfa0094925bfaaf467765f93f741cd13a0d610",
   "next_inputs": [
-    "Keep every Chengfeng business write disabled.",
-    "Repair the CPU OCR installer without changing Windows machine-wide policy.",
-    "Publish v1.1.1 only after the flat runtime passes the legacy path budget and isolated installation.",
-    "Keep the sanitized public release history separate from the internal source history."
+    "Complete the v1.1.2 formal build and public release from one clean source identity.",
+    "Bootstrap a temporary SSH key without placing the password in commands or files.",
+    "Stop remote deployment if any DaHe business or OCR task is active.",
+    "Accept the deployment only after GPU qualification, two cold starts, readiness and data-count reconciliation pass."
   ],
   "operational_acceptance": null,
   "project_id": "DaHeLogistics",
-  "revision": 55,
-  "run_id": "20260814T124312+0800",
+  "revision": 58,
+  "run_id": "20260814T170856+0800",
   "schema_version": 4,
   "status": "in_progress",
   "unresolved_risks": [
-    "The v1.1.0 installer failed on the company computer during CPU runtime bootstrap and must not be reused there.",
+    "Company-computer GPU model and driver compatibility remain unverified until remote read-only preflight.",
+    "v1.1.2 formal build and GitHub release remain pending.",
     "The unsigned installer may still show an unknown-publisher SmartScreen warning.",
-    "Company-computer acceptance remains pending until the published v1.1.1 Setup is installed there."
+    "Nine symlink-only automated checks remain skipped because the current Windows account cannot create symbolic links."
   ],
   "waiver": null
 }

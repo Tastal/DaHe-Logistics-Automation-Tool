@@ -2,7 +2,7 @@ import { expect, test, type Page, type Route } from "@playwright/test";
 
 const e2eBaseUrl =
   process.env.DAHE_E2E_BASE_URL ?? "http://127.0.0.1:8899";
-const clientVersion = "1.1.1";
+const clientVersion = "1.1.2";
 const firstItemId = "e".repeat(64);
 const secondItemId = "f".repeat(64);
 const loadingImageSha256 = "a".repeat(64);

@@ -226,9 +226,9 @@ deduplication must never remove a current-source waybill from the workspace.
 - 日志、数据库、协议和诊断导出不泄露凭据或平台私有内容。
 - 备份能在临时目录恢复。
 
-正式安装使用 PyInstaller one-folder 业务程序和 NSIS 当前用户安装器，不使用 UPX、加壳、混淆或管理员权限。稳定入口为安装根目录下的 `DaHeLauncher.exe`，业务程序位于 `versions\<version>`，桌面只创建“大禾物流自动化平台”一个快捷方式。CPU OCR 必须可用；GPU 附加包是可选加速能力，不匹配时不影响启动。
+正式安装使用 PyInstaller one-folder 业务程序和 NSIS 当前用户安装器，不使用 UPX、加壳、混淆或管理员权限。稳定入口为安装根目录下的 `DaHeLauncher.exe`，业务程序位于 `versions\<version>`，桌面只创建“大禾物流自动化平台”一个快捷方式。CPU OCR 必须始终可用；正式 GPU 附加包通过同版本更新器安装到独立覆盖层，只有现场资格、模型、Worker、CPU generation 和正式包身份全部一致才允许作为主运行时。GPU 安装或资格失效不得破坏 CPU composition，旧版本回滚必须能够忽略 GPU 覆盖层。
 
-浏览器、CPU OCR 和 GPU OCR 正式运行时必须分别使用固定版本和 SHA-256 的 Python 官方 64 位嵌入式发行包，根目录 `python.exe` 是唯一正式解释器。构建时只从已验证的隔离环境复制锁定依赖并重新放入嵌入式布局，不发布虚拟环境的 `Scripts`、`pyvenv.cfg`、`direct_url.json`、缓存或字节码。浏览器正式运行时只带 Worker 及其锁定依赖，使用系统已安装的 Microsoft Edge；构建期 smoke store、浏览器 Profile、Cookie、历史记录和登录资料不得进入发布资产。正式构建发现开发机绝对路径、源码指纹不一致、依赖清单不一致或运行时无法独立启动时必须失败；开发环境仍可使用各自的虚拟环境。CPU/GPU 保持物理隔离，GPU 不可用或不匹配时继续使用已验证的 CPU 运行时。
+浏览器、CPU OCR 和 GPU OCR 正式运行时必须分别使用固定版本和 SHA-256 的 Python 官方 64 位嵌入式发行包，根目录 `python.exe` 是唯一正式解释器。构建时只从已验证的隔离环境复制锁定依赖并重新放入嵌入式布局，不发布虚拟环境的 `Scripts`、`pyvenv.cfg`、`direct_url.json`、缓存或字节码。浏览器正式运行时只带 Worker 及其锁定依赖，使用系统已安装的 Microsoft Edge；构建期 smoke store、浏览器 Profile、Cookie、历史记录和登录资料不得进入发布资产。正式构建发现开发机绝对路径、源码指纹不一致、依赖清单不一致或运行时无法独立启动时必须失败；开发环境仍可使用各自的虚拟环境。CPU/GPU 保持物理隔离。正式 CPU 使用 `runtimes\ocr-cpu` 的扁平 composition；正式 GPU 使用 `runtimes\g`、本机资格 `runtimes\gq\qualification.json` 和原子指针 `runtimes\active-gpu-addon.json`。状态查询和每次运行时选型必须重新核对显卡 UUID、驱动、显存和资格证据；不匹配时拒绝 GPU 并继续使用已验证 CPU。
 
 正式 CPU OCR 包必须使用 ADR-071 的扁平 composition 布局，同时只读兼容既有 generation 布局。构建必须按 20 字符 Windows 用户名投影普通用户安装路径，并在文件超过 259 字符或目录超过 247 字符时失败；安装器必须使用短暂存目录、先检查磁盘与路径预算、完整校验后原子启用。产品不得为了安装成功而修改系统长路径策略、请求管理员权限或隐藏底层错误阶段。
 
@@ -236,7 +236,7 @@ deduplication must never remove a current-source waybill from the workspace.
 
 每个 Release 清单必须声明最低 Schema、目标 Schema、Alembic revision 和最低更新器版本。更新前在数据库副本上完整迁移和预检；通过后才停止本项目进程、用 SQLite online backup 备份正式库并迁移。新版 readiness 未通过且业务界面尚未开放时，自动恢复备份并切回旧版；新版产生用户操作后不得自动覆盖数据回滚。每个 Release 至少验证空数据库、上一正式 Schema 和重复迁移。
 
-正式诊断完全本地化：Breadcrumbs 只记录页面、动作类型、任务 ID、结果、时间和错误编号；Environment Snapshot 记录软件、Schema、SQLite 完整性、Windows、Edge/OCR 运行时、磁盘和 CPU/GPU 可用性。诊断 ZIP 最多最近七天、20 MB，仅保留新记录，不得包含数据库、图片、浏览器资料、凭据、平台原始数据或 OCR 原文，不自动上传。
+正式诊断完全本地化：Breadcrumbs 只记录页面、动作类型、任务 ID、结果、时间和错误编号；Environment Snapshot 记录软件、Schema、SQLite 完整性、Windows、Edge/OCR 运行时、磁盘和 CPU/GPU 可用性，并权威报告 GPU 附加包状态、现场资格、当前主运行时、CPU 回退可用性、GPU 包版本和诊断编号。诊断 ZIP 最多最近七天、20 MB，仅保留新记录，不得包含数据库、图片、浏览器资料、凭据、平台原始数据或 OCR 原文，不自动上传。
 
 发布只停止当前 DaHe 自身服务和登记的 Worker，不触碰旧程序、未知 Python、Edge、Chrome 或其他本地服务。只有 readiness 的 HTTP 200 同时返回指针声明的版本、提交、资源哈希和 Schema revision，才允许开放操作台。
 

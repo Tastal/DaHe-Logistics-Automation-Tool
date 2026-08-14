@@ -1,0 +1,41 @@
+{
+  "application_version": "1.1.2",
+  "chengfeng_platform_accessed": false,
+  "commands": [
+    {
+      "command": ".venv\\Scripts\\python.exe -m pytest tests/unit/release/test_gpu_addon.py tests/unit/release/test_updater.py tests/unit/tools/test_build_formal_release.py tests/unit/ocr/test_runtime_factory.py tests/integration/test_system_diagnostics_api.py -q",
+      "result": "57 passed"
+    },
+    {
+      "command": ".venv\\Scripts\\python.exe -m pytest tests/integration/test_system_update_api.py tests/unit/release/test_gpu_addon.py tests/unit/release/test_updater.py -q",
+      "result": "31 passed"
+    },
+    {
+      "command": ".venv\\Scripts\\python.exe tools/check.py",
+      "result": "ruff passed; mypy 363 source files passed; frontend 24 files and 144 tests passed with production build; pytest 3027 passed and 9 skipped in 908.05 seconds"
+    }
+  ],
+  "gate_id": "loop-16-gate-a-gpu-overlay-and-diagnostics",
+  "implementation_commit": "fdcf84e4b215320d32534f9f386f7e46751180a8",
+  "outcomes": {
+    "application_schema_revision": "0041_contract_subject_scope",
+    "cpu_composition_unchanged_on_gpu_failure": true,
+    "gpu_activation_pointer": "runtimes/active-gpu-addon.json",
+    "gpu_overlay_layout": "runtimes/g",
+    "gpu_qualification_layout": "runtimes/gq/qualification.json",
+    "machine_qualification_required": true,
+    "runtime_selection_rechecks_device_driver_and_memory": true,
+    "updater_commands": [
+      "gpu-install",
+      "gpu-status"
+    ]
+  },
+  "recorded_at": "2026-08-14T17:48:00+08:00",
+  "remaining_gates": [
+    "Build and verify the five formal v1.1.2 assets from a clean public source identity.",
+    "Publish GitHub v1.1.2 and verify downloaded asset hashes.",
+    "Qualify and activate GPU on DESKTOP-0D9G483, then complete two cold-start checks."
+  ],
+  "schema_revision": "0041_contract_subject_scope",
+  "skip_reason": "Nine tests require Windows symbolic-link privileges unavailable to this account; the existing safety cases remain covered where links are available."
+}
