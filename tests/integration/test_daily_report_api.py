@@ -46,7 +46,15 @@ def _client(
             receive_place="榆林",
             query_window=candidate_query_window(date(2026, 8, 1), now=captured),
             source_contract_sha256=HASH,
-            candidates=(DailyCandidate("api-platform-1", "API-001"),),
+            candidates=(
+                DailyCandidate(
+                    "api-platform-1",
+                    "API-001",
+                    platform_loading_time=datetime(
+                        2026, 8, 1, 15, 0, tzinfo=SHANGHAI
+                    ),
+                ),
+            ),
             captured_at=captured,
         )
     )
@@ -120,6 +128,9 @@ def test_report_api_saves_settings_and_creates_idempotently(tmp_path: Path) -> N
         initial = client.get("/api/v1/daily/report-settings")
         assert initial.status_code == 200
         assert initial.json()["confirmed"] is True
+        assert initial.json()["capture_start_time"] == "14:00:00"
+        assert initial.json()["capture_end_mode"] == "system_current_time"
+        assert initial.json()["capture_range_covers_report_window"] is True
 
         payload = {
             "shipping_mine": "金鸡滩煤矿",
@@ -128,6 +139,10 @@ def test_report_api_saves_settings_and_creates_idempotently(tmp_path: Path) -> N
             "query_place_keyword": "榆林",
             "output_directory": str((tmp_path / "reports").resolve()),
             "confirmed": True,
+            "capture_start_time": "13:45:00",
+            "capture_end_mode": "fixed_time",
+            "capture_fixed_end_day_offset": 1,
+            "capture_fixed_end_time": "14:15:00",
             "expected_record_version": 0,
         }
         saved = client.put(
@@ -143,6 +158,9 @@ def test_report_api_saves_settings_and_creates_idempotently(tmp_path: Path) -> N
         assert saved.status_code == 200
         assert replay.status_code == 200
         assert saved.json() == replay.json()
+        assert saved.json()["capture_start_time"] == "13:45:00"
+        assert saved.json()["capture_end_mode"] == "fixed_time"
+        assert saved.json()["capture_range_covers_report_window"] is True
 
         created = client.post(
             "/api/v1/daily/reports",
@@ -154,6 +172,9 @@ def test_report_api_saves_settings_and_creates_idempotently(tmp_path: Path) -> N
         )
         assert created.status_code == 200
         assert created.json()["report"]["row_count"] == 1
+        assert created.json()["report"]["candidate_count"] == 1
+        assert created.json()["report"]["window_excluded_count"] == 0
+        assert created.json()["report"]["missing_effective_time_count"] == 0
         assert created.json()["report"]["status"] == "confirmed"
         assert created.json()["report"]["file_name"] == (
             "装卸车明细-山西贵恩博-2026-08-01.xlsx"
@@ -166,6 +187,42 @@ def test_report_api_saves_settings_and_creates_idempotently(tmp_path: Path) -> N
         assert opened.status_code == 200
         assert opened.json() == {"opened": True}
         assert opened_directories == [(tmp_path / "reports").resolve()]
+    finally:
+        runtime.close()
+
+
+@pytest.mark.integration
+def test_report_range_settings_warn_and_reject_stale_versions(tmp_path: Path) -> None:
+    client, runtime = _client(tmp_path)
+    try:
+        payload = {
+            "shipping_mine": "金鸡滩煤矿",
+            "coal_type": "兖矿陕动四号（5600）",
+            "unloading_place": "象道货22",
+            "query_place_keyword": "榆林",
+            "output_directory": str((tmp_path / "reports").resolve()),
+            "confirmed": True,
+            "capture_start_time": "14:30:00",
+            "capture_end_mode": "fixed_time",
+            "capture_fixed_end_day_offset": 0,
+            "capture_fixed_end_time": "20:00:00",
+            "expected_record_version": 0,
+        }
+        saved = client.put(
+            "/api/v1/daily/report-settings",
+            headers={"Idempotency-Key": "narrow-range"},
+            json=payload,
+        )
+        stale = client.put(
+            "/api/v1/daily/report-settings",
+            headers={"Idempotency-Key": "stale-range"},
+            json={**payload, "capture_start_time": "14:00:00"},
+        )
+
+        assert saved.status_code == 200
+        assert saved.json()["capture_range_covers_report_window"] is False
+        assert stale.status_code == 409
+        assert stale.json()["error"]["code"] == "record_version_conflict"
     finally:
         runtime.close()
 

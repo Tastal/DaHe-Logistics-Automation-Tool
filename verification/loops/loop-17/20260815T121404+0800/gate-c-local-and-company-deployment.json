@@ -1,0 +1,98 @@
+{
+  "accepted_at": "2026-08-15T12:15:35.6724277+08:00",
+  "application_version": "1.1.3",
+  "chengfeng_platform_accessed": false,
+  "company_computer": {
+    "cold_start_readiness_http_statuses": [
+      200,
+      200
+    ],
+    "cold_start_seconds": [
+      11.12,
+      6.75
+    ],
+    "current_versions": [
+      "1.1.2",
+      "1.1.3"
+    ],
+    "database_backup": {
+      "integrity": "ok",
+      "relative_path": "backups/pre-v1.1.3-update/20260815T034443Z/dahe.sqlite3",
+      "sha256": "484e958d1f4d99e8adafb3e5c29001215c0943d97d4a809691f8c36ce77a6e08",
+      "size": 7131136
+    },
+    "database_counts_after": {
+      "daily_manual_revisions": 2,
+      "daily_observations": 136,
+      "daily_reports": 0,
+      "jobs": 4,
+      "platform_response_snapshots": null,
+      "settlement_capture_identities": 0
+    },
+    "database_counts_before": {
+      "daily_manual_revisions": 2,
+      "daily_observations": 136,
+      "daily_reports": 0,
+      "jobs": 4,
+      "platform_response_snapshots": null,
+      "settlement_capture_identities": 0
+    },
+    "database_counts_unchanged": true,
+    "database_integrity_after": "ok",
+    "database_integrity_before": "ok",
+    "gpu_addon_state": "active",
+    "gpu_package_version": "1.1.3",
+    "gpu_qualified": true,
+    "installed_build_git_commit": "81d7974754990540b109e25968cabdd9b82671d5",
+    "installed_resource_sha256": "f4a427e6fbf12a6dace49ca0b4fb35444d707d04ea4c7b8f995f758a8ccc3948",
+    "installed_schema_revision": "0041_contract_subject_scope",
+    "installed_version": "1.1.3",
+    "previous_installed_version": "1.1.2",
+    "primary_runtime": "gpu",
+    "readiness_http_status": 200,
+    "setup_exit_code": 0,
+    "single_desktop_shortcut": true,
+    "shortcut_target": "DaHeLauncher.exe",
+    "temporary_interactive_task_removed": true,
+    "update_state": "up_to_date"
+  },
+  "cleanup": {
+    "company_program_bytes_removed": 148338823,
+    "company_removed_program_versions": [
+      "1.0.0",
+      "1.1.0"
+    ],
+    "company_temporary_bytes_removed": 5450863316,
+    "database_backups_preserved": true,
+    "deployment_staging_removed": true,
+    "local_private_key_removed": true,
+    "remote_authorized_key_lines_removed": 1,
+    "remote_authorized_key_lines_remaining": 0,
+    "temporary_key_authentication_rejected_after_cleanup": true
+  },
+  "local_computer": {
+    "cpu_fallback_available": true,
+    "current_versions": [
+      "1.1.0",
+      "1.1.3"
+    ],
+    "gpu_addon_state": "active",
+    "gpu_package_version": "1.1.3",
+    "gpu_qualified": true,
+    "installed_build_git_commit": "81d7974754990540b109e25968cabdd9b82671d5",
+    "installed_resource_sha256": "f4a427e6fbf12a6dace49ca0b4fb35444d707d04ea4c7b8f995f758a8ccc3948",
+    "installed_schema_revision": "0041_contract_subject_scope",
+    "installed_version": "1.1.3",
+    "primary_runtime": "gpu",
+    "readiness_http_status": 200,
+    "update_state": "up_to_date"
+  },
+  "platform_safety": {
+    "business_read_started": false,
+    "business_write_request_count": 0,
+    "real_chengfeng_read_performed": false
+  },
+  "result": "passed",
+  "schema_revision": "0041_contract_subject_scope",
+  "schema_version": 1
+}

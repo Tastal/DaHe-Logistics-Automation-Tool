@@ -296,6 +296,9 @@ def bootstrap_cpu_runtime(
 ) -> None:
     stage = "locate"
     staging: Path | None = None
+    previous_runtime_backup: Path | None = None
+    previous_runtime_moved = False
+    activated_runtime = False
     try:
         resolved_archive = archive.resolve(strict=True)
         resolved_manifest = manifest_path.resolve(strict=True)
@@ -404,6 +407,7 @@ def bootstrap_cpu_runtime(
             stage="target",
         )
     pointer_name = "active-composition.json"
+    replace_existing = False
     if destination.exists():
         pointer = destination / pointer_name
         if (
@@ -421,7 +425,7 @@ def bootstrap_cpu_runtime(
                 stage="target",
                 winerror=getattr(exc, "winerror", None),
             ) from exc
-        return
+        replace_existing = True
     staging = destination.with_name(f".c-{uuid4().hex[:8]}")
     stage = "disk_preflight"
     try:
@@ -541,10 +545,28 @@ def bootstrap_cpu_runtime(
             )
         resolve_active_composition(staging, allow_legacy=False)
         stage = "activate"
+        if replace_existing:
+            previous_runtime_backup = destination.with_name(
+                f".c-old-{uuid4().hex[:8]}"
+            )
+            destination.rename(previous_runtime_backup)
+            previous_runtime_moved = True
         staging.rename(destination)
+        activated_runtime = True
+        resolve_active_composition(destination, allow_legacy=False)
+        if previous_runtime_backup is not None:
+            shutil.rmtree(previous_runtime_backup, ignore_errors=True)
+            previous_runtime_backup = None
     except Exception as exc:
         if staging is not None:
             shutil.rmtree(staging, ignore_errors=True)
+        if activated_runtime:
+            shutil.rmtree(destination, ignore_errors=True)
+        if previous_runtime_moved and previous_runtime_backup is not None:
+            if previous_runtime_backup.exists() and not destination.exists():
+                previous_runtime_backup.rename(destination)
+            shutil.rmtree(previous_runtime_backup, ignore_errors=True)
+            previous_runtime_backup = None
         if isinstance(exc, CpuRuntimeBootstrapError):
             raise
         if isinstance(exc, zipfile.BadZipFile):

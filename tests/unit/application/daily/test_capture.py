@@ -4,7 +4,7 @@ import hashlib
 import json
 from collections.abc import Callable
 from dataclasses import dataclass, replace
-from datetime import date, datetime
+from datetime import date, datetime, time
 from decimal import Decimal
 
 import pytest
@@ -748,6 +748,63 @@ def test_capture_request_round_trips_as_a_strict_persisted_contract() -> None:
         DailyCaptureRequest.from_payload(
             {**request.to_payload(), "unexpected": "rejected"}
         )
+
+
+def test_legacy_capture_request_keeps_the_historical_fixed_end_window() -> None:
+    payload = _request().to_payload()
+    payload["schema_version"] = 1
+    for field in (
+        "capture_start_time",
+        "capture_end_mode",
+        "capture_fixed_end_day_offset",
+        "capture_fixed_end_time",
+    ):
+        payload.pop(field)
+    expected_fingerprint = hashlib.sha256(
+        json.dumps(
+            {
+                key: value
+                for key, value in payload.items()
+                if key != "schema_version"
+            },
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode("utf-8")
+    ).hexdigest()
+
+    restored = DailyCaptureRequest.from_payload(payload)
+
+    assert restored.schema_version == 1
+    assert restored.to_payload() == payload
+    assert restored.fingerprint == expected_fingerprint
+    assert restored.capture_start_time == time(14, 0)
+    assert restored.capture_end_mode == "fixed_time"
+    assert restored.capture_fixed_end_day_offset == 1
+    assert restored.capture_fixed_end_time == time(14, 30)
+    assert restored.query_window.safety_end == datetime(
+        2026, 7, 30, 14, 30, tzinfo=SHANGHAI
+    )
+
+
+@pytest.mark.parametrize(
+    ("field", "invalid"),
+    (
+        ("capture_start_time", 1400),
+        ("capture_end_mode", True),
+        ("capture_fixed_end_day_offset", "1"),
+        ("capture_fixed_end_time", None),
+    ),
+)
+def test_capture_request_rejects_invalid_range_field_types(
+    field: str,
+    invalid: object,
+) -> None:
+    payload = _request().to_payload()
+    payload[field] = invalid
+
+    with pytest.raises(DailyCaptureError, match="field type"):
+        DailyCaptureRequest.from_payload(payload)
 
 
 def test_detail_identity_mismatch_and_system_errors_are_raised() -> None:

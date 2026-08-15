@@ -49,7 +49,15 @@ def _seed(store: SqliteDailyStore) -> None:
                 now=captured_at,
             ),
             source_contract_sha256=HASH,
-            candidates=(DailyCandidate("platform-1", "WB-001"),),
+            candidates=(
+                DailyCandidate(
+                    "platform-1",
+                    "WB-001",
+                    platform_loading_time=datetime(
+                        2026, 8, 1, 15, 0, 1, tzinfo=SHANGHAI
+                    ),
+                ),
+            ),
             captured_at=captured_at,
         )
     )
@@ -121,7 +129,15 @@ def _seed_subject(
                     date(2026, 8, 1), now=captured_at
                 ),
                 source_contract_sha256=HASH,
-                candidates=(DailyCandidate("shared-platform-id", f"WB-{marker}"),),
+                candidates=(
+                    DailyCandidate(
+                        "shared-platform-id",
+                        f"WB-{marker}",
+                        platform_loading_time=datetime(
+                            2026, 8, 1, 15, 0, 1, tzinfo=SHANGHAI
+                        ),
+                    ),
+                ),
                 captured_at=captured_at,
             )
         )

@@ -3,7 +3,10 @@ from __future__ import annotations
 import json
 from datetime import date, datetime
 
-from dahe.application.daily.unloading_time import extract_unloading_time
+from dahe.application.daily.unloading_time import (
+    extract_loading_time,
+    extract_unloading_time,
+)
 from dahe.domain.daily.calendar import SHANGHAI
 
 
@@ -84,6 +87,54 @@ def test_invalid_or_failed_output_is_not_a_business_value() -> None:
         extract_unloading_time(
             json.dumps({"status": "error", "fields": {}, "text_lines": []}),
             loading_time=None,
+            planned_date=None,
+        )
+        is None
+    )
+
+
+def test_extracts_loading_time_from_field_or_labeled_text() -> None:
+    field_payload = json.dumps(
+        {
+            "status": "ok",
+            "fields": {
+                "loading_weigh_time": {
+                    "raw_text": "过磅时间 2026-08-13 13:59:58"
+                }
+            },
+            "text_lines": [],
+        },
+        ensure_ascii=False,
+    )
+    assert extract_loading_time(
+        field_payload,
+        platform_loading_time=datetime(
+            2026, 8, 13, 14, 5, tzinfo=SHANGHAI
+        ),
+        planned_date=None,
+    ) == datetime(2026, 8, 13, 13, 59, 58, tzinfo=SHANGHAI)
+
+    assert extract_loading_time(
+        _output(lines=("过 磅 时 间", "14:06:07")),
+        platform_loading_time=datetime(
+            2026, 8, 13, 14, 5, tzinfo=SHANGHAI
+        ),
+        planned_date=None,
+    ) == datetime(2026, 8, 13, 14, 6, 7, tzinfo=SHANGHAI)
+
+
+def test_loading_time_does_not_use_unloading_or_print_labels() -> None:
+    assert (
+        extract_loading_time(
+            _output(
+                lines=(
+                    "打印时间 2026-08-13 14:06:07",
+                    "皮重时间 2026-08-13 16:07:08",
+                )
+            ),
+            platform_loading_time=datetime(
+                2026, 8, 13, 14, 5, tzinfo=SHANGHAI
+            ),
             planned_date=None,
         )
         is None

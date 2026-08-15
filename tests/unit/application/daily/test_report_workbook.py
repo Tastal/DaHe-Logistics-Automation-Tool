@@ -14,6 +14,7 @@ import pytest
 from dahe.application.daily.report_workbook import (
     DailyReportSettings,
     DailyReportWorkbook,
+    build_daily_report_result,
     build_daily_report_rows,
 )
 from dahe.domain.daily.calendar import SHANGHAI
@@ -143,16 +144,75 @@ def test_report_rows_use_business_defaults_and_preserve_missing_values(
                 unloading=Decimal("32.76"),
             ),
         ),
+        primary_loading_time_ids=frozenset({"1"}),
     )
 
-    assert [row.sequence for row in rows] == [1, 2]
+    assert [row.sequence for row in rows] == [1]
     assert rows[0].vehicle_number == "陕A12345"
     assert rows[0].planned_date == date(2026, 8, 1)
     assert rows[0].loading_time == datetime(2026, 8, 1, 15, 1, 2)
     assert rows[0].unloading_time == datetime(2026, 8, 1, 16, 2)
-    assert rows[1].vehicle_number is None
-    assert rows[1].loading_net_tonnes is None
-    assert rows[1].unloading_time is None
+
+
+def test_report_strictly_filters_effective_loading_time_and_keeps_fallback_blank(
+    tmp_path: Path,
+) -> None:
+    early = _revision(
+        identity="early",
+        loading_time=datetime(2026, 8, 1, 13, 59, 59, tzinfo=SHANGHAI),
+        unloading_time=None,
+        vehicle="A",
+        loading=Decimal("31"),
+        unloading=None,
+    )
+    inside = _revision(
+        identity="inside",
+        loading_time=datetime(2026, 8, 1, 14, 0, tzinfo=SHANGHAI),
+        unloading_time=None,
+        vehicle="B",
+        loading=Decimal("32"),
+        unloading=None,
+    )
+    fallback = _revision(
+        identity="fallback",
+        loading_time=None,
+        unloading_time=None,
+        vehicle="C",
+        loading=Decimal("33"),
+        unloading=None,
+    )
+    late = _revision(
+        identity="late",
+        loading_time=datetime(2026, 8, 2, 14, 0, tzinfo=SHANGHAI),
+        unloading_time=None,
+        vehicle="D",
+        loading=Decimal("34"),
+        unloading=None,
+    )
+    missing = _revision(
+        identity="missing",
+        loading_time=None,
+        unloading_time=None,
+        vehicle="E",
+        loading=Decimal("35"),
+        unloading=None,
+    )
+
+    result = build_daily_report_result(
+        business_date=date(2026, 8, 1),
+        settings=_settings(tmp_path),
+        revisions=(early, inside, fallback, late, missing),
+        platform_loading_times={
+            "fallback": datetime(2026, 8, 2, 13, 0, tzinfo=SHANGHAI),
+        },
+        primary_loading_time_ids=frozenset({"early", "inside", "late"}),
+    )
+
+    assert [row.platform_waybill_id for row in result.rows] == ["inside", "fallback"]
+    assert result.rows[1].loading_time is None
+    assert result.candidate_count == 5
+    assert result.window_excluded_count == 2
+    assert result.missing_effective_time_count == 1
 
 
 def test_workbook_is_written_formally_then_reopened_and_validated(
@@ -172,6 +232,7 @@ def test_workbook_is_written_formally_then_reopened_and_validated(
                 unloading=Decimal("32.76"),
             ),
         ),
+        primary_loading_time_ids=frozenset({"1"}),
     )
 
     result = DailyReportWorkbook().write_pending(

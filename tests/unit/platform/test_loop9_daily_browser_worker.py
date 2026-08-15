@@ -390,6 +390,23 @@ def test_direct_operational_daily_response_uses_the_same_safe_evidence_contract(
     assert output["discovery"] == [_daily_protocol_observation()]
     assert output["prepare_result"] == evidence
 
+    zero_observation = {
+        **_daily_protocol_observation(),
+        "response_fields": [{"path": "$.data.total", "type": "integer"}],
+    }
+    zero_output = json.loads(
+        protocol.response(
+            command,
+            ok=True,
+            selected_browser="msedge",
+            discovery=[zero_observation],
+            browser_open=True,
+            read_result=None,
+            prepare_result=evidence,
+        )
+    )
+    assert zero_output["discovery"] == [zero_observation]
+
 
 class _NativeResponse:
     def __init__(
@@ -406,6 +423,10 @@ class _NativeResponse:
         self._payload = payload
         self._events = events
         self.request = request
+
+    @property
+    def url(self) -> str:
+        return "" if self.request is None else self.request.url
 
     def body(self) -> bytes:
         self._events.append("native-body-read")
@@ -504,7 +525,11 @@ class _Route:
 
     def continue_(self, **options: object) -> None:
         post_data = options.pop("post_data", None)
+        url = options.pop("url", None)
         assert not options
+        if url is not None:
+            assert isinstance(url, str)
+            self.request.url = url
         if post_data is not None:
             assert isinstance(post_data, str)
             self.request.post_data_json = json.loads(post_data)
@@ -637,6 +662,7 @@ class _PageOwnedDailyPage:
         navigation_body: dict[str, object] | None = None,
         scope_matches: bool = True,
         emit_navigation_request: bool = True,
+        emit_stale_response_before_authorized: bool = False,
     ) -> None:
         self._payload = payload
         self._events = events
@@ -647,6 +673,9 @@ class _PageOwnedDailyPage:
         )
         self._scope_matches = scope_matches
         self._emit_navigation_request = emit_navigation_request
+        self._emit_stale_response_before_authorized = (
+            emit_stale_response_before_authorized
+        )
         self._handler: Any = None
         self._expected_response: _PageOwnedExpectedResponse | None = None
         self.url = "https://pc.chengfengkuaiyun.com/billablewaybill"
@@ -788,6 +817,21 @@ class _PageOwnedDailyPage:
             events=self._events,
             request=request,
         )
+        expected = self._expected_response
+        if expected is not None and self._emit_stale_response_before_authorized:
+            stale_request = _Request(
+                method="POST",
+                resource_type="xhr",
+                url=f"{DAILY_URL}?t=1785300000788",
+                post_data=dict(self._navigation_body),
+            )
+            stale_response = _NativeResponse(
+                payload={"data": {"total": 25, "list": self._payload["data"]["list"]}},
+                events=self._events,
+                request=stale_request,
+            )
+            assert expected.predicate(stale_response) is False
+            self._events.append("stale-daily-response-ignored")
         assert self._handler is not None
         self._handler(
             _Route(
@@ -796,7 +840,6 @@ class _PageOwnedDailyPage:
                 events=self._events,
             )
         )
-        expected = self._expected_response
         if expected is not None and expected.predicate(response):
             expected.value = response
 
@@ -1073,6 +1116,7 @@ def _prepared_page_owned_daily_engine(
     navigation_body: dict[str, object] | None = None,
     scope_matches: bool = True,
     emit_navigation_request: bool = True,
+    emit_stale_response_before_authorized: bool = False,
 ) -> tuple[Any, list[str], Any]:
     engine_module._ensure_contract_subject = (
         lambda _page, *, contract_subject_code, login_page: {
@@ -1087,6 +1131,7 @@ def _prepared_page_owned_daily_engine(
         navigation_body=navigation_body,
         scope_matches=scope_matches,
         emit_navigation_request=emit_navigation_request,
+        emit_stale_response_before_authorized=emit_stale_response_before_authorized,
     )
 
     class FailingRequestContext:
@@ -1106,6 +1151,9 @@ def _prepared_page_owned_daily_engine(
                 navigation_body=navigation_body,
                 scope_matches=scope_matches,
                 emit_navigation_request=emit_navigation_request,
+                emit_stale_response_before_authorized=(
+                    emit_stale_response_before_authorized
+                ),
             )
             self.pages.append(controlled)
             return controlled
@@ -1470,6 +1518,36 @@ def test_page_authoritative_daily_zero_refreshes_once_before_accepting_empty(
     assert events.count("daily-page-cache-refreshed") == 2
     assert events.count("cdp:Network.clearBrowserCache") == 2
     assert worker._daily_cache_refresh_count == 2
+
+
+def test_page_authoritative_daily_ignores_unrelated_inflight_response(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    engine_module, _ = _load_worker_modules(monkeypatch)
+    worker, events, _ = _prepared_page_owned_daily_engine(
+        engine_module,
+        payload=_daily_payload(),
+    )
+    worker.prepare_daily_from_automated()
+    page = worker._operational_batch_page
+    assert isinstance(page, _PageOwnedDailyPage)
+    page._emit_stale_response_before_authorized = True
+    body = _daily_parameters()
+    private_body = dict(worker._daily_private_body)
+    for name in engine_module._DAILY_CONTROLLED_FIELDS:
+        private_body[name] = body[name]
+
+    content, _ = worker._read_page_authoritative_daily_list(
+        body=body,
+        private_body=private_body,
+        require_nonempty=False,
+        retry_after_refresh=True,
+    )
+
+    normalized = json.loads(content)["data"]
+    assert normalized["total"] == 1
+    assert normalized["list"][0]["orderItemSn"] == "YD-MUST-NOT-LEAK"
+    assert "stale-daily-response-ignored" in events
 
 
 def test_page_authoritative_daily_ignores_unscoped_display_total(

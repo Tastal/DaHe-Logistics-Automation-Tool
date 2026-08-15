@@ -1,43 +1,36 @@
 {
   "acceptance": null,
-  "current_loop": "loop-16",
+  "current_loop": "loop-18",
   "gate_results": [
     {
-      "evidence": "verification/loops/loop-16/20260814T170856+0800/gate-a-gpu-overlay-and-diagnostics.json",
-      "id": "loop-16-gate-a-gpu-overlay-and-diagnostics",
-      "status": "passed"
-    },
-    {
-      "evidence": "verification/loops/loop-16/20260814T170856+0800/gate-b-formal-build-and-release.json",
-      "id": "loop-16-gate-b-formal-build-and-release",
-      "status": "passed"
-    },
-    {
-      "evidence": "verification/loops/loop-16/20260814T170856+0800/gate-c-company-gpu-deployment.json",
-      "id": "loop-16-gate-c-company-gpu-deployment",
+      "evidence": "verification/loops/loop-18/20260815T191119+0800/gate-a-business-contract-and-read-only.json",
+      "id": "loop-18-gate-a-business-contract-and-read-only",
       "status": "passed"
     }
   ],
   "input_manifest": {
-    "path": "verification/loops/loop-16/20260814T170856+0800/input-manifest.json",
-    "sha256": "6968cc468aa63d7acc0b6703c06ad9b9ad58e61636aad992ec8de6192a483125"
+    "path": "verification/loops/loop-18/20260815T191119+0800/input-manifest.json",
+    "sha256": "b11cf15ab9bcc96d37cf98ae52cf0fd633257d6f8bfd67293d906ad37a73b013"
   },
-  "last_accepted_git_commit": "5bb18c35bfc26cc1f3a7c26655d307cb7ed9bca9",
+  "last_accepted_git_commit": "e2b6bcf8b221fa43b77f13e5c0492679c038e34e",
   "next_inputs": [
-    "Use v1.1.2 as the company-computer production baseline and keep GPU packages bound to the matching application release.",
+    "Complete the v1.1.4 formal build, public release, local deployment, and company-computer deployment gates.",
+    "Seal the same-fixture GPU throughput comparison and final cold-start acceptance evidence.",
     "Change the Windows password that was disclosed in chat before the next remote-maintenance session.",
+    "Renew the GitHub credential that was exposed during release diagnostics before the next release.",
     "Keep every Chengfeng business write disabled."
   ],
   "operational_acceptance": null,
   "project_id": "DaHeLogistics",
-  "revision": 60,
-  "run_id": "20260814T170856+0800",
+  "revision": 62,
+  "run_id": "20260815T191119+0800",
   "schema_version": 4,
-  "status": "accepted",
+  "status": "in_progress",
   "unresolved_risks": [
     "The unsigned installer may still show an unknown-publisher SmartScreen warning.",
     "Nine symlink-only automated checks remain skipped because the current Windows account cannot create symbolic links.",
-    "Another installed application can also use the company GPU; concurrent GPU workloads may reduce OCR throughput."
+    "The formal v1.1.4 assets, public release, and two production deployments have not yet passed Gate B or Gate C.",
+    "The final same-fixture GPU throughput comparison and post-install cold-start checks remain to be sealed."
   ],
   "waiver": null
 }

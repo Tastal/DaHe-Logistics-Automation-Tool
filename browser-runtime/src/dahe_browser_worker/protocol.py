@@ -1326,14 +1326,17 @@ def _validated_discovery(
         "$.pageSize",
     }.issubset(request_paths):
         raise ProtocolError("daily discovery shape is incomplete")
-    if not changed_structure and not {
-        "$.data.list[].id",
-        "$.data.list[].sn",
-        "$.data.list[].carNumber",
-        "$.data.list[].loadPunchDate",
-        "$.data.total",
-    }.issubset(response_paths):
-        raise ProtocolError("daily discovery shape is incomplete")
+    if not changed_structure:
+        nonempty_shape = {
+            "$.data.list[].id",
+            "$.data.list[].sn",
+            "$.data.list[].carNumber",
+            "$.data.list[].loadPunchDate",
+            "$.data.total",
+        }
+        zero_shape = {"$.data.total"}
+        if not nonempty_shape.issubset(response_paths) and response_paths != zero_shape:
+            raise ProtocolError("daily discovery shape is incomplete")
     if changed_structure and not response_fields:
         raise ProtocolError("changed daily discovery has no response fields")
     return [

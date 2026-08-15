@@ -50,7 +50,7 @@ def test_completed_candidate_ocr_run_authority_is_append_only_and_replay_safe(
     try:
         assert (
             runtime.current_revision()
-            == "0041_contract_subject_scope"
+            == "0042_daily_capture_range"
         )
         repository = SqliteCandidateDevelopmentOcrRunRepository(
             runtime=runtime

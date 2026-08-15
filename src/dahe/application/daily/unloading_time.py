@@ -21,7 +21,79 @@ _TIME_ONLY = re.compile(
 )
 _TARGET_LABELS = ("皮重时间", "回皮时间")
 _EXCLUDED_LABELS = ("打印时间", "毛重时间")
+_LOADING_TARGET_LABELS = ("过磅时间", "装车时间", "毛重时间")
+_LOADING_EXCLUDED_LABELS = ("打印时间", "皮重时间", "回皮时间")
 _LABEL_SEPARATORS = re.compile(r"[\s\uff1a:_\-—]+")
+
+
+def extract_loading_time(
+    output_json: str | None,
+    *,
+    platform_loading_time: datetime | None,
+    planned_date: date | None,
+) -> datetime | None:
+    """Extract the loading weigh time from a committed local OCR result."""
+
+    if not output_json:
+        return None
+    try:
+        payload = json.loads(output_json)
+    except (TypeError, ValueError):
+        return None
+    if not isinstance(payload, dict) or payload.get("status") != "ok":
+        return None
+
+    fields = payload.get("fields")
+    if isinstance(fields, dict):
+        value = fields.get("loading_weigh_time")
+        raw_text = value.get("raw_text") if isinstance(value, dict) else value
+        if isinstance(raw_text, str):
+            parsed = _parse_candidate(
+                raw_text,
+                loading_time=None,
+                planned_date=_loading_base_date(
+                    platform_loading_time,
+                    planned_date,
+                ),
+            )
+            if parsed is not None:
+                return parsed
+
+    text_lines = payload.get("text_lines")
+    if not isinstance(text_lines, list):
+        return None
+    lines = [
+        str(line.get("text", "")).strip()
+        for line in text_lines
+        if isinstance(line, dict) and str(line.get("text", "")).strip()
+    ]
+    for index in range(len(lines)):
+        context = " ".join(lines[index : index + 3])
+        normalized_context = _normalize_label_context(context)
+        if not any(label in normalized_context for label in _LOADING_TARGET_LABELS):
+            continue
+        if any(label in normalized_context for label in _LOADING_EXCLUDED_LABELS):
+            context = lines[index]
+        parsed = _parse_candidate(
+            context,
+            loading_time=None,
+            planned_date=_loading_base_date(
+                platform_loading_time,
+                planned_date,
+            ),
+        )
+        if parsed is not None:
+            return parsed
+    return None
+
+
+def _loading_base_date(
+    platform_loading_time: datetime | None,
+    planned_date: date | None,
+) -> date | None:
+    if platform_loading_time is not None:
+        return platform_loading_time.astimezone(SHANGHAI).date()
+    return planned_date
 
 
 def extract_unloading_time(

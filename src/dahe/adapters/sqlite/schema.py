@@ -2291,12 +2291,33 @@ DAILY_REPORT_SETTINGS = Table(
     Column("coal_type", String(200), nullable=False),
     Column("unloading_place", String(200), nullable=False),
     Column("query_place_keyword", String(200), nullable=False),
+    Column("capture_start_time", String(8), nullable=False, server_default="14:00:00"),
+    Column(
+        "capture_end_mode",
+        String(30),
+        nullable=False,
+        server_default="system_current_time",
+    ),
+    Column(
+        "capture_fixed_end_day_offset",
+        Integer,
+        nullable=False,
+        server_default="1",
+    ),
+    Column(
+        "capture_fixed_end_time",
+        String(8),
+        nullable=False,
+        server_default="14:30:00",
+    ),
     Column("output_directory", Text, nullable=False),
     Column("confirmed", Integer, nullable=False),
     Column("record_version", Integer, nullable=False),
     Column("updated_at", String(40), nullable=False),
     CheckConstraint(
-        "settings_id = 'primary' AND confirmed IN (0, 1) AND record_version >= 1",
+        "settings_id = 'primary' AND confirmed IN (0, 1) AND record_version >= 1 "
+        "AND capture_end_mode IN ('system_current_time', 'fixed_time') "
+        "AND capture_fixed_end_day_offset IN (0, 1)",
         name="ck_daily_report_settings_shape",
     ),
 )

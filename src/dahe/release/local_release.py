@@ -172,6 +172,7 @@ def _create_shortcut(*, shortcut_path: Path, launcher_path: Path) -> None:
         "$shortcut = $shell.CreateShortcut($env:DAHE_SHORTCUT_PATH); "
         "$shortcut.TargetPath = $env:DAHE_LAUNCHER_PATH; "
         "$shortcut.WorkingDirectory = $env:DAHE_WORKING_DIRECTORY; "
+        "$shortcut.IconLocation = $env:DAHE_LAUNCHER_PATH + ',0'; "
         "$shortcut.Description = '大禾物流自动化平台'; "
         "$shortcut.Save()"
     )

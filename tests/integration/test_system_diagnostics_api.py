@@ -67,7 +67,7 @@ def test_local_diagnostic_package_and_environment_exclude_business_data(
     assert recorded.status_code == 202
     assert environment.status_code == 200
     assert environment.json()["database"]["schema_revision"] == (
-        "0041_contract_subject_scope"
+        "0042_daily_capture_range"
     )
     runtime = environment.json()["runtime"]
     assert set(runtime) == {

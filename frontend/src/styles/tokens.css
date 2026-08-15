@@ -18,6 +18,7 @@
   --color-focus: oklch(0.62 0.2 255);
   --color-danger: oklch(0.52 0.19 25);
   --color-danger-soft: oklch(0.96 0.025 25);
+  --color-warning: oklch(0.48 0.12 75);
 
   --radius-small: 8px;
   --radius-medium: 10px;

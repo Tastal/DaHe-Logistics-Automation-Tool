@@ -127,6 +127,19 @@ p {
   font-size: inherit;
 }
 
+.product-name .application-version,
+.mobile-header .application-version {
+  display: inline-block;
+  align-self: flex-end;
+  margin: 0 0 3px 4px;
+  color: var(--color-muted);
+  font-size: 10px;
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: 0;
+  white-space: nowrap;
+}
+
 .side-navigation ul {
   display: flex;
   margin: 0;
@@ -3461,6 +3474,39 @@ a.button {
   grid-column: 1 / -1;
 }
 
+.capture-range-settings {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(140px, 1fr));
+  gap: 12px;
+  margin: 4px 0 0;
+  padding: 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-medium);
+}
+
+.capture-range-settings legend {
+  padding: 0 6px;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.capture-range-settings select {
+  min-height: 42px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-small);
+  background: var(--color-surface);
+  color: var(--color-ink);
+  padding: 0 10px;
+}
+
+.capture-range-warning {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--color-warning);
+  font-size: 12px;
+}
+
 .settings-state {
   color: var(--color-muted);
   font-size: 0.875rem;
@@ -3930,6 +3976,11 @@ a.button {
   .report-output-field,
   .report-settings-form .compact-actions {
     grid-column: 1;
+  }
+
+  .capture-range-settings {
+    grid-column: 1;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .report-summary {

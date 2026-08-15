@@ -573,10 +573,21 @@ class DailyLiveStageExecutor:
             ValueError,
         ) as exc:
             if self._unexpected_error_observer is not None:
+                error_type = type(exc).__name__
+                if isinstance(exc, OperationalCaptureContractError):
+                    message = str(exc)
+                    if message.startswith(
+                        "operational daily total changed during freeze: "
+                    ):
+                        error_type += ":" + message
+                    else:
+                        error_type += ":" + hashlib.sha256(
+                            message.encode("utf-8")
+                        ).hexdigest()[:12]
                 self._unexpected_error_observer(
                     work.job_id,
                     failure_step,
-                    type(exc).__name__,
+                    error_type,
                 )
             return self._failure(
                 work,

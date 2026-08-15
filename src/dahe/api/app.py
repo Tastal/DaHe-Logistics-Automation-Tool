@@ -2981,6 +2981,16 @@ def create_app(
             },
         )
 
+    daily_report_repository = SqliteDailyReportRepository(
+        runtime=runtime,
+        daily_store=daily_store,
+        daily_items=daily_item_repository,
+        default_output_directory=(
+            (resolve_desktop_directory() / "成丰装卸车明细")
+            if production_read_only
+            else (data_root.resolve() / "reports")
+        ).resolve(),
+    )
     app.include_router(
         build_platform_router(
             enabled=platform_access_enabled,
@@ -3021,6 +3031,7 @@ def create_app(
             load_settlement_ready_waybill_numbers=(
                 audit_workflow_repository.list_latest_settlement_ready_waybill_numbers
             ),
+            load_daily_report_settings=daily_report_repository.get_settings,
             expose_internal_codes=not production_read_only,
         )
     )
@@ -3035,16 +3046,6 @@ def create_app(
             runtime_log_store=runtime_log_store,
             production_guard=production_guard,
         )
-    )
-    daily_report_repository = SqliteDailyReportRepository(
-        runtime=runtime,
-        daily_store=daily_store,
-        daily_items=daily_item_repository,
-        default_output_directory=(
-            (resolve_desktop_directory() / "成丰装卸车明细")
-            if production_read_only
-            else (data_root.resolve() / "reports")
-        ).resolve(),
     )
     app.include_router(
         build_performance_settings_router(

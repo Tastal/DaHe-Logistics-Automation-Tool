@@ -5,7 +5,7 @@ import json
 import re
 from collections.abc import Callable
 from dataclasses import dataclass, replace
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, time
 from enum import StrEnum
 from typing import cast
 
@@ -54,6 +54,11 @@ class DailyCaptureRequest:
     now: datetime
     source_contract_sha256: str
     page_size: int = 100
+    capture_start_time: time = time(14, 0)
+    capture_end_mode: str = "system_current_time"
+    capture_fixed_end_day_offset: int = 1
+    capture_fixed_end_time: time = time(14, 30)
+    schema_version: int = 2
 
     def __post_init__(self) -> None:
         _bounded_text(
@@ -70,7 +75,16 @@ class DailyCaptureRequest:
             raise DailyCaptureError("source_contract_sha256 must be a lowercase SHA-256")
         if type(self.page_size) is not int or not 1 <= self.page_size <= 100:
             raise DailyCaptureError("page_size is outside the daily contract")
-        candidate_query_window(self.business_date, now=self.now)
+        if type(self.schema_version) is not int or self.schema_version not in {1, 2}:
+            raise DailyCaptureError("daily capture request schema is unsupported")
+        candidate_query_window(
+            self.business_date,
+            now=self.now,
+            start_time=self.capture_start_time,
+            end_mode=self.capture_end_mode,
+            fixed_end_day_offset=self.capture_fixed_end_day_offset,
+            fixed_end_time=self.capture_fixed_end_time,
+        )
 
     def constructor_payload(self) -> dict[str, object]:
         return {
@@ -80,38 +94,87 @@ class DailyCaptureRequest:
             "now": self.now,
             "source_contract_sha256": self.source_contract_sha256,
             "page_size": self.page_size,
+            "capture_start_time": self.capture_start_time,
+            "capture_end_mode": self.capture_end_mode,
+            "capture_fixed_end_day_offset": self.capture_fixed_end_day_offset,
+            "capture_fixed_end_time": self.capture_fixed_end_time,
+            "schema_version": self.schema_version,
         }
 
     @property
     def query_window(self) -> CandidateQueryWindow:
-        return candidate_query_window(self.business_date, now=self.now)
+        return candidate_query_window(
+            self.business_date,
+            now=self.now,
+            start_time=self.capture_start_time,
+            end_mode=self.capture_end_mode,
+            fixed_end_day_offset=self.capture_fixed_end_day_offset,
+            fixed_end_time=self.capture_fixed_end_time,
+        )
 
     @property
     def fingerprint(self) -> str:
-        return _fingerprint(
-            {
-                "business_date": self.business_date.isoformat(),
-                "invocation_id": self.invocation_id,
-                "now": self.now.astimezone(SHANGHAI).isoformat(),
-                "page_size": self.page_size,
-                "receive_place": self.receive_place,
-                "source_contract_sha256": self.source_contract_sha256,
-            }
-        )
-
-    def to_payload(self) -> dict[str, object]:
-        return {
+        payload: dict[str, object] = {
             "business_date": self.business_date.isoformat(),
             "invocation_id": self.invocation_id,
             "now": self.now.astimezone(SHANGHAI).isoformat(),
             "page_size": self.page_size,
             "receive_place": self.receive_place,
-            "schema_version": 1,
             "source_contract_sha256": self.source_contract_sha256,
         }
+        if self.schema_version == 2:
+            payload.update(
+                {
+                    "capture_start_time": self.capture_start_time.isoformat(),
+                    "capture_end_mode": self.capture_end_mode,
+                    "capture_fixed_end_day_offset": (
+                        self.capture_fixed_end_day_offset
+                    ),
+                    "capture_fixed_end_time": (
+                        self.capture_fixed_end_time.isoformat()
+                    ),
+                }
+            )
+        return _fingerprint(payload)
+
+    def to_payload(self) -> dict[str, object]:
+        payload: dict[str, object] = {
+            "business_date": self.business_date.isoformat(),
+            "invocation_id": self.invocation_id,
+            "now": self.now.astimezone(SHANGHAI).isoformat(),
+            "page_size": self.page_size,
+            "receive_place": self.receive_place,
+            "schema_version": self.schema_version,
+            "source_contract_sha256": self.source_contract_sha256,
+        }
+        if self.schema_version == 2:
+            payload.update(
+                {
+                    "capture_start_time": self.capture_start_time.isoformat(),
+                    "capture_end_mode": self.capture_end_mode,
+                    "capture_fixed_end_day_offset": (
+                        self.capture_fixed_end_day_offset
+                    ),
+                    "capture_fixed_end_time": (
+                        self.capture_fixed_end_time.isoformat()
+                    ),
+                }
+            )
+        return payload
 
     @classmethod
     def from_payload(cls, payload: object) -> DailyCaptureRequest:
+        if not isinstance(payload, dict):
+            raise DailyCaptureError("daily capture request is invalid")
+        schema_version = payload.get("schema_version")
+        optional_keys: set[str] = set()
+        if schema_version == 2:
+            optional_keys = {
+                "capture_start_time",
+                "capture_end_mode",
+                "capture_fixed_end_day_offset",
+                "capture_fixed_end_time",
+            }
         value = _strict_object(
             payload,
             keys={
@@ -122,10 +185,10 @@ class DailyCaptureRequest:
                 "receive_place",
                 "schema_version",
                 "source_contract_sha256",
-            },
+            } | optional_keys,
             field="daily capture request",
         )
-        if value["schema_version"] != 1:
+        if type(schema_version) is not int or schema_version not in {1, 2}:
             raise DailyCaptureError(
                 "daily capture request schema is unsupported"
             )
@@ -136,6 +199,15 @@ class DailyCaptureRequest:
             or type(value["page_size"]) is not int
             or type(value["receive_place"]) is not str
             or type(value["source_contract_sha256"]) is not str
+        ):
+            raise DailyCaptureError(
+                "daily capture request field type is invalid"
+            )
+        if schema_version == 2 and (
+            type(value["capture_start_time"]) is not str
+            or type(value["capture_end_mode"]) is not str
+            or type(value["capture_fixed_end_day_offset"]) is not int
+            or type(value["capture_fixed_end_time"]) is not str
         ):
             raise DailyCaptureError(
                 "daily capture request field type is invalid"
@@ -155,6 +227,27 @@ class DailyCaptureRequest:
                 now=now,
                 source_contract_sha256=value["source_contract_sha256"],
                 page_size=value["page_size"],
+                capture_start_time=(
+                    time(14, 0)
+                    if schema_version == 1
+                    else time.fromisoformat(str(value["capture_start_time"]))
+                ),
+                capture_end_mode=(
+                    "fixed_time"
+                    if schema_version == 1
+                    else cast(str, value["capture_end_mode"])
+                ),
+                capture_fixed_end_day_offset=(
+                    1
+                    if schema_version == 1
+                    else cast(int, value["capture_fixed_end_day_offset"])
+                ),
+                capture_fixed_end_time=(
+                    time(14, 30)
+                    if schema_version == 1
+                    else time.fromisoformat(str(value["capture_fixed_end_time"]))
+                ),
+                schema_version=schema_version,
             )
         except (DailyCaptureError, TypeError, ValueError) as exc:
             raise DailyCaptureError(

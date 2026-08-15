@@ -907,7 +907,11 @@ def test_batch_v1_reports_safe_known_contract_failure_metadata(
         assert result.outcome == "failed"
         assert result.diagnostic_code == "DAILY-CAPTURE-CONTRACT-FAILED"
         assert observed == [
-            (JOB_ID, "capture_batch", "OperationalCaptureContractError")
+            (
+                JOB_ID,
+                "capture_batch",
+                "OperationalCaptureContractError:5f9a61b29f75",
+            )
         ]
         assert "sensitive detail" not in repr(observed)
     finally:

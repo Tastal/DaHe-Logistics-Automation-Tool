@@ -12,7 +12,6 @@ from pathlib import Path
 
 import pytest
 
-from dahe import __version__
 from dahe.adapters.ocr.runtime_layout import (
     activate_flat_composition,
     write_flat_composition_manifest,
@@ -38,7 +37,8 @@ from dahe.release.updater import (
 )
 
 PROJECT_ROOT = Path(__file__).parents[3]
-REVISION = "0041_contract_subject_scope"
+REVISION = "0042_daily_capture_range"
+OLD_VERSION = "1.1.3"
 NEW_VERSION = "1.1.4"
 
 
@@ -278,12 +278,12 @@ def _version_root(root: Path, version: str, commit: str) -> str:
 
 def _setup(tmp_path: Path) -> tuple[Path, Path, Path, bytes]:
     install_root = tmp_path / "install"
-    old_root = install_root / "versions" / __version__
-    old_resource = _version_root(old_root, __version__, "a" * 40)
+    old_root = install_root / "versions" / OLD_VERSION
+    old_resource = _version_root(old_root, OLD_VERSION, "a" * 40)
     write_version_pointer_atomic(
         install_root,
         VersionPointer(
-            version=__version__,
+            version=OLD_VERSION,
             build_git_commit="a" * 40,
             resource_sha256=old_resource,
             schema_revision=REVISION,
@@ -393,7 +393,7 @@ def test_readiness_failure_restores_pointer_and_database(tmp_path: Path) -> None
     with pytest.raises(UpdaterError, match="readiness"):
         installer.install(manifest_path=manifest_path, wait_pid=123)
 
-    assert read_version_pointer(install_root).version == __version__
+    assert read_version_pointer(install_root).version == OLD_VERSION
     with closing(sqlite3.connect(database_path)) as database:
         assert database.execute("SELECT value FROM preserved").fetchone() == ("yes",)
     assert json.loads(installer.state_path.read_text())["state"] == "failed"
@@ -469,7 +469,11 @@ def test_cpu_runtime_bootstrap_rejects_archive_hash_mismatch(tmp_path: Path) -> 
     assert not target.exists()
 
 
-def _flat_cpu_archive(tmp_path: Path) -> tuple[Path, Path]:
+def _flat_cpu_archive(
+    tmp_path: Path,
+    *,
+    generation_id: str = "a" * 32,
+) -> tuple[Path, Path]:
     runtime = tmp_path / "flat-runtime"
     cpu = runtime / "c"
     cpu.mkdir(parents=True)
@@ -485,11 +489,11 @@ def _flat_cpu_archive(tmp_path: Path) -> tuple[Path, Path]:
     )
     write_flat_composition_manifest(
         runtime_root=runtime,
-        generation_id="a" * 32,
+        generation_id=generation_id,
     )
     activate_flat_composition(
         runtime_root=runtime,
-        generation_id="a" * 32,
+        generation_id=generation_id,
     )
     files = sorted(path for path in runtime.rglob("*") if path.is_file())
     archive = tmp_path / "ocr-cpu.zip"
@@ -544,22 +548,83 @@ def test_flat_cpu_runtime_bootstrap_installs_atomically_with_short_staging(
     assert not tuple(target.parent.glob(".c-*"))
 
 
-def test_cpu_runtime_bootstrap_reuses_any_valid_existing_composition(
+def test_cpu_runtime_bootstrap_reinstalls_valid_but_different_composition(
     tmp_path: Path,
 ) -> None:
-    archive, manifest = _flat_cpu_archive(tmp_path)
+    old_archive, old_manifest = _flat_cpu_archive(
+        tmp_path / "old",
+        generation_id="a" * 32,
+    )
+    new_archive, new_manifest = _flat_cpu_archive(
+        tmp_path / "new",
+        generation_id="b" * 32,
+    )
     target = tmp_path / "runtimes" / "ocr-cpu"
 
-    bootstrap_cpu_runtime(archive=archive, manifest_path=manifest, target=target)
-    bootstrap_cpu_runtime(archive=archive, manifest_path=manifest, target=target)
-
-    pointer = target / "active-composition.json"
-    pointer.write_text(pointer.read_text(encoding="utf-8") + " ", encoding="utf-8")
     bootstrap_cpu_runtime(
-        archive=archive,
-        manifest_path=manifest,
+        archive=old_archive,
+        manifest_path=old_manifest,
         target=target,
     )
+    bootstrap_cpu_runtime(
+        archive=new_archive,
+        manifest_path=new_manifest,
+        target=target,
+    )
+
+    pointer = target / "active-composition.json"
+    assert json.loads(pointer.read_text(encoding="utf-8"))["generation_id"] == (
+        "b" * 32
+    )
+    assert not tuple(target.parent.glob(".c-old-*"))
+
+
+def test_cpu_runtime_failed_upgrade_restores_previous_composition(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    old_archive, old_manifest = _flat_cpu_archive(
+        tmp_path / "old",
+        generation_id="a" * 32,
+    )
+    new_archive, new_manifest = _flat_cpu_archive(
+        tmp_path / "new",
+        generation_id="b" * 32,
+    )
+    target = tmp_path / "runtimes" / "ocr-cpu"
+    bootstrap_cpu_runtime(
+        archive=old_archive,
+        manifest_path=old_manifest,
+        target=target,
+    )
+    old_pointer = (target / "active-composition.json").read_bytes()
+    from dahe.release import updater as updater_module
+
+    original_resolve = updater_module.resolve_active_composition
+    call_count = 0
+
+    def fail_after_activation(*args: object, **kwargs: object) -> object:
+        nonlocal call_count
+        call_count += 1
+        if call_count == 3:
+            raise RuntimeError("simulated activated composition failure")
+        return original_resolve(*args, **kwargs)
+
+    monkeypatch.setattr(
+        "dahe.release.updater.resolve_active_composition",
+        fail_after_activation,
+    )
+
+    with pytest.raises(CpuRuntimeBootstrapError) as failure:
+        bootstrap_cpu_runtime(
+            archive=new_archive,
+            manifest_path=new_manifest,
+            target=target,
+        )
+
+    assert failure.value.error_code == "cpu_runtime_composition_invalid"
+    assert (target / "active-composition.json").read_bytes() == old_pointer
+    assert not tuple(target.parent.glob(".c-old-*"))
 
 
 def test_cpu_runtime_bootstrap_rejects_invalid_existing_composition(

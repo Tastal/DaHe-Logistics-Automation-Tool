@@ -67,24 +67,31 @@ def test_candidate_window_starts_at_business_day_boundary() -> None:
 
     assert window.start == datetime(2026, 7, 29, 14, 0, tzinfo=SHANGHAI)
     assert window.end == datetime(2026, 7, 29, 20, 15, tzinfo=SHANGHAI)
-    assert window.safety_end == datetime(
-        2026,
-        7,
-        30,
-        14,
-        30,
-        tzinfo=SHANGHAI,
-    )
+    assert window.safety_end == window.end
 
 
 @pytest.mark.domain
-def test_candidate_window_caps_explicit_now_at_next_day_1430() -> None:
+def test_candidate_window_has_no_artificial_day_cap() -> None:
     window = candidate_query_window(
         date(2026, 7, 29),
         now=datetime(2026, 7, 31, 8, 0, tzinfo=SHANGHAI),
     )
 
-    assert window.end == datetime(2026, 7, 30, 14, 30, tzinfo=SHANGHAI)
+    assert window.end == datetime(2026, 7, 31, 8, 0, tzinfo=SHANGHAI)
+
+
+@pytest.mark.domain
+def test_candidate_window_supports_a_frozen_fixed_end() -> None:
+    window = candidate_query_window(
+        date(2026, 7, 29),
+        now=datetime(2026, 7, 31, 8, 0, tzinfo=SHANGHAI),
+        end_mode="fixed_time",
+        fixed_end_day_offset=1,
+        fixed_end_time=datetime.min.time().replace(hour=15, minute=30),
+    )
+
+    assert window.end == datetime(2026, 7, 30, 15, 30, tzinfo=SHANGHAI)
+    assert window.safety_end == window.end
 
 
 @pytest.mark.domain

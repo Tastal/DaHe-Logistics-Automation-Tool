@@ -6,7 +6,9 @@ import json
 import threading
 import time
 from collections.abc import Callable, Iterator, Sequence
+from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
+from datetime import time as wall_time
 from pathlib import Path
 from typing import Literal
 from uuid import uuid4
@@ -111,6 +113,7 @@ from dahe.application.daily.capture import (
     DailyCaptureError,
     DailyCaptureRequest,
 )
+from dahe.application.daily.report_workbook import DailyReportSettings
 from dahe.diagnostics.runtime_log import RuntimeLogStore
 from dahe.domain.daily.calendar import (
     SHANGHAI,
@@ -136,6 +139,14 @@ from dahe.ports.jobs import (
 from dahe.ports.platform_credentials import PlatformCredentialError
 
 _FORMAL_DAILY_PAGE_SIZE = 5
+
+
+@dataclass(frozen=True, slots=True)
+class _DailyCaptureRange:
+    start_time: wall_time
+    end_mode: Literal["system_current_time", "fixed_time"]
+    fixed_end_day_offset: int
+    fixed_end_time: wall_time
 
 _SAFE_BROWSER_VALIDATION_FAILURES = {
     "browser_read_login_required": (
@@ -875,12 +886,29 @@ def build_platform_router(
     load_settlement_ready_waybill_numbers: (
         Callable[..., tuple[str, ...]] | None
     ) = None,
+    load_daily_report_settings: Callable[[], DailyReportSettings] | None = None,
     expose_internal_codes: bool = True,
 ) -> APIRouter:
     router = APIRouter(prefix="/api/v1/platform")
     login_recovery_stop = threading.Event()
     login_recovery_lock = threading.Lock()
     login_recovery_threads: dict[str, threading.Thread] = {}
+
+    def daily_capture_range() -> _DailyCaptureRange:
+        if load_daily_report_settings is None:
+            return _DailyCaptureRange(
+                start_time=wall_time(14, 0),
+                end_mode="system_current_time",
+                fixed_end_day_offset=1,
+                fixed_end_time=wall_time(14, 30),
+            )
+        settings = load_daily_report_settings()
+        return _DailyCaptureRange(
+            start_time=settings.capture_start_time,
+            end_mode=settings.capture_end_mode,
+            fixed_end_day_offset=settings.capture_fixed_end_day_offset,
+            fixed_end_time=settings.capture_fixed_end_time,
+        )
 
     login_diagnostics = frozenset(
         {
@@ -3253,8 +3281,16 @@ def build_platform_router(
                 "装卸车读取尚未准备完成。",
             )
         daily_now = _daily_now()
+        capture_range = daily_capture_range()
         try:
-            candidate_query_window(business_date, now=daily_now)
+            candidate_query_window(
+                business_date,
+                now=daily_now,
+                start_time=capture_range.start_time,
+                end_mode=capture_range.end_mode,
+                fixed_end_day_offset=capture_range.fixed_end_day_offset,
+                fixed_end_time=capture_range.fixed_end_time,
+            )
         except DailyDomainError as exc:
             raise ApiError(
                 422,
@@ -3360,6 +3396,12 @@ def build_platform_router(
                         now=daily_now,
                         source_contract_sha256=(selected_daily_contract.manifest.canonical_sha256),
                         page_size=100,
+                        capture_start_time=capture_range.start_time,
+                        capture_end_mode=capture_range.end_mode,
+                        capture_fixed_end_day_offset=(
+                            capture_range.fixed_end_day_offset
+                        ),
+                        capture_fixed_end_time=capture_range.fixed_end_time,
                     ),
                     now=daily_now,
                 )
@@ -3938,6 +3980,7 @@ def build_platform_router(
                 "The daily read-only browser preflight failed safely.",
             ) from exc
         now = _daily_now()
+        capture_range = daily_capture_range()
         try:
             invocation = daily_invocation_store.create(
                 job_id=job.job_id,
@@ -3950,6 +3993,12 @@ def build_platform_router(
                     now=now,
                     source_contract_sha256=(selected_daily_contract.manifest.canonical_sha256),
                     page_size=_FORMAL_DAILY_PAGE_SIZE,
+                    capture_start_time=capture_range.start_time,
+                    capture_end_mode=capture_range.end_mode,
+                    capture_fixed_end_day_offset=(
+                        capture_range.fixed_end_day_offset
+                    ),
+                    capture_fixed_end_time=capture_range.fixed_end_time,
                 ),
                 now=now,
             )

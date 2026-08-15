@@ -310,6 +310,9 @@ interface WireDailyReport {
   output_directory: string;
   row_count: number;
   loading_net_total: string;
+  candidate_count: number;
+  window_excluded_count: number;
+  missing_effective_time_count: number;
   record_version: number;
   created_at: string;
   confirmed_at: string | null;
@@ -755,6 +758,9 @@ function dailyReport(report: WireDailyReport): DailyReportRecord {
     outputDirectory: report.output_directory,
     rowCount: report.row_count,
     loadingNetTotal: report.loading_net_total,
+    candidateCount: report.candidate_count,
+    windowExcludedCount: report.window_excluded_count,
+    missingEffectiveTimeCount: report.missing_effective_time_count,
     recordVersion: report.record_version,
     createdAt: report.created_at,
     confirmedAt: report.confirmed_at,
@@ -1011,6 +1017,16 @@ export class BrowserAppServices implements AppServices {
       loop9ReviewEnabled: result.loop9_review_enabled ?? false,
       productionReadOnly: result.production_read_only ?? false,
     };
+  }
+
+  async loadReadinessVersion(): Promise<string> {
+    const result = await checkedJson<{ application_version: string }>(
+      "/api/v1/system/readiness",
+    );
+    if (result.application_version !== __APP_VERSION__) {
+      throw new ApiVersionMismatchError();
+    }
+    return result.application_version;
   }
 
   async shutdownApplication(): Promise<void> {
@@ -1971,6 +1987,11 @@ export class BrowserAppServices implements AppServices {
       output_directory: string;
       confirmed: boolean;
       record_version: number;
+      capture_start_time: string;
+      capture_end_mode: "system_current_time" | "fixed_time";
+      capture_fixed_end_day_offset: 0 | 1;
+      capture_fixed_end_time: string;
+      capture_range_covers_report_window: boolean;
     }>("/api/v1/daily/report-settings");
     return {
       shippingMine: result.shipping_mine,
@@ -1980,6 +2001,11 @@ export class BrowserAppServices implements AppServices {
       outputDirectory: result.output_directory,
       confirmed: result.confirmed,
       recordVersion: result.record_version,
+      captureStartTime: result.capture_start_time.slice(0, 5),
+      captureEndMode: result.capture_end_mode,
+      captureFixedEndDayOffset: result.capture_fixed_end_day_offset,
+      captureFixedEndTime: result.capture_fixed_end_time.slice(0, 5),
+      captureRangeCoversReportWindow: result.capture_range_covers_report_window,
     };
   }
 
@@ -2129,6 +2155,11 @@ export class BrowserAppServices implements AppServices {
       output_directory: string;
       confirmed: boolean;
       record_version: number;
+      capture_start_time: string;
+      capture_end_mode: "system_current_time" | "fixed_time";
+      capture_fixed_end_day_offset: 0 | 1;
+      capture_fixed_end_time: string;
+      capture_range_covers_report_window: boolean;
     }>("/api/v1/daily/report-settings", {
       method: "PUT",
       headers: {
@@ -2144,6 +2175,10 @@ export class BrowserAppServices implements AppServices {
         output_directory: input.outputDirectory,
         confirmed: input.confirmed,
         expected_record_version: input.expectedRecordVersion,
+        capture_start_time: input.captureStartTime,
+        capture_end_mode: input.captureEndMode,
+        capture_fixed_end_day_offset: input.captureFixedEndDayOffset,
+        capture_fixed_end_time: input.captureFixedEndTime,
       }),
     });
     return {
@@ -2154,6 +2189,11 @@ export class BrowserAppServices implements AppServices {
       outputDirectory: result.output_directory,
       confirmed: result.confirmed,
       recordVersion: result.record_version,
+      captureStartTime: result.capture_start_time.slice(0, 5),
+      captureEndMode: result.capture_end_mode,
+      captureFixedEndDayOffset: result.capture_fixed_end_day_offset,
+      captureFixedEndTime: result.capture_fixed_end_time.slice(0, 5),
+      captureRangeCoversReportWindow: result.capture_range_covers_report_window,
     };
   }
 

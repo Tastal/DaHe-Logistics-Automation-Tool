@@ -895,8 +895,7 @@ class SqliteLoop3ResourceStore:
                 ),
             )
         ).mappings()
-        candidates: list[dict[str, object]] = []
-        seen_shared: set[str] = set()
+        candidates_by_shared: dict[str, dict[str, object]] = {}
         for row in rows:
             role = str(row["image_role"])
             already_complete = (
@@ -905,7 +904,7 @@ class SqliteLoop3ResourceStore:
                 else bool(row["unloading_ocr_complete"])
             )
             shared_work_id = str(row["shared_work_id"])
-            if already_complete or shared_work_id in seen_shared:
+            if already_complete:
                 continue
             execution_mode = str(row["execution_mode"])
             runtime_kind = (
@@ -925,9 +924,12 @@ class SqliteLoop3ResourceStore:
                 ):
                     continue
                 execution_kind = "ocr_image"
-            seen_shared.add(shared_work_id)
-            candidates.append(
-                {
+            pair_continuation = (
+                bool(row["unloading_ocr_complete"])
+                if role == "loading"
+                else bool(row["loading_ocr_complete"])
+            )
+            candidate = {
                     "owner_kind": "shared_evidence",
                     "owner_id": shared_work_id,
                     "work_item_id": str(row["work_item_id"]),
@@ -942,9 +944,16 @@ class SqliteLoop3ResourceStore:
                         row["pipeline_fingerprint"]
                     ),
                     "image_sha256": str(row["image_sha256"]),
+                    "image_role": role,
+                    "pair_continuation": pair_continuation,
                 }
-            )
-        return candidates
+            existing = candidates_by_shared.get(shared_work_id)
+            if existing is None or (
+                pair_continuation
+                and not bool(existing.get("pair_continuation", False))
+            ):
+                candidates_by_shared[shared_work_id] = candidate
+        return list(candidates_by_shared.values())
 
     def refresh_job_aggregates(
         self,

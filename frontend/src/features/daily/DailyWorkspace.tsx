@@ -340,11 +340,19 @@ export function DailyWorkspace({ services, jobs, productionReadOnly = false, wor
           outputDirectory: effectiveSettings.outputDirectory,
           confirmed: true,
           expectedRecordVersion: 0,
+          captureStartTime: effectiveSettings.captureStartTime,
+          captureEndMode: effectiveSettings.captureEndMode,
+          captureFixedEndDayOffset: effectiveSettings.captureFixedEndDayOffset,
+          captureFixedEndTime: effectiveSettings.captureFixedEndTime,
         });
         setReportSettings(effectiveSettings);
       }
-      setReport(await services.createDailyReport(businessDate, effectiveSettings.recordVersion, contractSubjectCode));
-      showToast("报表已生成。", "success");
+      const created = await services.createDailyReport(businessDate, effectiveSettings.recordVersion, contractSubjectCode);
+      setReport(created);
+      showToast(
+        `报表已生成：候选 ${created.candidateCount} 条，纳入 ${created.rowCount} 条，窗口外 ${created.windowExcludedCount} 条，缺少时间 ${created.missingEffectiveTimeCount} 条。`,
+        "success",
+      );
     }
     catch (error) { setMessage(error instanceof Error ? error.message : "报表生成失败。"); }
     finally { setBusy(false); }

@@ -1,0 +1,30 @@
+{
+  "allowed_external_resources": [
+    "GitHub repository Tastal/DaHe-Logistics-Automation-Tool",
+    "GitHub v1.1.3 release assets",
+    "Tailscale path to DESKTOP-0D9G483",
+    "company computer local NVIDIA driver and GPU"
+  ],
+  "application_version": "1.1.3",
+  "assumptions": [
+    "Schema remains 0041_contract_subject_scope",
+    "report generation is eligible only after the selected subject and business date have zero items needing review",
+    "the company computer keeps v1.1.2 as the sole rollback version",
+    "GPU acceptance requires an active qualified v1.1.3 GPU worker and cannot use CPU fallback as evidence",
+    "no Chengfeng platform read or write is required for this loop"
+  ],
+  "chengfeng_platform_access": false,
+  "frozen_input": "Fix the disabled daily report action and split the date and time inputs into two rows, publish v1.1.3, and deploy the same release to the local and company computers.",
+  "loop_id": "loop-17",
+  "product_or_schema_change": false,
+  "remote_host": "DESKTOP-0D9G483",
+  "schema_revision": "0041_contract_subject_scope",
+  "source_baseline": "59d3293",
+  "write_boundaries": [
+    "project source and Loop 17 release evidence",
+    "GitHub v1.1.3 public source and release",
+    "DaHe v1.1.3 program and GPU runtime files on the local and company computers",
+    "exact old program versions and rejected temporary release directories after successful validation",
+    "temporary SSH deployment key and exact deployment staging directory"
+  ]
+}

@@ -88,6 +88,11 @@ describe("Daily workspace", () => {
     outputDirectory: "C:\\reports",
     confirmed: false,
     recordVersion: 0,
+    captureStartTime: "14:00",
+    captureEndMode: "system_current_time" as const,
+    captureFixedEndDayOffset: 1 as const,
+    captureFixedEndTime: "14:30",
+    captureRangeCoversReportWindow: true,
   };
 
   const reportRecord: DailyReportRecord = {
@@ -100,6 +105,9 @@ describe("Daily workspace", () => {
     dataSnapshotSha256: "d".repeat(64),
     outputDirectory: "C:\\reports",
     rowCount: 1,
+    candidateCount: 1,
+    windowExcludedCount: 0,
+    missingEffectiveTimeCount: 0,
     loadingNetTotal: "33.08",
     recordVersion: 1,
     createdAt: "2026-08-05T20:10:00+08:00",
@@ -207,6 +215,10 @@ describe("Daily workspace", () => {
       outputDirectory: reportSettings.outputDirectory,
       confirmed: true,
       expectedRecordVersion: 0,
+      captureStartTime: reportSettings.captureStartTime,
+      captureEndMode: reportSettings.captureEndMode,
+      captureFixedEndDayOffset: reportSettings.captureFixedEndDayOffset,
+      captureFixedEndTime: reportSettings.captureFixedEndTime,
     }));
     expect(createReport).toHaveBeenCalledWith("2026-08-05", 1, "shanxi_guienbo");
   });

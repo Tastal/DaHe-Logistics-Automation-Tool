@@ -747,6 +747,44 @@ class SqliteDailyStore:
             latest.setdefault(revision.platform_waybill_id, revision)
         return tuple(latest[key] for key in sorted(latest))
 
+    def platform_loading_times_for_revisions(
+        self,
+        revisions: tuple[DailyRecordRevision, ...],
+    ) -> dict[str, datetime | None]:
+        """Return frozen platform loading times without changing record identity."""
+
+        if not revisions:
+            return {}
+        observation_ids = tuple(revision.observation_id for revision in revisions)
+        with self._engine.connect() as connection:
+            rows = tuple(
+                connection.execute(
+                    select(
+                        DAILY_OBSERVATIONS.c.observation_id,
+                        DAILY_OBSERVATIONS.c.snapshot_id,
+                    ).where(
+                        DAILY_OBSERVATIONS.c.observation_id.in_(observation_ids)
+                    )
+                ).mappings()
+            )
+        snapshot_ids = {str(row["snapshot_id"]) for row in rows}
+        candidates_by_snapshot = {
+            snapshot_id: {
+                candidate.platform_waybill_id: candidate.platform_loading_time
+                for candidate in self.get_snapshot(snapshot_id).candidates
+            }
+            for snapshot_id in snapshot_ids
+        }
+        snapshot_for_observation = {
+            str(row["observation_id"]): str(row["snapshot_id"]) for row in rows
+        }
+        return {
+            revision.platform_waybill_id: candidates_by_snapshot.get(
+                snapshot_for_observation.get(revision.observation_id, ""), {}
+            ).get(revision.platform_waybill_id)
+            for revision in revisions
+        }
+
     @staticmethod
     def _latest_revision(
         connection: Any,

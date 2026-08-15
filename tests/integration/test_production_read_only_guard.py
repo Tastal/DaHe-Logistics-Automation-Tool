@@ -347,7 +347,7 @@ def test_migration_collapses_legacy_duplicate_guard_slots(tmp_path: Path) -> Non
         instance_id="production-guard-migration-test",
     )
     try:
-        assert migrated.current_revision() == "0041_contract_subject_scope"
+        assert migrated.current_revision() == "0042_daily_capture_range"
         assert migrated.pre_migration_backup_path is not None
         migrated_status = ProductionReadOnlyGuardStore(migrated).status()
         assert migrated_status.status == "operational_read_only_active"

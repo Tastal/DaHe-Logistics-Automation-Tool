@@ -24,7 +24,10 @@ from dahe.adapters.sqlite.schema import (
     PLATFORM_JOB_SUBJECTS,
     WORK_ITEMS,
 )
-from dahe.application.daily.unloading_time import extract_unloading_time
+from dahe.application.daily.unloading_time import (
+    extract_loading_time,
+    extract_unloading_time,
+)
 from dahe.domain.daily.models import DailyObservationFields, DailyRecordRevision
 from dahe.ports.jobs import IdempotencyConflictError, RecordVersionConflictError
 
@@ -171,7 +174,7 @@ class SqliteDailyItemRepository:
                     ),
                 )
             )
-        outputs = self._load_latest_unloading_outputs(
+        outputs = self._load_latest_ocr_outputs(
             tuple(
                 waybill_number
                 for revision in revisions
@@ -182,7 +185,7 @@ class SqliteDailyItemRepository:
         return tuple(
             self._view_for_machine(
                 revision,
-                unloading_output=(
+                ocr_outputs=(
                     outputs.get(revision.waybill_number)
                     if revision.waybill_number is not None
                     else None
@@ -277,7 +280,7 @@ class SqliteDailyItemRepository:
         materialized = self._load_materialized_observations((machine,))
         if machine.observation_id not in materialized:
             raise DailyItemConflictError("daily item processing is not complete")
-        outputs = self._load_latest_unloading_outputs(
+        outputs = self._load_latest_ocr_outputs(
             (machine.waybill_number,) if machine.waybill_number is not None else (),
             contract_subject_code=contract_subject_code,
         )
@@ -288,7 +291,7 @@ class SqliteDailyItemRepository:
         )
         return self._view_for_machine(
             machine,
-            unloading_output=output,
+            ocr_outputs=output,
             materialized_at=materialized[machine.observation_id],
             contract_subject_code=contract_subject_code,
         )
@@ -312,7 +315,7 @@ class SqliteDailyItemRepository:
             for revision in machine
             if revision.observation_id in materialized
         )
-        outputs = self._load_latest_unloading_outputs(
+        outputs = self._load_latest_ocr_outputs(
             tuple(
                 waybill_number
                 for revision in machine
@@ -323,7 +326,7 @@ class SqliteDailyItemRepository:
         for revision in machine:
             view = self._view_for_machine(
                 revision,
-                unloading_output=(
+                ocr_outputs=(
                     outputs.get(revision.waybill_number)
                     if revision.waybill_number is not None
                     else None
@@ -346,6 +349,78 @@ class SqliteDailyItemRepository:
                 )
             )
         return tuple(result)
+
+    def manual_loading_time_ids(
+        self,
+        revisions: tuple[DailyRecordRevision, ...],
+        *,
+        contract_subject_code: str = "shanxi_guienbo",
+    ) -> frozenset[str]:
+        """Return waybills whose effective loading time was explicitly reviewed."""
+
+        if not revisions:
+            return frozenset()
+        identities = tuple(revision.platform_waybill_id for revision in revisions)
+        with self._runtime.engine.connect() as connection:
+            rows = tuple(
+                connection.execute(
+                    select(
+                        DAILY_MANUAL_REVISIONS.c.platform_waybill_id,
+                        DAILY_MANUAL_REVISIONS.c.changes_json,
+                    )
+                    .where(
+                        DAILY_MANUAL_REVISIONS.c.platform_waybill_id.in_(identities),
+                        DAILY_MANUAL_REVISIONS.c.contract_subject_code
+                        == contract_subject_code,
+                    )
+                    .order_by(
+                        DAILY_MANUAL_REVISIONS.c.platform_waybill_id,
+                        DAILY_MANUAL_REVISIONS.c.manual_revision_number,
+                    )
+                ).mappings()
+            )
+        result: set[str] = set()
+        for row in rows:
+            payload = json.loads(str(row["changes_json"]))
+            if isinstance(payload, dict) and "loading_time" in payload:
+                result.add(str(row["platform_waybill_id"]))
+        return frozenset(result)
+
+    def primary_loading_time_ids(
+        self,
+        revisions: tuple[DailyRecordRevision, ...],
+        *,
+        contract_subject_code: str = "shanxi_guienbo",
+    ) -> frozenset[str]:
+        """Return waybills whose effective loading time came from OCR or review."""
+
+        result = set(
+            self.manual_loading_time_ids(
+                revisions,
+                contract_subject_code=contract_subject_code,
+            )
+        )
+        outputs = self._load_latest_ocr_outputs(
+            tuple(
+                waybill_number
+                for revision in revisions
+                if (waybill_number := revision.waybill_number) is not None
+            ),
+            contract_subject_code=contract_subject_code,
+        )
+        for revision in revisions:
+            if revision.waybill_number is None:
+                continue
+            output = outputs.get(revision.waybill_number)
+            if output is None:
+                continue
+            if extract_loading_time(
+                output[0],
+                platform_loading_time=revision.fields.loading_time,
+                planned_date=revision.fields.planned_date,
+            ) is not None:
+                result.add(revision.platform_waybill_id)
+        return frozenset(result)
 
     def append_revision(
         self,
@@ -484,7 +559,7 @@ class SqliteDailyItemRepository:
         self,
         machine: DailyRecordRevision,
         *,
-        unloading_output: tuple[str, str] | None = None,
+        ocr_outputs: tuple[str | None, str | None, str] | None = None,
         materialized_at: str | None = None,
         contract_subject_code: str = "shanxi_guienbo",
     ) -> DailyItemView:
@@ -504,16 +579,34 @@ class SqliteDailyItemRepository:
         payload = _field_payload(machine.fields)
         sources = {field: "machine" for field in EDITABLE_FIELDS}
         updated_at = machine.created_at.isoformat()
+        loading_output = None if ocr_outputs is None else ocr_outputs[0]
+        unloading_output = None if ocr_outputs is None else ocr_outputs[1]
+        outputs_updated_at = None if ocr_outputs is None else ocr_outputs[2]
+        if loading_output is not None:
+            extracted_loading = extract_loading_time(
+                loading_output,
+                platform_loading_time=machine.fields.loading_time,
+                planned_date=machine.fields.planned_date,
+            )
+            if extracted_loading is not None:
+                payload["loading_time"] = extracted_loading.isoformat()
+                sources["loading_time"] = "ocr"
+                assert outputs_updated_at is not None
+                updated_at = outputs_updated_at
         if payload.get("unloading_time") is None and unloading_output is not None:
+            effective_loading_time = DailyObservationFields.from_payload(
+                payload
+            ).loading_time
             extracted = extract_unloading_time(
-                unloading_output[0],
-                loading_time=machine.fields.loading_time,
+                unloading_output,
+                loading_time=effective_loading_time,
                 planned_date=machine.fields.planned_date,
             )
             if extracted is not None:
                 payload["unloading_time"] = extracted.isoformat()
                 sources["unloading_time"] = "ocr"
-                updated_at = unloading_output[1]
+                assert outputs_updated_at is not None
+                updated_at = outputs_updated_at
         for row in rows:
             try:
                 changes = json.loads(str(row["changes_json"]))
@@ -774,12 +867,12 @@ class SqliteDailyItemRepository:
             result[waybill_number] = index
         return result
 
-    def _load_latest_unloading_outputs(
+    def _load_latest_ocr_outputs(
         self,
         waybill_numbers: tuple[str, ...],
         *,
         contract_subject_code: str = "shanxi_guienbo",
-    ) -> dict[str, tuple[str, str]]:
+    ) -> dict[str, tuple[str | None, str | None, str]]:
         if not waybill_numbers:
             return {}
         linked_jobs = select(DAILY_OPERATIONAL_OCR_BATCHES.c.ocr_job_id).where(
@@ -795,6 +888,7 @@ class SqliteDailyItemRepository:
                 connection.execute(
                     select(
                         WORK_ITEMS.c.waybill_number,
+                        OCR_RUN_GENERATIONS.c.loading_output_json,
                         OCR_RUN_GENERATIONS.c.unloading_output_json,
                         OCR_RUN_GENERATIONS.c.updated_at,
                     )
@@ -813,14 +907,21 @@ class SqliteDailyItemRepository:
                         ),
                         WORK_ITEMS.c.waybill_number.in_(waybill_numbers),
                         OCR_RUN_GENERATIONS.c.status == "succeeded",
-                        OCR_RUN_GENERATIONS.c.unloading_output_json.is_not(None),
+                        (
+                            OCR_RUN_GENERATIONS.c.loading_output_json.is_not(None)
+                            | OCR_RUN_GENERATIONS.c.unloading_output_json.is_not(None)
+                        ),
                     )
                     .order_by(OCR_RUN_GENERATIONS.c.updated_at.desc())
                 )
             )
-        result: dict[str, tuple[str, str]] = {}
-        for waybill_number, output_json, updated_at in rows:
+        result: dict[str, tuple[str | None, str | None, str]] = {}
+        for waybill_number, loading_json, unloading_json, updated_at in rows:
             key = str(waybill_number)
             if key not in result:
-                result[key] = (str(output_json), str(updated_at))
+                result[key] = (
+                    None if loading_json is None else str(loading_json),
+                    None if unloading_json is None else str(unloading_json),
+                    str(updated_at),
+                )
         return result

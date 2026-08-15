@@ -24,7 +24,7 @@ from tests.fixtures.loop7_composite_lifecycle import (
     add_composite_lifecycle_authority,
 )
 
-EXPECTED_REVISION = "0041_contract_subject_scope"
+EXPECTED_REVISION = "0042_daily_capture_range"
 TEMPLATE_TABLES = {
     "template_families",
     "template_reference_origins",

@@ -20,7 +20,7 @@ ORIGIN = "http://127.0.0.1:8877"
 
 
 def _manifest() -> bytes:
-    version = "1.1.4"
+    version = "1.1.5"
     root = "https://github.com/Tastal/DaHe-Logistics-Automation-Tool"
     payload = {
         "schema_version": 1,
@@ -49,8 +49,8 @@ def _manifest() -> bytes:
             ),
         },
         "minimum_schema_revision": "0039_network_batch_default",
-        "target_schema_revision": "0041_contract_subject_scope",
-        "alembic_revision": "0041_contract_subject_scope",
+        "target_schema_revision": "0042_daily_capture_range",
+        "alembic_revision": "0042_daily_capture_range",
         "minimum_updater_version": "1.0.0",
         "resource_sha256": "c" * 64,
     }
@@ -130,7 +130,7 @@ def test_readiness_exposes_exact_release_and_schema_without_a_session(
         "application_version": __version__,
         "build_git_commit": "d" * 40,
         "resource_sha256": "e" * 64,
-        "schema_revision": "0041_contract_subject_scope",
+        "schema_revision": "0042_daily_capture_range",
     }
 
 

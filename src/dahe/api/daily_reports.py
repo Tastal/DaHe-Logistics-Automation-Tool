@@ -6,7 +6,7 @@ import hashlib
 import json
 import os
 from collections.abc import Callable
-from datetime import date
+from datetime import date, time
 from pathlib import Path
 from typing import TypeVar
 
@@ -49,6 +49,13 @@ class SaveDailyReportSettingsRequest(BaseModel):
     output_directory: Path
     confirmed: bool
     expected_record_version: int = Field(ge=0)
+    capture_start_time: time = time(14, 0)
+    capture_end_mode: str = Field(
+        default="system_current_time",
+        pattern="^(system_current_time|fixed_time)$",
+    )
+    capture_fixed_end_day_offset: int = Field(default=1, ge=0, le=1)
+    capture_fixed_end_time: time = time(14, 30)
 
     @field_validator(
         "shipping_mine",
@@ -106,6 +113,13 @@ def _hash(operation: str, payload: BaseModel) -> str:
 def _settings_payload(settings: DailyReportSettings) -> dict[str, object]:
     return {
         "coal_type": settings.coal_type,
+        "capture_start_time": settings.capture_start_time.isoformat(),
+        "capture_end_mode": settings.capture_end_mode,
+        "capture_fixed_end_day_offset": settings.capture_fixed_end_day_offset,
+        "capture_fixed_end_time": settings.capture_fixed_end_time.isoformat(),
+        "capture_range_covers_report_window": (
+            settings.report_window_is_fully_covered()
+        ),
         "confirmed": settings.confirmed,
         "output_directory": str(settings.output_directory),
         "query_place_keyword": settings.query_place_keyword,
@@ -176,6 +190,10 @@ def build_daily_report_router(
                 output_directory=payload.output_directory,
                 confirmed=payload.confirmed,
                 expected_record_version=payload.expected_record_version,
+                capture_start_time=payload.capture_start_time,
+                capture_end_mode=payload.capture_end_mode,
+                capture_fixed_end_day_offset=payload.capture_fixed_end_day_offset,
+                capture_fixed_end_time=payload.capture_fixed_end_time,
                 idempotency_key=idempotency_key,
                 request_hash=_hash("save_settings", payload),
             )

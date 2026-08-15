@@ -1,0 +1,78 @@
+{
+  "accepted_at": "2026-08-15T19:11:19.7910027+08:00",
+  "application_version": "1.1.4",
+  "automated_checks": {
+    "authoritative_command": ".venv\\Scripts\\python.exe tools\\check.py",
+    "edge_e2e_command": "npm.cmd --prefix frontend run test:e2e",
+    "edge_e2e_passed": 14,
+    "frontend_tests_passed": 152,
+    "mypy_source_files": 364,
+    "python_tests_passed": 3054,
+    "python_tests_skipped": 9,
+    "ruff_status": "passed",
+    "skip_reason": "The current Windows account cannot create symbolic links; all non-link path-safety coverage passed."
+  },
+  "daily_report_reconciliation": {
+    "candidate_rows": 90,
+    "expected_included_rows": 82,
+    "missing_effective_time_rows": 0,
+    "outside_after_window_rows": 1,
+    "outside_before_window_rows": 7,
+    "outside_window_rows": 8,
+    "source_workbook_sha256": "62e6f78dcbb9da6f49e25017a2f825617b6a9fb8a2c9224048294f6f9ef4a86e",
+    "strict_window": "[2026-08-13T14:00:00+08:00, 2026-08-14T14:00:00+08:00)"
+  },
+  "implementation": {
+    "candidate_range_frozen_per_task": true,
+    "candidate_range_version_protected": true,
+    "gpu_to_cpu_pair_restart_preserved": true,
+    "loading_ticket_ocr_time_precedes_platform_fallback": true,
+    "one_gpu_worker_and_one_gpu_slot": true,
+    "platform_fallback_does_not_fill_excel_loading_time": true,
+    "report_reconciliation_counts_returned": true,
+    "same_vehicle_second_side_priority": true,
+    "schema_revision": "0042_daily_capture_range"
+  },
+  "read_only_chengfeng": {
+    "route": "/wayBill",
+    "shanxi_guienbo": {
+      "audit_evidence_sha256": "6753ac5067d04da008a247fa3d3e0e21624dd3eb599c15a7ff062155165e7532",
+      "cache_refresh_count": 1,
+      "frozen_end": "2026-08-15T18:41:37.770929+08:00",
+      "frozen_start": "2026-08-15T14:00:00+08:00",
+      "job_id": "92fa4f9b3a5843cbb973d2014cea4bde",
+      "new_response_total": 1,
+      "page_count": 1,
+      "request_operations": {
+        "download_ticket_image": 2,
+        "get_waybill_detail": 1,
+        "list_daily_waybills": 1
+      }
+    },
+    "shanghai_jinyisheng": {
+      "audit_evidence_sha256": "4bbb004057999ea801cc547662b606e8c6ac818c0a476a95ae772dd24176d51f",
+      "cache_refresh_count": 2,
+      "frozen_end": "2026-08-15T18:41:01.209061+08:00",
+      "frozen_start": "2026-08-15T14:00:00+08:00",
+      "job_id": "8d15e19ace9e4c8885bfb12b277abc0d",
+      "new_response_total": 0,
+      "page_count": 1,
+      "request_operations": {
+        "list_daily_waybills": 1
+      }
+    },
+    "platform_business_write_request_count": 0,
+    "redirect_count": 0,
+    "settlement_list_request_count_during_daily": 0,
+    "single_chengfeng_tab": true
+  },
+  "result": "passed",
+  "schema_version": 1,
+  "ui_and_identity": {
+    "ico_byte_size": 69887,
+    "ico_sha256": "db5ec315867b393b2576ffe5b2720518dc12928318fcebe3322807ce3a31fd15",
+    "ico_sizes": [16, 24, 32, 48, 64, 128, 256],
+    "readiness_authoritative_version_only": true,
+    "scaling_percentages": [100, 125, 150, 200]
+  }
+}

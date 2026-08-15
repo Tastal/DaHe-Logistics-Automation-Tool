@@ -176,6 +176,11 @@ export interface DailyReportSettings {
   outputDirectory: string;
   confirmed: boolean;
   recordVersion: number;
+  captureStartTime: string;
+  captureEndMode: "system_current_time" | "fixed_time";
+  captureFixedEndDayOffset: 0 | 1;
+  captureFixedEndTime: string;
+  captureRangeCoversReportWindow: boolean;
 }
 
 export interface DailyReportRecord {
@@ -188,6 +193,9 @@ export interface DailyReportRecord {
   dataSnapshotSha256: string;
   outputDirectory: string;
   rowCount: number;
+  candidateCount: number;
+  windowExcludedCount: number;
+  missingEffectiveTimeCount: number;
   loadingNetTotal: string;
   recordVersion: number;
   createdAt: string;
@@ -262,6 +270,10 @@ export interface SaveDailyReportSettingsInput {
   outputDirectory: string;
   confirmed: boolean;
   expectedRecordVersion: number;
+  captureStartTime: string;
+  captureEndMode: "system_current_time" | "fixed_time";
+  captureFixedEndDayOffset: 0 | 1;
+  captureFixedEndTime: string;
 }
 
 export interface PlatformAction {
@@ -482,6 +494,7 @@ export interface ConsoleEvent {
 
 export interface AppServices {
   bootstrap(): Promise<BootstrapResult>;
+  loadReadinessVersion?(): Promise<string>;
   loadSnapshot(): Promise<ConsoleSnapshot>;
   loadResources(): Promise<ResourceSummary[]>;
   loadJobItems(jobId: string): Promise<JobItem[]>;

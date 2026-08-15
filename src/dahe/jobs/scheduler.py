@@ -27,6 +27,17 @@ def choose_candidate(
         >= highest_base - base_priority(candidate)
     ]
 
+    # A single persistent OCR worker should finish the other image for the
+    # same truck before rotating to another job. The preference lasts for one
+    # image only; normal cross-job fairness resumes after the pair completes.
+    paired = [
+        candidate
+        for candidate in eligible
+        if bool(candidate.get("pair_continuation", False))
+    ]
+    if paired:
+        eligible = paired
+
     def priority(candidate: dict[str, object]) -> tuple[int, int, str, int]:
         last_grant = int(str(candidate.get("last_granted_sequence", 0)))
         if "last_granted_sequence" not in candidate:

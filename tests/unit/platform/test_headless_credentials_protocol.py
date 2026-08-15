@@ -84,7 +84,7 @@ def test_operational_protocol_failure_uses_value_free_specific_code(
             daily_command,
             RuntimeError("private detail must not be exposed"),
         )
-        == "browser_daily_direct_prepare_failed"
+        == "browser_daily_direct_prepare_unexpected_runtimeerror"
     )
 
 

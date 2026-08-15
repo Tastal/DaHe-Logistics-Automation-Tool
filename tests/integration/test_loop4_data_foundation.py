@@ -138,6 +138,66 @@ def test_fresh_runtime_is_at_migration_head_with_required_sqlite_pragmas(
         runtime.close()
 
 
+def test_upgrade_0041_adds_versioned_daily_capture_range_without_data_loss(
+    tmp_path: Path,
+    project_root: Path,
+) -> None:
+    database_path = tmp_path / "upgrade-from-0041" / "dahe.sqlite3"
+    database_path.parent.mkdir(parents=True)
+    config = _migration_config(project_root, database_path)
+    command.upgrade(config, "0041_contract_subject_scope")
+    with sqlite3.connect(database_path) as connection:
+        connection.execute(
+            """
+            INSERT INTO daily_report_settings (
+                settings_id, shipping_mine, coal_type, unloading_place,
+                query_place_keyword, output_directory, confirmed,
+                record_version, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                "primary",
+                "preserved-mine",
+                "preserved-coal",
+                "preserved-place",
+                "preserved-keyword",
+                "C:/reports",
+                1,
+                7,
+                "2026-08-15T00:00:00+00:00",
+            ),
+        )
+        connection.commit()
+
+    command.upgrade(config, "head")
+    command.upgrade(config, "head")
+
+    with sqlite3.connect(database_path) as connection:
+        row = connection.execute(
+            """
+            SELECT shipping_mine, record_version, capture_start_time,
+                   capture_end_mode, capture_fixed_end_day_offset,
+                   capture_fixed_end_time
+            FROM daily_report_settings WHERE settings_id = 'primary'
+            """
+        ).fetchone()
+        revision = connection.execute(
+            "SELECT version_num FROM alembic_version"
+        ).fetchone()
+        integrity = connection.execute("PRAGMA integrity_check").fetchone()
+
+    assert row == (
+        "preserved-mine",
+        7,
+        "14:00:00",
+        "system_current_time",
+        1,
+        "14:30:00",
+    )
+    assert revision == ("0042_daily_capture_range",)
+    assert integrity == ("ok",)
+
+
 def test_runtime_upgrades_0001_with_backup_and_preserves_data(
     tmp_path: Path,
     project_root: Path,
@@ -184,14 +244,14 @@ def test_runtime_upgrades_0001_with_backup_and_preserves_data(
 
     runtime = _runtime(data_root, project_root, instance_id="upgrade-0001-test")
     try:
-        assert runtime.current_revision() == ("0041_contract_subject_scope")
+        assert runtime.current_revision() == "0042_daily_capture_range"
         assert runtime.pre_migration_backup_path is not None
         backup_path = runtime.pre_migration_backup_path
         manifest = json.loads((backup_path / "manifest.json").read_text(encoding="utf-8"))
         backup_database = backup_path / "dahe.sqlite3"
 
         assert manifest["from_revision"] == "0001_loop4"
-        assert manifest["to_revision"] == ("0041_contract_subject_scope")
+        assert manifest["to_revision"] == "0042_daily_capture_range"
         assert (
             manifest["database_sha256"] == hashlib.sha256(backup_database.read_bytes()).hexdigest()
         )
@@ -580,7 +640,7 @@ def test_upgrade_0020_preserves_settlement_identity_children(
     with sqlite3.connect(database_path) as connection:
         connection.execute("PRAGMA foreign_keys=ON")
         assert connection.execute("SELECT version_num FROM alembic_version").fetchone() == (
-            "0041_contract_subject_scope",
+            "0042_daily_capture_range",
         )
         assert connection.execute(
             """

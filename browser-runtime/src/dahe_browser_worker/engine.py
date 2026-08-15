@@ -2974,6 +2974,7 @@ class BrowserEngine:
         self._operational_daily_list_seen = False
         self._operational_daily_authority_body: dict[str, object] | None = None
         self._operational_daily_authority_seen = False
+        self._operational_daily_authority_url: str | None = None
         self._staging_root: Path | None = None
         self._detail_image_grants: dict[str, float] = {}
         self._monotonic = monotonic
@@ -3667,11 +3668,18 @@ class BrowserEngine:
             raise BrowserReadError("browser_daily_prepare_required")
         self._operational_daily_authority_body = dict(private_body)
         self._operational_daily_authority_seen = False
+        self._operational_daily_authority_url = (
+            f"{_CHENGFENG_ORIGIN}{CHENGFENG_DAILY_LIST_PATH}?t={uuid4().int}"
+        )
         native_response = None
         try:
             _, _, query_button = self._wait_for_daily_controls(page)
             with page.expect_response(
-                lambda candidate: _is_daily_native_request(getattr(candidate, "request", None)),
+                lambda candidate: (
+                    self._operational_daily_authority_url is not None
+                    and str(getattr(candidate, "url", ""))
+                    == self._operational_daily_authority_url
+                ),
                 timeout=SESSION_HEADER_QUERY_BUTTON_TIMEOUT_MS,
             ) as response_info:
                 query_button.click(timeout=SESSION_HEADER_QUERY_BUTTON_TIMEOUT_MS)
@@ -3748,6 +3756,7 @@ class BrowserEngine:
         finally:
             self._operational_daily_authority_body = None
             self._operational_daily_authority_seen = False
+            self._operational_daily_authority_url = None
 
     def _refresh_daily_page_authority_after_zero(self, page: Any) -> None:
         """Rebuild the private daily baseline after one authoritative zero."""
@@ -4427,7 +4436,12 @@ class BrowserEngine:
                 )
             ):
                 self._operational_daily_authority_seen = True
+                authority_url = self._operational_daily_authority_url
+                if authority_url is None:
+                    route.abort()
+                    return
                 route.continue_(
+                    url=authority_url,
                     post_data=json.dumps(
                         daily_authority_body,
                         ensure_ascii=False,
@@ -4484,6 +4498,7 @@ class BrowserEngine:
         self._operational_daily_list_seen = False
         self._operational_daily_authority_body = None
         self._operational_daily_authority_seen = False
+        self._operational_daily_authority_url = None
 
     def _human_page_or_create(self, *, wait_for_hydrated: bool = False) -> Any:
         """Return the one Chengfeng page without touching unrelated tabs."""
@@ -4798,6 +4813,7 @@ class BrowserEngine:
         self._operational_daily_list_seen = False
         self._operational_daily_authority_body = None
         self._operational_daily_authority_seen = False
+        self._operational_daily_authority_url = None
 
     def _stage_batch_payload(
         self,
@@ -5564,6 +5580,7 @@ class BrowserEngine:
         captured_headers: dict[str, str] | None = None
         captured_private_body: dict[str, object] | None = None
         page = human_page
+        prepare_stage = "route_install"
         try:
 
             def daily_navigation_route(route: Any) -> None:
@@ -5590,6 +5607,7 @@ class BrowserEngine:
 
             route_handler = daily_navigation_route
             page.route("**/*", route_handler)
+            prepare_stage = "cache_refresh"
             self._refresh_page_without_cache(
                 page,
                 error_code="browser_daily_cache_refresh_failed",
@@ -5602,6 +5620,7 @@ class BrowserEngine:
             # are substituted after capture.
             captured_headers = None
             captured_private_body = None
+            prepare_stage = "baseline_query"
             _, _, query_button = self._wait_for_daily_controls(page)
             with page.expect_response(
                 lambda candidate: _is_daily_native_request(getattr(candidate, "request", None)),
@@ -5625,6 +5644,7 @@ class BrowserEngine:
             if type(native_total) is not int or native_total < 0:
                 raise BrowserReadError("browser_daily_response_contract_changed")
             visible_total = _daily_platform_display_total(page)
+            prepare_stage = "route_validation"
             current_url = urlsplit(str(getattr(page, "url", "")))
             if (
                 current_url.scheme != "https"
@@ -5635,6 +5655,7 @@ class BrowserEngine:
                 or current_url.fragment
             ):
                 raise BrowserReadError("browser_daily_route_unavailable")
+            prepare_stage = "subject_confirmation"
             final_subject_evidence = _ensure_contract_subject(
                 page,
                 contract_subject_code=contract_subject_code,
@@ -5653,8 +5674,10 @@ class BrowserEngine:
             self._daily_platform_display_total = visible_total
             if visible_total is not None and visible_total != native_total:
                 raise BrowserReadError("browser_daily_scope_total_mismatch")
+            prepare_stage = "authority_install"
             self._install_operational_batch_page(page)
             probe_body = _daily_discovery_body(datetime.now())
+            prepare_stage = "probe_query"
             probe_content, response_fields = self._read_daily_list_in_page(
                 body=probe_body,
                 # A completed business window may legitimately contain no
@@ -5722,11 +5745,12 @@ class BrowserEngine:
             self._daily_cache_refresh_count = 0
             with suppress(Exception):
                 page.bring_to_front()
-            raise BrowserReadError(
-                "browser_daily_automated_transition_failed"
+            prefix = (
+                "browser_daily_automated_transition"
                 if require_automated_transition
-                else "browser_daily_direct_prepare_failed"
-            ) from exc
+                else "browser_daily_direct_prepare"
+            )
+            raise BrowserReadError(f"{prefix}_{prepare_stage}_failed") from exc
 
     def daily_preparation_evidence(
         self,

@@ -20,6 +20,7 @@ from dahe.adapters.sqlite.schema import (
     PLATFORM_ACCESS_EVENTS,
     PLATFORM_ACCESS_WINDOWS,
     PLATFORM_CONTROL_IDEMPOTENCY,
+    PLATFORM_JOB_SUBJECTS,
     WORK_ITEMS,
 )
 from dahe.application.daily.capture import (
@@ -633,10 +634,18 @@ class SqliteDailyInvocationStore:
                         "daily invocation identity has different content"
                     )
                 return stored
+            subject_code = connection.execute(
+                select(PLATFORM_JOB_SUBJECTS.c.contract_subject_code).where(
+                    PLATFORM_JOB_SUBJECTS.c.job_id == job_id
+                )
+            ).scalar_one_or_none()
+            if subject_code is None:
+                subject_code = "shanxi_guienbo"
             connection.execute(
                 DAILY_CAPTURE_INVOCATIONS.insert().values(
                     invocation_id=request.invocation_id,
                     job_id=job_id,
+                    contract_subject_code=str(subject_code),
                     access_window_id=access_window_id,
                     request_fingerprint=request.fingerprint,
                     request_json=_canonical(request.to_payload()),

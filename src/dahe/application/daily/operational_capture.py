@@ -86,6 +86,23 @@ class _FrozenDailyList:
     query_scope_sha256: str | None
     scope_complete: bool
     scope_diagnostic_code: str | None
+    list_request_count: int
+
+
+class _DailyListTotalChanged(RuntimeError):
+    """Signals one stale or racing page response during list freezing."""
+
+    def __init__(
+        self,
+        *,
+        list_request_count: int,
+        expected_total: int,
+        actual_total: int,
+    ) -> None:
+        super().__init__("daily list total changed")
+        self.list_request_count = list_request_count
+        self.expected_total = expected_total
+        self.actual_total = actual_total
 
 
 class FastOperationalDailyCaptureCoordinator:
@@ -109,6 +126,7 @@ class FastOperationalDailyCaptureCoordinator:
         self._clock = clock
         self._concurrency_provider = concurrency_provider
         self._progress_sink = progress_sink
+        self._list_request_counts: dict[str, int] = {}
 
     def advance(
         self,
@@ -127,7 +145,6 @@ class FastOperationalDailyCaptureCoordinator:
             page_size=1,
             record_version=invocation.record_version,
         )
-
         def read_list(
             _view: object,
             _authority: BrowserCommandAuthority,
@@ -135,6 +152,9 @@ class FastOperationalDailyCaptureCoordinator:
             frozen = self._freeze_daily_list(
                 request=request,
                 list_port=list_port,
+            )
+            self._list_request_counts[invocation.job_id] = (
+                frozen.list_request_count
             )
             snapshot = DailyCandidateSnapshot(
                 snapshot_id=request.invocation_id,
@@ -241,8 +261,22 @@ class FastOperationalDailyCaptureCoordinator:
             invocation=view,
             authority=authority,
         )
-        snapshot = self._daily_store.get_snapshot(
-            request.invocation_id
+        snapshot = self._snapshot_if_available(request.invocation_id)
+        if snapshot is None:
+            snapshot = self._daily_store.get_snapshot(
+                request.invocation_id
+            )
+        list_request_count = self._list_request_counts.get(
+            invocation.job_id,
+            max(
+                1,
+                (
+                    len(snapshot.candidates)
+                    + request.page_size
+                    - 1
+                )
+                // request.page_size,
+            ),
         )
         previous_ids = (
             ()
@@ -284,7 +318,7 @@ class FastOperationalDailyCaptureCoordinator:
             snapshot=snapshot,
             completed_observation_ids=tuple(completed_ids),
         )
-        return OperationalDailyStepResult(
+        result = OperationalDailyStepResult(
             has_more=step.has_more,
             checkpoint=checkpoint,
             platform_read_performed=step.platform_read_performed,
@@ -292,15 +326,7 @@ class FastOperationalDailyCaptureCoordinator:
                 None
                 if step.has_more
                 else {
-                    "list_daily_waybills": max(
-                        1,
-                        (
-                            len(snapshot.candidates)
-                            + request.page_size
-                            - 1
-                        )
-                        // request.page_size,
-                    ),
+                    "list_daily_waybills": list_request_count,
                     "get_waybill_detail": sum(
                         len(batch.details) for batch in step.checkpoints
                     ),
@@ -311,6 +337,9 @@ class FastOperationalDailyCaptureCoordinator:
                 }
             ),
         )
+        if not step.has_more:
+            self._list_request_counts.pop(invocation.job_id, None)
+        return result
 
     def _freeze_daily_list(
         self,
@@ -318,7 +347,39 @@ class FastOperationalDailyCaptureCoordinator:
         request: DailyCaptureRequest,
         list_port: DailyPlatformReadPort,
     ) -> _FrozenDailyList:
+        attempted_request_count = 0
+        for attempt in range(2):
+            try:
+                frozen = self._freeze_daily_list_once(
+                    request=request,
+                    list_port=list_port,
+                )
+                return replace(
+                    frozen,
+                    list_request_count=(
+                        attempted_request_count
+                        + frozen.list_request_count
+                    ),
+                )
+            except _DailyListTotalChanged as exc:
+                attempted_request_count += exc.list_request_count
+                if attempt == 1:
+                    raise OperationalCaptureContractError(
+                        "operational daily total changed during freeze: "
+                        f"page={exc.list_request_count},"
+                        f"expected={exc.expected_total},"
+                        f"actual={exc.actual_total}"
+                    ) from exc
+        raise AssertionError("daily list freeze retry is unreachable")
+
+    def _freeze_daily_list_once(
+        self,
+        *,
+        request: DailyCaptureRequest,
+        list_port: DailyPlatformReadPort,
+    ) -> _FrozenDailyList:
         page_number = 1
+        effective_page_size = request.page_size
         total: int | None = None
         platform_display_total: int | None = None
         query_scope_sha256: str | None = None
@@ -331,11 +392,11 @@ class FastOperationalDailyCaptureCoordinator:
                 query_window=request.query_window,
                 receive_place=request.receive_place,
                 page_number=page_number,
-                page_size=request.page_size,
+                page_size=effective_page_size,
             )
             if (
                 page.page_number != page_number
-                or page.page_size != request.page_size
+                or page.page_size != effective_page_size
                 or page.total < 0
             ):
                 raise OperationalCaptureContractError(
@@ -354,8 +415,10 @@ class FastOperationalDailyCaptureCoordinator:
                     pages_complete = False
                     diagnostic_code = "CF-DAILY-SCOPE-EVIDENCE-MISSING"
             elif page.total != total:
-                raise OperationalCaptureContractError(
-                    "operational daily total changed during freeze"
+                raise _DailyListTotalChanged(
+                    list_request_count=page_number,
+                    expected_total=total,
+                    actual_total=page.total,
                 )
             if page.response_total not in {None, page.total}:
                 pages_complete = False
@@ -384,6 +447,12 @@ class FastOperationalDailyCaptureCoordinator:
                 )
                 for item in page.items
             )
+            if (
+                page_number == 1
+                and total > len(page.items)
+                and 0 < len(page.items) < effective_page_size
+            ):
+                effective_page_size = len(page.items)
             if len(candidates) >= total:
                 break
             if not page.items:
@@ -394,7 +463,7 @@ class FastOperationalDailyCaptureCoordinator:
         assert total is not None
         expected_page_count = max(
             1,
-            (total + request.page_size - 1) // request.page_size,
+            (total + effective_page_size - 1) // effective_page_size,
         )
         if (
             response_page_count is None
@@ -440,6 +509,7 @@ class FastOperationalDailyCaptureCoordinator:
             scope_diagnostic_code=(
                 None if pages_complete else diagnostic_code
             ),
+            list_request_count=page_number,
         )
 
     def _snapshot_if_available(

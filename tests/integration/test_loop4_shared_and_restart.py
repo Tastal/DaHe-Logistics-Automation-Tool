@@ -19,6 +19,7 @@ from dahe.adapters.sqlite.schema import (
     CHECKPOINTS,
     SHARED_EVIDENCE_CONSUMERS,
     SHARED_EVIDENCE_WORK,
+    STAGE_ATTEMPTS,
     WORK_ITEMS,
 )
 from dahe.jobs.scheduler import CooperativeScheduler
@@ -385,16 +386,6 @@ def test_exhausted_shared_retry_propagates_one_source_failure_once(
             diagnostic_code="LOOP3-FAKE-OCR-FAILURE",
         )
         replayed = _shared_loading_consumers(repository)
-        with repository.engine.connect() as connection:
-            ignored_terminal_payloads = [
-                payload
-                for (payload_json,) in connection.execute(
-                    select(CHECKPOINTS.c.payload_json)
-                )
-                if (payload := json.loads(str(payload_json))).get(
-                    "ignored_for_terminal_item"
-                )
-            ]
     finally:
         repository.close()
 
@@ -411,8 +402,63 @@ def test_exhausted_shared_retry_propagates_one_source_failure_once(
         assert row["attempt_count"] == original["attempt_count"] + 1
     assert replay_count == 0
     assert replayed == failed
-    assert ignored_terminal_payloads
-    assert all(payload["committed"] is False for payload in ignored_terminal_payloads)
+
+
+def test_late_work_item_result_is_explicitly_ignored_after_terminal_failure(
+    tmp_path: Path,
+) -> None:
+    repository = TemporarySqliteJobRepository(tmp_path / "late-terminal-result")
+    try:
+        job_id = _create_fixture(repository, "audit-batch-short-002")
+        repository.scheduler_tick(set())
+        with repository.commit_gate.transaction(repository.engine) as connection:
+            attempt = (
+                connection.execute(
+                    select(STAGE_ATTEMPTS)
+                    .join(
+                        WORK_ITEMS,
+                        WORK_ITEMS.c.work_item_id == STAGE_ATTEMPTS.c.owner_id,
+                    )
+                    .where(
+                        STAGE_ATTEMPTS.c.owner_kind == "work_item",
+                        WORK_ITEMS.c.job_id == job_id,
+                    )
+                    .order_by(STAGE_ATTEMPTS.c.stage_attempt_id)
+                )
+                .mappings()
+                .first()
+            )
+            assert attempt is not None
+            work_item_id = str(attempt["owner_id"])
+            connection.execute(
+                update(WORK_ITEMS)
+                .where(WORK_ITEMS.c.work_item_id == work_item_id)
+                .values(status="failed")
+            )
+            repository._loop3._scheduler._finish_work_item_attempt(
+                connection,
+                attempt=attempt,
+                sequence=10_000,
+            )
+
+        with repository.engine.connect() as connection:
+            ignored_terminal_payloads = [
+                payload
+                for (payload_json,) in connection.execute(
+                    select(CHECKPOINTS.c.payload_json).where(
+                        CHECKPOINTS.c.owner_kind == "work_item",
+                        CHECKPOINTS.c.owner_id == work_item_id,
+                    )
+                )
+                if (payload := json.loads(str(payload_json))).get(
+                    "ignored_for_terminal_item"
+                )
+            ]
+    finally:
+        repository.close()
+
+    assert len(ignored_terminal_payloads) == 1
+    assert ignored_terminal_payloads[0]["committed"] is False
 
 
 def test_two_concurrent_safe_retries_create_one_shared_production_attempt(

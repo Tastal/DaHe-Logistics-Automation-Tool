@@ -74,15 +74,19 @@ class CandidateQueryWindow:
         # New reads start at the real business boundary.  The former 13:30
         # value remains accepted only so sealed historical snapshots can be
         # replayed without rewriting their evidence.
-        if start not in {
-            business_window.start,
-            business_window.start - CANDIDATE_BUFFER,
-        }:
+        historical_start = business_window.start - CANDIDATE_BUFFER
+        configurable_start = datetime.combine(
+            business_date,
+            start.timetz().replace(tzinfo=None),
+            tzinfo=SHANGHAI,
+        )
+        if start not in {historical_start, configurable_start}:
             raise DailyDomainError(
-                "candidate query must start at the business day boundary"
+                "candidate query start must belong to the selected business date"
             )
-        if safety_end != business_window.end + CANDIDATE_BUFFER:
-            raise DailyDomainError("candidate query safety end must be the next day at 14:30")
+        historical_safety_end = business_window.end + CANDIDATE_BUFFER
+        if safety_end not in {historical_safety_end, end}:
+            raise DailyDomainError("candidate query safety end is invalid")
         if not start <= end <= safety_end:
             raise DailyDomainError("candidate query end is outside the safe window")
 
@@ -125,16 +129,39 @@ def candidate_query_window(
     business_date: date,
     *,
     now: datetime,
+    start_time: time = BUSINESS_DAY_START,
+    end_mode: str = "system_current_time",
+    fixed_end_day_offset: int = 1,
+    fixed_end_time: time = time(14, 30),
 ) -> CandidateQueryWindow:
     business_window = business_day_window(business_date)
     local_now = _aware_shanghai(now, field="now")
-    start = business_window.start
-    safety_end = business_window.end + CANDIDATE_BUFFER
+    if not isinstance(start_time, time) or start_time.tzinfo is not None:
+        raise DailyDomainError("candidate query start time is invalid")
+    if not isinstance(fixed_end_time, time) or fixed_end_time.tzinfo is not None:
+        raise DailyDomainError("candidate query fixed end time is invalid")
+    if fixed_end_day_offset not in {0, 1}:
+        raise DailyDomainError("candidate query fixed end day offset is invalid")
+    start = datetime.combine(business_date, start_time, tzinfo=SHANGHAI)
     if local_now < start:
         raise DailyDomainError("now precedes the candidate query window")
+    if end_mode == "system_current_time":
+        end = local_now
+    elif end_mode == "fixed_time":
+        end = datetime.combine(
+            business_date + timedelta(days=fixed_end_day_offset),
+            fixed_end_time,
+            tzinfo=SHANGHAI,
+        )
+    else:
+        raise DailyDomainError("candidate query end mode is invalid")
+    if end <= start:
+        raise DailyDomainError("candidate query end must be later than start")
     return CandidateQueryWindow(
         business_date=business_window.business_date,
         start=start,
-        end=min(local_now, safety_end),
-        safety_end=safety_end,
+        end=end,
+        # The safety boundary is frozen to the actual configured end for new
+        # captures. Historical snapshots retain their former 14:30 boundary.
+        safety_end=end,
     )

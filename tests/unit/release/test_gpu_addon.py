@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import shutil
 import zipfile
 from pathlib import Path
 
@@ -42,10 +43,12 @@ def _cpu_composition(
     install_root: Path,
     *,
     generation_layout: bool = False,
+    version: str = VERSION,
+    generation_id: str = GENERATION_ID,
 ) -> Path:
     runtime = install_root / "runtimes" / "ocr-cpu"
     composition_root = (
-        runtime / "generations" / GENERATION_ID
+        runtime / "generations" / generation_id
         if generation_layout
         else runtime
     )
@@ -79,26 +82,26 @@ def _cpu_composition(
     if generation_layout:
         write_composition_manifest(
             generation_dir=composition_root,
-            generation_id=GENERATION_ID,
+            generation_id=generation_id,
             gpu_present=False,
         )
         activate_composition(
             runtime_root=runtime,
-            generation_id=GENERATION_ID,
+            generation_id=generation_id,
         )
     else:
         write_flat_composition_manifest(
             runtime_root=runtime,
-            generation_id=GENERATION_ID,
+            generation_id=generation_id,
         )
         activate_flat_composition(
             runtime_root=runtime,
-            generation_id=GENERATION_ID,
+            generation_id=generation_id,
         )
     write_version_pointer_atomic(
         install_root,
         VersionPointer(
-            version=VERSION,
+            version=version,
             build_git_commit="c" * 40,
             resource_sha256="d" * 64,
             schema_revision="0041_contract_subject_scope",
@@ -107,7 +110,12 @@ def _cpu_composition(
     return runtime
 
 
-def _gpu_package(tmp_path: Path, cpu_root: Path) -> tuple[Path, Path]:
+def _gpu_package(
+    tmp_path: Path,
+    cpu_root: Path,
+    *,
+    version: str = VERSION,
+) -> tuple[Path, Path]:
     package_root = tmp_path / "package"
     gpu = package_root / "g"
     gpu.mkdir(parents=True)
@@ -125,8 +133,8 @@ def _gpu_package(tmp_path: Path, cpu_root: Path) -> tuple[Path, Path]:
     internal = {
         "schema_version": 2,
         "layout": "gpu_overlay_v1",
-        "application_version": VERSION,
-        "generation_id": GENERATION_ID,
+        "application_version": version,
+        "generation_id": cpu.generation_id,
         "gpu_runtime": "g",
         "runtime_installation_sha256": _sha256(
             gpu / "runtime-installation.json"
@@ -147,7 +155,7 @@ def _gpu_package(tmp_path: Path, cpu_root: Path) -> tuple[Path, Path]:
         encoding="utf-8",
     )
     package = tmp_path / (
-        "DaHe-Logistics-Automation-Tool-1.1.3-gpu-addon-win-x64.zip"
+        f"DaHe-Logistics-Automation-Tool-{version}-gpu-addon-win-x64.zip"
     )
     with zipfile.ZipFile(package, "w", compression=zipfile.ZIP_DEFLATED) as bundle:
         for path in sorted(package_root.rglob("*")):
@@ -159,17 +167,19 @@ def _gpu_package(tmp_path: Path, cpu_root: Path) -> tuple[Path, Path]:
             {
                 "schema_version": 1,
                 "repository": "Tastal/DaHe-Logistics-Automation-Tool",
-                "version": VERSION,
-                "release_tag": "v1.1.3",
+                "version": version,
+                "release_tag": f"v{version}",
                 "build_git_commit": "c" * 40,
                 "application": {
-                    "file_name": "DaHe-Logistics-Automation-Tool-1.1.3-win-x64.zip",
+                    "file_name": (
+                        f"DaHe-Logistics-Automation-Tool-{version}-win-x64.zip"
+                    ),
                     "sha256": "e" * 64,
                     "size": 1,
                     "url": (
                         "https://github.com/Tastal/DaHe-Logistics-Automation-Tool/"
-                        "releases/download/v1.1.3/"
-                        "DaHe-Logistics-Automation-Tool-1.1.3-win-x64.zip"
+                        f"releases/download/v{version}/"
+                        f"DaHe-Logistics-Automation-Tool-{version}-win-x64.zip"
                     ),
                 },
                 "gpu_addon": {
@@ -178,7 +188,7 @@ def _gpu_package(tmp_path: Path, cpu_root: Path) -> tuple[Path, Path]:
                     "size": package.stat().st_size,
                     "url": (
                         "https://github.com/Tastal/DaHe-Logistics-Automation-Tool/"
-                        f"releases/download/v1.1.3/{package.name}"
+                        f"releases/download/v{version}/{package.name}"
                     ),
                 },
                 "minimum_schema_revision": "0039_network_batch_default",
@@ -278,6 +288,247 @@ def test_gpu_addon_activates_over_existing_generation_layout(
     combined = resolve_gpu_overlay_composition(cpu_root)
     assert combined.generation_id == GENERATION_ID
     assert combined.gpu_runtime == (install_root / "runtimes" / "g").resolve()
+
+
+def test_gpu_addon_atomically_replaces_previous_application_overlay(
+    tmp_path: Path,
+) -> None:
+    install_root = tmp_path / "install"
+    install_root.mkdir()
+    cpu_root = _cpu_composition(install_root, version="1.1.3")
+    old_package, old_manifest = _gpu_package(
+        tmp_path / "old",
+        cpu_root,
+        version="1.1.3",
+    )
+    install_gpu_addon(
+        manifest_path=old_manifest,
+        package_path=old_package,
+        install_root=install_root,
+        qualifier=_qualify,
+    )
+    old_pointer = json.loads(
+        (install_root / "runtimes" / "active-gpu-addon.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    write_version_pointer_atomic(
+        install_root,
+        VersionPointer(
+            version="1.1.4",
+            build_git_commit="c" * 40,
+            resource_sha256="d" * 64,
+            schema_revision="0042_daily_capture_range",
+        ),
+    )
+    new_package, new_manifest = _gpu_package(
+        tmp_path / "new",
+        cpu_root,
+        version="1.1.4",
+    )
+
+    result = install_gpu_addon(
+        manifest_path=new_manifest,
+        package_path=new_package,
+        install_root=install_root,
+        qualifier=_qualify,
+    )
+
+    assert result.state == "active"
+    assert result.package_version == "1.1.4"
+    new_pointer = json.loads(
+        (install_root / "runtimes" / "active-gpu-addon.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert new_pointer["application_version"] == "1.1.4"
+    assert new_pointer["package_sha256"] != old_pointer["package_sha256"]
+    assert not tuple((install_root / "runtimes").glob(".gpu-old-*"))
+
+
+def test_gpu_addon_failed_upgrade_restores_previous_overlay(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    install_root = tmp_path / "install"
+    install_root.mkdir()
+    cpu_root = _cpu_composition(install_root, version="1.1.3")
+    old_package, old_manifest = _gpu_package(
+        tmp_path / "old",
+        cpu_root,
+        version="1.1.3",
+    )
+    install_gpu_addon(
+        manifest_path=old_manifest,
+        package_path=old_package,
+        install_root=install_root,
+        qualifier=_qualify,
+    )
+    pointer_path = install_root / "runtimes" / "active-gpu-addon.json"
+    old_pointer = pointer_path.read_bytes()
+    write_version_pointer_atomic(
+        install_root,
+        VersionPointer(
+            version="1.1.4",
+            build_git_commit="c" * 40,
+            resource_sha256="d" * 64,
+            schema_revision="0042_daily_capture_range",
+        ),
+    )
+    new_package, new_manifest = _gpu_package(
+        tmp_path / "new",
+        cpu_root,
+        version="1.1.4",
+    )
+
+    def fail_pointer_activation(_path: Path, _payload: dict[str, object]) -> None:
+        raise OSError("simulated pointer activation failure")
+
+    monkeypatch.setattr(
+        "dahe.release.gpu_addon._atomic_json",
+        fail_pointer_activation,
+    )
+
+    with pytest.raises(GpuAddonError) as failure:
+        install_gpu_addon(
+            manifest_path=new_manifest,
+            package_path=new_package,
+            install_root=install_root,
+            qualifier=_qualify,
+        )
+
+    assert failure.value.error_code == "gpu_io_failed"
+    assert pointer_path.read_bytes() == old_pointer
+    assert (install_root / "runtimes" / "g").is_dir()
+    assert (install_root / "runtimes" / "gq" / "qualification.json").is_file()
+    assert not tuple((install_root / "runtimes").glob(".gpu-old-*"))
+
+
+def test_gpu_addon_failed_before_activation_preserves_previous_overlay(
+    tmp_path: Path,
+) -> None:
+    install_root = tmp_path / "install"
+    install_root.mkdir()
+    cpu_root = _cpu_composition(install_root, version="1.1.3")
+    old_package, old_manifest = _gpu_package(
+        tmp_path / "old",
+        cpu_root,
+        version="1.1.3",
+    )
+    install_gpu_addon(
+        manifest_path=old_manifest,
+        package_path=old_package,
+        install_root=install_root,
+        qualifier=_qualify,
+    )
+    pointer_path = install_root / "runtimes" / "active-gpu-addon.json"
+    old_pointer = pointer_path.read_bytes()
+    old_runtime = (install_root / "runtimes" / "g" / "python.exe").read_bytes()
+    old_qualification = (
+        install_root / "runtimes" / "gq" / "qualification.json"
+    ).read_bytes()
+    write_version_pointer_atomic(
+        install_root,
+        VersionPointer(
+            version="1.1.4",
+            build_git_commit="c" * 40,
+            resource_sha256="d" * 64,
+            schema_revision="0042_daily_capture_range",
+        ),
+    )
+    new_package, new_manifest = _gpu_package(
+        tmp_path / "new",
+        cpu_root,
+        version="1.1.4",
+    )
+
+    def fail_qualification(**_kwargs: object) -> None:
+        raise RuntimeError("simulated qualification failure")
+
+    with pytest.raises(GpuAddonError) as failure:
+        install_gpu_addon(
+            manifest_path=new_manifest,
+            package_path=new_package,
+            install_root=install_root,
+            qualifier=fail_qualification,
+        )
+
+    assert failure.value.error_code == "gpu_qualification_failed"
+    assert pointer_path.read_bytes() == old_pointer
+    assert (install_root / "runtimes" / "g" / "python.exe").read_bytes() == old_runtime
+    assert (
+        install_root / "runtimes" / "gq" / "qualification.json"
+    ).read_bytes() == old_qualification
+    assert not tuple((install_root / "runtimes").glob(".gpu-old-*"))
+
+
+def test_gpu_addon_replaces_unreferenced_overlay_after_interrupted_install(
+    tmp_path: Path,
+) -> None:
+    install_root = tmp_path / "install"
+    install_root.mkdir()
+    cpu_root = _cpu_composition(install_root)
+    package, manifest = _gpu_package(tmp_path, cpu_root)
+    install_gpu_addon(
+        manifest_path=manifest,
+        package_path=package,
+        install_root=install_root,
+        qualifier=_qualify,
+    )
+    pointer_path = install_root / "runtimes" / "active-gpu-addon.json"
+    pointer_path.unlink()
+
+    assert gpu_addon_status(install_root).state == "not_installed"
+    result = install_gpu_addon(
+        manifest_path=manifest,
+        package_path=package,
+        install_root=install_root,
+        qualifier=_qualify,
+    )
+
+    assert result.state == "active"
+    assert pointer_path.is_file()
+    assert gpu_addon_status(install_root).state == "active"
+    assert not tuple((install_root / "runtimes").glob(".gpu-old-*"))
+
+
+def test_gpu_addon_upgrade_accepts_replaced_cpu_composition(tmp_path: Path) -> None:
+    install_root = tmp_path / "install"
+    install_root.mkdir()
+    old_cpu_root = _cpu_composition(install_root, version="1.1.3")
+    old_package, old_manifest = _gpu_package(
+        tmp_path / "old",
+        old_cpu_root,
+        version="1.1.3",
+    )
+    install_gpu_addon(
+        manifest_path=old_manifest,
+        package_path=old_package,
+        install_root=install_root,
+        qualifier=_qualify,
+    )
+    shutil.rmtree(old_cpu_root)
+    new_cpu_root = _cpu_composition(
+        install_root,
+        version="1.1.4",
+        generation_id="e" * 32,
+    )
+    new_package, new_manifest = _gpu_package(
+        tmp_path / "new",
+        new_cpu_root,
+        version="1.1.4",
+    )
+
+    result = install_gpu_addon(
+        manifest_path=new_manifest,
+        package_path=new_package,
+        install_root=install_root,
+        qualifier=_qualify,
+    )
+
+    assert result.state == "active"
+    assert result.package_version == "1.1.4"
+    assert gpu_addon_status(install_root).state == "active"
 
 
 def test_gpu_addon_rejects_release_hash_without_leaving_partial_runtime(

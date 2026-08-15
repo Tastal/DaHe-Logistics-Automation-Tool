@@ -46,6 +46,10 @@ export function DailyReportSettingsPanel({ services }: { services: AppServices }
         outputDirectory: settings.outputDirectory.trim(),
         confirmed: true,
         expectedRecordVersion: settings.recordVersion,
+        captureStartTime: settings.captureStartTime,
+        captureEndMode: settings.captureEndMode,
+        captureFixedEndDayOffset: settings.captureFixedEndDayOffset,
+        captureFixedEndTime: settings.captureFixedEndTime,
       });
       setSettings(next);
       showToast("报表设置已保存。", "success");
@@ -77,6 +81,53 @@ export function DailyReportSettingsPanel({ services }: { services: AppServices }
           <label><span>卸货地点</span><input value={settings.unloadingPlace} onChange={(event) => update("unloadingPlace", event.target.value)} /></label>
           <label><span>查询地点关键词</span><input value={settings.queryPlaceKeyword} onChange={(event) => update("queryPlaceKeyword", event.target.value)} /></label>
           <label className="report-output-field"><span>输出目录</span><input value={settings.outputDirectory} onChange={(event) => update("outputDirectory", event.target.value)} /></label>
+          <fieldset className="capture-range-settings">
+            <legend>平台下载范围</legend>
+            <label>
+              <span>开始时间</span>
+              <input type="time" value={settings.captureStartTime} onChange={(event) => update("captureStartTime", event.target.value)} />
+            </label>
+            <label>
+              <span>结束方式</span>
+              <select
+                value={settings.captureEndMode}
+                onChange={(event) => setSettings((current) => current ? { ...current, captureEndMode: event.target.value as DailyReportSettings["captureEndMode"] } : current)}
+              >
+                <option value="system_current_time">系统当前时间</option>
+                <option value="fixed_time">固定时间</option>
+              </select>
+            </label>
+            {settings.captureEndMode === "fixed_time" ? (
+              <>
+                <label>
+                  <span>固定日期</span>
+                  <select
+                    value={settings.captureFixedEndDayOffset}
+                    onChange={(event) => setSettings((current) => current ? { ...current, captureFixedEndDayOffset: Number(event.target.value) as 0 | 1 } : current)}
+                  >
+                    <option value={0}>当天</option>
+                    <option value={1}>次日</option>
+                  </select>
+                </label>
+                <label>
+                  <span>固定时间</span>
+                  <input type="time" value={settings.captureFixedEndTime} onChange={(event) => update("captureFixedEndTime", event.target.value)} />
+                </label>
+              </>
+            ) : null}
+            {(
+              settings.captureStartTime > "14:00"
+              || (
+                settings.captureEndMode === "fixed_time"
+                && (
+                  settings.captureFixedEndDayOffset !== 1
+                  || settings.captureFixedEndTime < "14:00"
+                )
+              )
+            ) ? (
+              <p className="capture-range-warning" role="status">当前下载范围可能未覆盖完整报表窗口（14:00 至次日 14:00）。</p>
+            ) : null}
+          </fieldset>
           <div className="compact-actions">
             <Tooltip content="保存后用于生成正式装卸车报表。">
               <button

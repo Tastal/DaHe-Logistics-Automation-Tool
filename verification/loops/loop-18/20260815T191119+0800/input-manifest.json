@@ -1,0 +1,35 @@
+{
+  "allowed_external_resources": [
+    "read-only Chengfeng sessions for both approved contract subjects",
+    "GitHub repository Tastal/DaHe-Logistics-Automation-Tool",
+    "GitHub v1.1.4 release assets",
+    "Tailscale and SSH path to DESKTOP-0D9G483",
+    "local and company NVIDIA drivers and GPUs"
+  ],
+  "application_version": "1.1.4",
+  "assumptions": [
+    "candidate capture defaults to business-date 14:00 through server current time",
+    "the formal report window remains [business-date 14:00, next-day 14:00)",
+    "one persistent GPU Worker processes both sides of one vehicle before fair rotation",
+    "no Chengfeng settlement, payment, receipt-cancellation, or other business write is allowed",
+    "the attached production workbook is read-only source evidence and is not copied into test fixtures"
+  ],
+  "chengfeng_platform_access": true,
+  "frozen_input": "Correct daily report boundaries, add versioned candidate capture ranges, pair same-vehicle OCR on one GPU Worker, display v1.1.4, apply the DaHe shortcut icon, publish v1.1.4, and deploy it locally and to the company computer.",
+  "loop_id": "loop-18",
+  "product_or_schema_change": true,
+  "remote_host": "DESKTOP-0D9G483",
+  "schema_revision": "0042_daily_capture_range",
+  "source_baseline": "f34f43e",
+  "source_workbook": {
+    "byte_size": 11155,
+    "relative_external_name": "装卸车明细-山西贵恩博-2026-08-13.xlsx",
+    "sha256": "62e6f78dcbb9da6f49e25017a2f825617b6a9fb8a2c9224048294f6f9ef4a86e"
+  },
+  "write_boundaries": [
+    "project source, documentation, tests, migrations, and Loop 18 evidence",
+    "GitHub v1.1.4 public source and release",
+    "DaHe v1.1.4 program and matching GPU runtime files on the local and company computers",
+    "a fixed per-user SSH key and its matching company-computer authorized key"
+  ]
+}

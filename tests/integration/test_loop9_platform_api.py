@@ -360,6 +360,7 @@ def _app(
     ) = None,
     browser_lifecycle: BrowserRuntimeLifecycle | None = None,
     auto_run_jobs: bool = False,
+    production_read_only: bool = False,
 ) -> FastAPI:
     resolved_data_root = data_root or (tmp_path / uuid4().hex)
     if (
@@ -377,6 +378,7 @@ def _app(
         auto_run_jobs=auto_run_jobs,
         stage_delay_seconds=0,
         enable_chengfeng_shadow=enabled,
+        production_read_only=production_read_only,
         platform_build_sha256=build_sha256 if enabled else None,
         browser_runtime=cast(BrowserRuntime | None, browser_runtime),
         browser_lifecycle=browser_lifecycle,
@@ -718,6 +720,85 @@ def test_business_reads_start_without_daily_confirmation_and_attach_duplicates(
             },
         )
         assert invalid_network_only.status_code == 422
+
+
+def test_daily_business_read_freezes_the_versioned_report_capture_range(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    data_root = (tmp_path / "frozen-daily-capture-range").resolve()
+    _prepare_settlement_selection(data_root)
+    _prepare_daily_selection(data_root)
+    app = _app(
+        tmp_path,
+        enabled=True,
+        data_root=data_root,
+        browser_runtime=FakeBrowserRuntime(),
+        daily_execution_backend=_idle_daily_backend(),
+        settlement_capture_execution_backend=_idle_settlement_backend(),
+        production_read_only=True,
+    )
+    frozen_now = datetime(2026, 8, 15, 16, 20, tzinfo=SHANGHAI)
+    monkeypatch.setattr(platform_api, "_daily_now", lambda: frozen_now)
+
+    with TestClient(app) as client:
+        csrf = client.get(
+            "/api/v1/session",
+            headers=_headers(),
+        ).json()["csrf_token"]
+        settings = client.put(
+            "/api/v1/daily/report-settings",
+            headers=_headers(csrf=csrf, key="frozen-range-settings"),
+            json={
+                "shipping_mine": "Test mine",
+                "coal_type": "Test coal",
+                "unloading_place": "Test place",
+                "query_place_keyword": "榆林",
+                "output_directory": str((tmp_path / "reports").resolve()),
+                "confirmed": True,
+                "capture_start_time": "13:45:00",
+                "capture_end_mode": "fixed_time",
+                "capture_fixed_end_day_offset": 1,
+                "capture_fixed_end_time": "14:15:00",
+                "expected_record_version": 0,
+            },
+        )
+        assert settings.status_code == 200, settings.text
+
+        started = client.post(
+            "/api/v1/platform/business-reads",
+            headers=_headers(csrf=csrf, key="frozen-range-start"),
+            json={
+                "business_scope": "daily",
+                "contract_subject_code": "shanghai_jinyisheng",
+                "business_date": "2026-08-14",
+                "expected_record_version": 0,
+            },
+        )
+        assert started.status_code == 200, started.text
+        invocation = app.state.daily_invocation_store.get_by_job(
+            started.json()["job"]["job_id"]
+        )
+        with app.state.sqlite_runtime.engine.connect() as connection:
+            invocation_subject = connection.execute(
+                text(
+                    "SELECT contract_subject_code "
+                    "FROM daily_capture_invocations WHERE job_id = :job_id"
+                ),
+                {"job_id": invocation.job_id},
+            ).scalar_one()
+
+        assert invocation_subject == "shanghai_jinyisheng"
+        assert invocation.request.capture_start_time == datetime.strptime(
+            "13:45:00", "%H:%M:%S"
+        ).time()
+        assert invocation.request.capture_end_mode == "fixed_time"
+        assert invocation.request.query_window.start == datetime(
+            2026, 8, 14, 13, 45, tzinfo=SHANGHAI
+        )
+        assert invocation.request.query_window.safety_end == datetime(
+            2026, 8, 15, 14, 15, tzinfo=SHANGHAI
+        )
 
 
 def test_business_read_start_queues_a_missing_runtime_for_the_owner_task(

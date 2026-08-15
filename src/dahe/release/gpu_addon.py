@@ -423,6 +423,8 @@ def install_gpu_addon(
     staging: Path | None = None
     activated_runtime = False
     activated_qualification = False
+    previous_overlay_backup: Path | None = None
+    previous_overlay_moved = False
     root = install_root.resolve(strict=True)
     try:
         pointer = read_version_pointer(root)
@@ -486,6 +488,22 @@ def install_gpu_addon(
             error_code="gpu_target_conflict",
             stage="target",
         )
+    previous_pointer_path = root / "runtimes" / GPU_POINTER_NAME
+    previous_pointer: dict[str, object] | None = None
+    if existing.state == "invalid" and previous_pointer_path.is_file():
+        try:
+            previous_pointer = _read_json(
+                previous_pointer_path,
+                code="gpu_overlay_invalid",
+                stage="target",
+            )
+        except GpuAddonError:
+            previous_pointer = None
+    replace_previous_version = bool(
+        previous_pointer is not None
+        and isinstance(previous_pointer.get("application_version"), str)
+        and previous_pointer["application_version"] != release.version
+    )
     if existing.diagnostic_code == "gpu_qualification_stale":
         stale_pointer = _read_json(
             root / "runtimes" / GPU_POINTER_NAME,
@@ -504,10 +522,29 @@ def install_gpu_addon(
         shutil.rmtree(runtimes / GPU_QUALIFICATION_DIRECTORY, ignore_errors=True)
     runtimes = root / "runtimes"
     runtimes.mkdir(parents=True, exist_ok=True)
-    if any(
-        (runtimes / name).exists()
-        for name in (GPU_RUNTIME_DIRECTORY, GPU_QUALIFICATION_DIRECTORY)
-    ):
+    existing_gpu = runtimes / GPU_RUNTIME_DIRECTORY
+    existing_qualification = runtimes / GPU_QUALIFICATION_DIRECTORY
+    existing_pointer_path = runtimes / GPU_POINTER_NAME
+    existing_targets = (
+        existing_gpu.exists(),
+        existing_qualification.exists(),
+        existing_pointer_path.exists(),
+    )
+    replace_unreferenced_overlay = (
+        existing.state == "not_installed"
+        and any(existing_targets[:2])
+        and not existing_targets[2]
+    )
+    replace_existing_overlay = (
+        replace_previous_version or replace_unreferenced_overlay
+    )
+    if replace_previous_version and not all(existing_targets):
+        raise GpuAddonError(
+            "previous GPU add-on is incomplete",
+            error_code="gpu_target_conflict",
+            stage="target",
+        )
+    if not replace_existing_overlay and any(existing_targets[:2]):
         raise GpuAddonError(
             "GPU add-on target contains an unreferenced runtime",
             error_code="gpu_target_conflict",
@@ -583,6 +620,22 @@ def install_gpu_addon(
         final_gpu = runtimes / GPU_RUNTIME_DIRECTORY
         final_qualification_dir = runtimes / GPU_QUALIFICATION_DIRECTORY
         stage = "activate_runtime"
+        if replace_existing_overlay:
+            previous_overlay_backup = runtimes / f".gpu-old-{uuid4().hex[:8]}"
+            previous_overlay_backup.mkdir()
+            if existing_gpu.exists():
+                existing_gpu.rename(
+                    previous_overlay_backup / GPU_RUNTIME_DIRECTORY
+                )
+            if existing_qualification.exists():
+                existing_qualification.rename(
+                    previous_overlay_backup / GPU_QUALIFICATION_DIRECTORY
+                )
+            if existing_pointer_path.exists():
+                existing_pointer_path.rename(
+                    previous_overlay_backup / GPU_POINTER_NAME
+                )
+            previous_overlay_moved = True
         gpu_runtime.rename(final_gpu)
         activated_runtime = True
         qualification.parent.rename(final_qualification_dir)
@@ -597,6 +650,9 @@ def install_gpu_addon(
         stage = "activate_pointer"
         _atomic_json(runtimes / GPU_POINTER_NAME, pointer_payload)
         resolve_gpu_overlay_composition(cpu_root)
+        if previous_overlay_backup is not None:
+            shutil.rmtree(previous_overlay_backup)
+            previous_overlay_backup = None
         return GpuAddonInstallResult(
             state="active",
             package_version=release.version,
@@ -606,11 +662,28 @@ def install_gpu_addon(
             diagnostic_code=None,
         )
     except Exception as exc:
-        (runtimes / GPU_POINTER_NAME).unlink(missing_ok=True)
+        if activated_runtime or activated_qualification:
+            (runtimes / GPU_POINTER_NAME).unlink(missing_ok=True)
         if activated_qualification:
             shutil.rmtree(runtimes / GPU_QUALIFICATION_DIRECTORY, ignore_errors=True)
         if activated_runtime:
             shutil.rmtree(runtimes / GPU_RUNTIME_DIRECTORY, ignore_errors=True)
+        if previous_overlay_moved and previous_overlay_backup is not None:
+            backup_gpu = previous_overlay_backup / GPU_RUNTIME_DIRECTORY
+            backup_qualification = (
+                previous_overlay_backup / GPU_QUALIFICATION_DIRECTORY
+            )
+            backup_pointer = previous_overlay_backup / GPU_POINTER_NAME
+            if backup_gpu.exists():
+                backup_gpu.rename(runtimes / GPU_RUNTIME_DIRECTORY)
+            if backup_qualification.exists():
+                backup_qualification.rename(
+                    runtimes / GPU_QUALIFICATION_DIRECTORY
+                )
+            if backup_pointer.exists():
+                backup_pointer.rename(runtimes / GPU_POINTER_NAME)
+            shutil.rmtree(previous_overlay_backup, ignore_errors=True)
+            previous_overlay_backup = None
         if isinstance(exc, GpuAddonError):
             raise
         winerror = getattr(exc, "winerror", None)

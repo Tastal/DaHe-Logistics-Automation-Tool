@@ -221,6 +221,7 @@ export function App({ services }: AppProps) {
     useState(false);
   const [loop9ReviewEnabled, setLoop9ReviewEnabled] = useState(false);
   const [productionReadOnly, setProductionReadOnly] = useState(false);
+  const [applicationVersion, setApplicationVersion] = useState<string | null>(null);
   const [lockedSetReviewNavigation, setLockedSetReviewNavigation] =
     useState<LockedSetReviewNavigationState>({
       dirty: false,
@@ -339,6 +340,14 @@ export function App({ services }: AppProps) {
         setLockedSetReviewEnabled(bootstrap.lockedSetReviewEnabled);
         setLoop9ReviewEnabled(bootstrap.loop9ReviewEnabled ?? false);
         setProductionReadOnly(bootstrap.productionReadOnly ?? false);
+        if (services.loadReadinessVersion) {
+          try {
+            const readinessVersion = await services.loadReadinessVersion();
+            if (!disposed) setApplicationVersion(readinessVersion);
+          } catch {
+            if (!disposed) setApplicationVersion(null);
+          }
+        }
         if (services.loadUpdateStatus) {
           void services.loadUpdateStatus().then((status) => {
             if (!disposed) setUpdateStatus(status);
@@ -664,6 +673,7 @@ export function App({ services }: AppProps) {
       </a>
       <header className="mobile-header">
         <strong><span>大禾物流</span><span>自动化平台</span></strong>
+        {applicationVersion ? <span className="application-version" aria-label={`当前版本 v${applicationVersion}`}>v{applicationVersion}</span> : null}
       </header>
       <nav className="side-navigation" aria-label="主导航">
         <div className="product-name">
@@ -671,6 +681,7 @@ export function App({ services }: AppProps) {
             <img src="/dahe-logo.png" alt="" />
           </span>
           <strong><span>大禾物流</span><span>自动化平台</span></strong>
+          {applicationVersion ? <span className="application-version" aria-label={`当前版本 v${applicationVersion}`}>v{applicationVersion}</span> : null}
         </div>
         <div className="business-subject-heading">
           <span className="navigation-group-label">业务</span>

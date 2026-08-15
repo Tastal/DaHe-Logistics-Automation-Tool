@@ -1,0 +1,73 @@
+{
+  "accepted_at": "2026-08-15T12:15:35.6724277+08:00",
+  "application_version": "1.1.3",
+  "automated_checks": {
+    "authoritative_command": ".venv\\Scripts\\python.exe tools\\check.py",
+    "authoritative_elapsed_seconds": 1263.3,
+    "frontend_tests_passed": 148,
+    "mypy_source_files": 363,
+    "python_tests_passed": 3032,
+    "python_tests_skipped": 9,
+    "ruff_status": "passed",
+    "skip_reason": "The current Windows account cannot create symbolic links; non-link path-safety coverage passed."
+  },
+  "chengfeng_platform_accessed": false,
+  "defender": {
+    "formal_release_assets": "no threats",
+    "real_time_protection_enabled": true
+  },
+  "formal_assets": {
+    "DaHe-Logistics-Automation-Tool-1.1.3-Setup.exe": {
+      "sha256": "774017b8b8bd6a1bed80316304f328553af27630ed62762011d8052d389bb036",
+      "size": 424657131
+    },
+    "DaHe-Logistics-Automation-Tool-1.1.3-gpu-addon-win-x64.zip": {
+      "sha256": "130df02ecdf4f4adeec286209e10b6c1c17091d7cd8cd2b745c348dec6f75d73",
+      "size": 2018833305
+    },
+    "DaHe-Logistics-Automation-Tool-1.1.3-win-x64.zip": {
+      "sha256": "4671df8eae3013c859da54a535835a488945f8f7171dbeba95d4b173bdf69b2b",
+      "size": 61862569
+    },
+    "SHA256SUMS.txt": {
+      "sha256": "45c55c7076467d8c76357d09ea62c54ac2d8462d05f0249f5cd89fdc3e1f2513",
+      "size": 440
+    },
+    "update-manifest.json": {
+      "sha256": "8df68e3f14344b27526a612cd4fdfeb3f06db60713dbe228f11d8b8933b0894f",
+      "size": 1222
+    }
+  },
+  "formal_build": {
+    "asset_count": 5,
+    "build_git_commit": "81d7974754990540b109e25968cabdd9b82671d5",
+    "minimum_schema_revision": "0039_network_batch_default",
+    "minimum_updater_version": "1.0.0",
+    "resource_sha256": "f4a427e6fbf12a6dace49ca0b4fb35444d707d04ea4c7b8f995f758a8ccc3948",
+    "target_schema_revision": "0041_contract_subject_scope"
+  },
+  "github": {
+    "asset_count": 5,
+    "asset_digests_match_local": true,
+    "is_draft": false,
+    "is_latest": true,
+    "main_commit": "81d7974754990540b109e25968cabdd9b82671d5",
+    "published_at": "2026-08-15T03:32:31Z",
+    "release_url": "https://github.com/Tastal/DaHe-Logistics-Automation-Tool/releases/tag/v1.1.3",
+    "tag_commit": "81d7974754990540b109e25968cabdd9b82671d5"
+  },
+  "release_readback": {
+    "actual_redownloaded_asset_count": 2,
+    "actual_redownloaded_assets": [
+      "SHA256SUMS.txt",
+      "update-manifest.json"
+    ],
+    "all_five_github_server_digests_match": true,
+    "large_asset_attempt_result": "GitHub Release large-file download domain produced zero bytes from both the local and company networks during the acceptance window.",
+    "predeployment_remote_hashes_match": true
+  },
+  "result": "passed",
+  "schema_revision": "0041_contract_subject_scope",
+  "schema_version": 1,
+  "source_export_manifest": "verification/loops/loop-17/20260815T121404+0800/source-export-manifest.json"
+}

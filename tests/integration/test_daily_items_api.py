@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 from datetime import date, datetime
 from decimal import Decimal
 from pathlib import Path
@@ -147,6 +148,39 @@ def test_saved_business_day_lists_all_70_items_without_a_new_capture(
         assert len(set(identities)) == 70
         repeated = client.get("/api/v1/daily/items?business_date=2026-08-05")
         assert [item["waybill_number"] for item in repeated.json()["items"]] == identities
+    finally:
+        runtime.close()
+
+
+@pytest.mark.integration
+def test_loading_ticket_ocr_time_overrides_platform_time_with_explicit_source(
+    tmp_path: Path,
+) -> None:
+    _client, runtime, store = _fixture(tmp_path)
+    repository = SqliteDailyItemRepository(runtime, store)
+    machine = store.list_revisions("platform-1")[-1]
+    output = json.dumps(
+        {
+            "status": "ok",
+            "fields": {
+                "loading_weigh_time": {
+                    "raw_text": "过磅时间 2026-08-05 18:55:03"
+                }
+            },
+            "text_lines": [],
+        },
+        ensure_ascii=False,
+    )
+    try:
+        projected = repository._view_for_machine(
+            machine,
+            ocr_outputs=(output, None, "2026-08-05T20:01:00+08:00"),
+        )
+
+        assert projected.effective_fields.loading_time == datetime(
+            2026, 8, 5, 18, 55, 3, tzinfo=SHANGHAI
+        )
+        assert projected.field_sources["loading_time"] == "ocr"
     finally:
         runtime.close()
 

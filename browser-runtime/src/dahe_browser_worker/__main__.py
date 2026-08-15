@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import queue
+import re
 import sys
 from contextlib import suppress
 from threading import Event, Lock, Thread
@@ -104,6 +105,9 @@ def _safe_worker_failure_code(
             )
         return "browser_operational_unexpected_failed"
     if isinstance(command, PrepareOperationalDailyCommand):
+        safe_type = type(error).__name__.casefold()
+        if re.fullmatch(r"[a-z][a-z0-9]{0,63}", safe_type):
+            return f"browser_daily_direct_prepare_unexpected_{safe_type}"
         return "browser_daily_direct_prepare_failed"
     return "browser_smoke_failed"
 

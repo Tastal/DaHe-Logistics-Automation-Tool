@@ -251,6 +251,119 @@ def test_daily_fast_capture_preserves_every_identity_from_authoritative_scope() 
     assert len(candidates.candidates) == candidates.response_total == 3
 
 
+def test_daily_fast_capture_restarts_one_racing_list_freeze_without_waiting() -> None:
+    class RacingDailyList:
+        def __init__(self) -> None:
+            self.calls: list[int] = []
+
+        def list_waybills(self, **kwargs: object) -> DailyWaybillPage:
+            page_number = int(kwargs["page_number"])
+            page_size = int(kwargs["page_size"])
+            self.calls.append(page_number)
+            if self.calls == [1]:
+                total = 101
+                item_count = 100
+                page_count = 2
+            elif self.calls == [1, 2]:
+                total = 100
+                item_count = 0
+                page_count = 1
+            else:
+                total = 1
+                item_count = 1
+                page_count = 1
+            return DailyWaybillPage(
+                page_number=page_number,
+                page_size=page_size,
+                total=total,
+                platform_display_total=total,
+                response_total=total,
+                response_page_count=page_count,
+                query_scope_sha256="c" * 64,
+                scope_complete=True,
+                scope_diagnostic_code=None,
+                items=tuple(
+                    DailyWaybillSummary(
+                        platform_waybill_id=f"platform-{index:03d}",
+                        waybill_number=f"YD-{index:03d}",
+                        vehicle_number=f"TEST-{index:03d}",
+                        platform_loading_time=None,
+                    )
+                    for index in range(item_count)
+                ),
+            )
+
+    source = RacingDailyList()
+    coordinator = FastOperationalDailyCaptureCoordinator(
+        detail_adapter=FakeAdapter(total=1),
+        navigation_authorizer=AllowNavigation(),
+        batch_store=MemoryBatchStore(),
+        daily_store=MemoryDailyStore(),
+        clock=lambda: NOW,
+    )
+
+    frozen = coordinator._freeze_daily_list(
+        request=REQUEST,
+        list_port=source,
+    )
+
+    assert source.calls == [1, 2, 1]
+    assert frozen.response_total == 1
+    assert len(frozen.candidates) == 1
+
+
+def test_daily_fast_capture_uses_the_platform_effective_page_size() -> None:
+    class CappedDailyList:
+        def __init__(self) -> None:
+            self.calls: list[tuple[int, int]] = []
+
+        def list_waybills(self, **kwargs: object) -> DailyWaybillPage:
+            page_number = int(kwargs["page_number"])
+            page_size = int(kwargs["page_size"])
+            self.calls.append((page_number, page_size))
+            assert (page_number, page_size) in {(1, 100), (2, 20)}
+            start = 0 if page_number == 1 else 20
+            end = 20 if page_number == 1 else 25
+            return DailyWaybillPage(
+                page_number=page_number,
+                page_size=page_size,
+                total=25,
+                platform_display_total=25,
+                response_total=25,
+                response_page_count=2,
+                query_scope_sha256="d" * 64,
+                scope_complete=True,
+                scope_diagnostic_code=None,
+                items=tuple(
+                    DailyWaybillSummary(
+                        platform_waybill_id=f"platform-{index:03d}",
+                        waybill_number=f"YD-{index:03d}",
+                        vehicle_number=f"TEST-{index:03d}",
+                        platform_loading_time=None,
+                    )
+                    for index in range(start, end)
+                ),
+            )
+
+    source = CappedDailyList()
+    coordinator = FastOperationalDailyCaptureCoordinator(
+        detail_adapter=FakeAdapter(total=25),
+        navigation_authorizer=AllowNavigation(),
+        batch_store=MemoryBatchStore(),
+        daily_store=MemoryDailyStore(),
+        clock=lambda: NOW,
+    )
+
+    frozen = coordinator._freeze_daily_list(
+        request=REQUEST,
+        list_port=source,
+    )
+
+    assert source.calls == [(1, 100), (2, 20)]
+    assert frozen.response_total == 25
+    assert len(frozen.candidates) == 25
+
+
 def test_daily_fast_capture_rejects_scope_without_page_total_evidence() -> None:
     class IncompleteDailyList(FakeDailyList):
         def list_waybills(self, **kwargs: object) -> DailyWaybillPage:

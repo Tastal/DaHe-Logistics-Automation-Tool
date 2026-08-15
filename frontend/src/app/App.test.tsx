@@ -148,6 +148,26 @@ function services(overrides: Partial<AppServices> = {}): AppServices {
 }
 
 describe("B version application shell", () => {
+  it("shows only the version confirmed by backend readiness", async () => {
+    const loadReadinessVersion = vi.fn().mockResolvedValue("1.1.4");
+    render(<App services={services({ loadReadinessVersion })} />);
+
+    expect(screen.queryByLabelText(/当前版本/)).toBeNull();
+    const versions = await screen.findAllByLabelText("当前版本 v1.1.4");
+    expect(versions).toHaveLength(2);
+    expect(versions.every((version) => version.textContent === "v1.1.4")).toBe(true);
+    expect(loadReadinessVersion).toHaveBeenCalledOnce();
+  });
+
+  it("keeps the console available when readiness identity is unavailable", async () => {
+    const loadReadinessVersion = vi.fn().mockRejectedValue(new Error("offline"));
+    render(<App services={services({ loadReadinessVersion })} />);
+
+    expect(await screen.findByRole("navigation", { name: "主导航" })).toBeVisible();
+    expect(screen.queryByLabelText(/当前版本/)).toBeNull();
+    expect(screen.queryByText("操作台暂时无法加载")).toBeNull();
+  });
+
   it("shows three business entries and four icon-only utilities", async () => {
     const user = userEvent.setup();
     render(<App services={services({

@@ -9,9 +9,10 @@ import re
 import unicodedata
 import zipfile
 from dataclasses import dataclass
-from datetime import date, datetime
+from datetime import date, datetime, time, timedelta
 from decimal import Decimal
 from pathlib import Path, PureWindowsPath
+from typing import Literal
 from uuid import uuid4
 from xml.etree import ElementTree
 
@@ -101,6 +102,12 @@ class DailyReportSettings:
     output_directory: Path
     confirmed: bool
     record_version: int
+    capture_start_time: time = time(14, 0)
+    capture_end_mode: Literal["system_current_time", "fixed_time"] = (
+        "system_current_time"
+    )
+    capture_fixed_end_day_offset: int = 1
+    capture_fixed_end_time: time = time(14, 30)
 
     def __post_init__(self) -> None:
         for value, field in (
@@ -115,6 +122,24 @@ class DailyReportSettings:
         validate_report_output_directory(self.output_directory)
         if self.record_version < 0:
             raise ValueError("record_version cannot be negative")
+        if self.capture_start_time.tzinfo is not None:
+            raise ValueError("capture_start_time must be a local wall-clock time")
+        if self.capture_end_mode not in {"system_current_time", "fixed_time"}:
+            raise ValueError("capture_end_mode is invalid")
+        if self.capture_fixed_end_day_offset not in {0, 1}:
+            raise ValueError("capture_fixed_end_day_offset is invalid")
+        if self.capture_fixed_end_time.tzinfo is not None:
+            raise ValueError("capture_fixed_end_time must be a local wall-clock time")
+
+    def report_window_is_fully_covered(self) -> bool:
+        if self.capture_start_time > time(14, 0):
+            return False
+        if self.capture_end_mode == "system_current_time":
+            return True
+        return (
+            self.capture_fixed_end_day_offset == 1
+            and self.capture_fixed_end_time >= time(14, 0)
+        )
 
 
 @dataclass(frozen=True, slots=True)
@@ -168,6 +193,14 @@ class DailyReportWorkbookResult:
     loading_net_total: Decimal
 
 
+@dataclass(frozen=True, slots=True)
+class DailyReportBuildResult:
+    rows: tuple[DailyReportRow, ...]
+    candidate_count: int
+    window_excluded_count: int
+    missing_effective_time_count: int
+
+
 def _format_datetime(
     value: datetime | None,
     *,
@@ -184,25 +217,64 @@ def build_daily_report_rows(
     business_date: date,
     settings: DailyReportSettings,
     revisions: tuple[DailyRecordRevision, ...],
+    platform_loading_times: dict[str, datetime | None] | None = None,
+    primary_loading_time_ids: frozenset[str] = frozenset(),
 ) -> tuple[DailyReportRow, ...]:
+    return build_daily_report_result(
+        business_date=business_date,
+        settings=settings,
+        revisions=revisions,
+        platform_loading_times=platform_loading_times,
+        primary_loading_time_ids=primary_loading_time_ids,
+    ).rows
+
+
+def build_daily_report_result(
+    *,
+    business_date: date,
+    settings: DailyReportSettings,
+    revisions: tuple[DailyRecordRevision, ...],
+    platform_loading_times: dict[str, datetime | None] | None = None,
+    primary_loading_time_ids: frozenset[str] = frozenset(),
+) -> DailyReportBuildResult:
+    platform_times = platform_loading_times or {}
+    window_start = datetime.combine(business_date, time(14, 0), tzinfo=SHANGHAI)
+    window_end = window_start + timedelta(days=1)
+    included: list[tuple[DailyRecordRevision, datetime, datetime | None]] = []
+    outside = 0
+    missing = 0
+    for revision in revisions:
+        image_or_manual_time = (
+            revision.fields.loading_time
+            if revision.platform_waybill_id in primary_loading_time_ids
+            else None
+        )
+        effective_time = image_or_manual_time or platform_times.get(
+            revision.platform_waybill_id
+        )
+        if effective_time is None:
+            missing += 1
+            continue
+        local_effective = effective_time.astimezone(SHANGHAI)
+        if not window_start <= local_effective < window_end:
+            outside += 1
+            continue
+        included.append((revision, local_effective, image_or_manual_time))
+
     ordered = sorted(
-        revisions,
-        key=lambda revision: (
-            revision.fields.loading_time is None,
-            revision.fields.loading_time or datetime.max.replace(tzinfo=SHANGHAI),
-            revision.fields.vehicle_number or "",
-            revision.platform_waybill_id,
+        included,
+        key=lambda value: (
+            value[1],
+            value[0].fields.vehicle_number or "",
+            value[0].platform_waybill_id,
         ),
     )
-    return tuple(
+    rows = tuple(
         DailyReportRow(
             sequence=index,
             shipping_mine=settings.shipping_mine,
             planned_date=business_date,
-            loading_time=_format_datetime(
-                revision.fields.loading_time,
-                minutes_only=False,
-            ),
+            loading_time=_format_datetime(primary_time, minutes_only=False),
             vehicle_number=revision.fields.vehicle_number,
             loading_net_tonnes=revision.fields.loading_net_tonnes,
             unloading_net_tonnes=revision.fields.unloading_net_tonnes,
@@ -215,7 +287,15 @@ def build_daily_report_rows(
             platform_waybill_id=revision.platform_waybill_id,
             source_revision_id=revision.revision_id,
         )
-        for index, revision in enumerate(ordered, start=1)
+        for index, (revision, _effective_time, primary_time) in enumerate(
+            ordered, start=1
+        )
+    )
+    return DailyReportBuildResult(
+        rows=rows,
+        candidate_count=len(revisions),
+        window_excluded_count=outside,
+        missing_effective_time_count=missing,
     )
 
 

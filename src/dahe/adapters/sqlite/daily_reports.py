@@ -7,9 +7,10 @@ import json
 import os
 import shutil
 from dataclasses import dataclass
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, time
 from decimal import Decimal
 from pathlib import Path
+from typing import Literal, cast
 from uuid import uuid4
 
 from sqlalchemy import select, update
@@ -31,7 +32,7 @@ from dahe.application.daily.report_workbook import (
     DailyReportSettings,
     DailyReportWorkbook,
     DailyReportWorkbookError,
-    build_daily_report_rows,
+    build_daily_report_result,
 )
 from dahe.ports.jobs import IdempotencyConflictError, RecordVersionConflictError
 
@@ -61,6 +62,9 @@ class DailyReportRecord:
     created_at: str
     confirmed_at: str | None
     stale: bool = False
+    candidate_count: int = 0
+    window_excluded_count: int = 0
+    missing_effective_time_count: int = 0
 
     @property
     def path(self) -> Path:
@@ -80,6 +84,9 @@ class DailyReportRecord:
             "record_version": self.record_version,
             "report_id": self.report_id,
             "row_count": self.row_count,
+            "candidate_count": self.candidate_count,
+            "window_excluded_count": self.window_excluded_count,
+            "missing_effective_time_count": self.missing_effective_time_count,
             "status": self.status,
             "stale": self.stale,
         }
@@ -116,11 +123,26 @@ def _settings_from_row(row: object) -> DailyReportSettings:
         output_directory=Path(str(values["output_directory"])).resolve(),
         confirmed=bool(values["confirmed"]),
         record_version=int(values["record_version"]),
+        capture_start_time=time.fromisoformat(str(values["capture_start_time"])),
+        capture_end_mode=cast(
+            Literal["system_current_time", "fixed_time"],
+            str(values["capture_end_mode"]),
+        ),
+        capture_fixed_end_day_offset=int(values["capture_fixed_end_day_offset"]),
+        capture_fixed_end_time=time.fromisoformat(
+            str(values["capture_fixed_end_time"])
+        ),
     )
 
 
 def _record_from_row(row: object) -> DailyReportRecord:
     values = row._mapping  # type: ignore[attr-defined]
+    try:
+        data_payload = json.loads(str(values["data_json"]))
+    except (TypeError, ValueError):
+        data_payload = {}
+    if not isinstance(data_payload, dict):
+        data_payload = {}
     return DailyReportRecord(
         report_id=str(values["report_id"]),
         contract_subject_code=require_contract_subject_code(
@@ -140,6 +162,11 @@ def _record_from_row(row: object) -> DailyReportRecord:
             None if values["confirmed_at"] is None else str(values["confirmed_at"])
         ),
         stale=bool(values["stale"]),
+        candidate_count=int(data_payload.get("candidate_count", values["row_count"])),
+        window_excluded_count=int(data_payload.get("window_excluded_count", 0)),
+        missing_effective_time_count=int(
+            data_payload.get("missing_effective_time_count", 0)
+        ),
     )
 
 
@@ -179,6 +206,10 @@ class SqliteDailyReportRepository:
                 output_directory=self._default_output_directory,
                 confirmed=True,
                 record_version=0,
+                capture_start_time=time(14, 0),
+                capture_end_mode="system_current_time",
+                capture_fixed_end_day_offset=1,
+                capture_fixed_end_time=time(14, 30),
             )
         return _settings_from_row(row)
 
@@ -192,6 +223,10 @@ class SqliteDailyReportRepository:
         output_directory: Path,
         confirmed: bool,
         expected_record_version: int,
+        capture_start_time: time = time(14, 0),
+        capture_end_mode: str = "system_current_time",
+        capture_fixed_end_day_offset: int = 1,
+        capture_fixed_end_time: time = time(14, 30),
         idempotency_key: str | None = None,
         request_hash: str | None = None,
     ) -> DailyReportSettings:
@@ -215,6 +250,23 @@ class SqliteDailyReportRepository:
                     output_directory=Path(str(payload["output_directory"])).resolve(),
                     confirmed=bool(payload["confirmed"]),
                     record_version=int(payload["record_version"]),
+                    capture_start_time=time.fromisoformat(
+                        str(payload.get("capture_start_time", "14:00:00"))
+                    ),
+                    capture_end_mode=cast(
+                        Literal["system_current_time", "fixed_time"],
+                        str(
+                            payload.get(
+                                "capture_end_mode", "system_current_time"
+                            )
+                        ),
+                    ),
+                    capture_fixed_end_day_offset=int(
+                        payload.get("capture_fixed_end_day_offset", 1)
+                    ),
+                    capture_fixed_end_time=time.fromisoformat(
+                        str(payload.get("capture_fixed_end_time", "14:30:00"))
+                    ),
                 )
         if not output_directory.is_absolute():
             raise ValueError("output_directory must be absolute")
@@ -226,6 +278,13 @@ class SqliteDailyReportRepository:
             output_directory=output_directory.resolve(),
             confirmed=confirmed,
             record_version=expected_record_version + 1,
+            capture_start_time=capture_start_time,
+            capture_end_mode=cast(
+                Literal["system_current_time", "fixed_time"],
+                capture_end_mode,
+            ),
+            capture_fixed_end_day_offset=capture_fixed_end_day_offset,
+            capture_fixed_end_time=capture_fixed_end_time,
         )
         with self._runtime.commit_gate.transaction(self._runtime.engine) as connection:
             existing = connection.execute(
@@ -241,6 +300,14 @@ class SqliteDailyReportRepository:
                 "coal_type": candidate.coal_type,
                 "unloading_place": candidate.unloading_place,
                 "query_place_keyword": candidate.query_place_keyword,
+                "capture_start_time": candidate.capture_start_time.isoformat(),
+                "capture_end_mode": candidate.capture_end_mode,
+                "capture_fixed_end_day_offset": (
+                    candidate.capture_fixed_end_day_offset
+                ),
+                "capture_fixed_end_time": (
+                    candidate.capture_fixed_end_time.isoformat()
+                ),
                 "output_directory": str(candidate.output_directory),
                 "confirmed": int(candidate.confirmed),
                 "record_version": candidate.record_version,
@@ -348,11 +415,25 @@ class SqliteDailyReportRepository:
                 contract_subject_code=subject_code,
             )
         )
-        rows = build_daily_report_rows(
+        platform_loading_times = self._daily_store.platform_loading_times_for_revisions(
+            revisions
+        )
+        primary_loading_time_ids = (
+            frozenset()
+            if self._daily_items is None
+            else self._daily_items.primary_loading_time_ids(
+                revisions,
+                contract_subject_code=subject_code,
+            )
+        )
+        built = build_daily_report_result(
             business_date=business_date,
             settings=settings,
             revisions=revisions,
+            platform_loading_times=platform_loading_times,
+            primary_loading_time_ids=primary_loading_time_ids,
         )
+        rows = built.rows
         try:
             generated = self._workbook.write_report(
                 business_date=business_date,
@@ -378,7 +459,10 @@ class SqliteDailyReportRepository:
                 "business_date": business_date.isoformat(),
                 "contract_subject_code": subject_code,
                 "rows": [row.evidence_payload() for row in rows],
-                "schema_version": 1,
+                "candidate_count": built.candidate_count,
+                "window_excluded_count": built.window_excluded_count,
+                "missing_effective_time_count": built.missing_effective_time_count,
+                "schema_version": 2,
             }
         )
         try:
@@ -610,6 +694,10 @@ class SqliteDailyReportRepository:
             "confirmed": settings.confirmed,
             "output_directory": str(settings.output_directory),
             "query_place_keyword": settings.query_place_keyword,
+            "capture_start_time": settings.capture_start_time.isoformat(),
+            "capture_end_mode": settings.capture_end_mode,
+            "capture_fixed_end_day_offset": settings.capture_fixed_end_day_offset,
+            "capture_fixed_end_time": settings.capture_fixed_end_time.isoformat(),
             "record_version": settings.record_version,
             "shipping_mine": settings.shipping_mine,
             "unloading_place": settings.unloading_place,

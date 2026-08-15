@@ -1,6 +1,6 @@
 # ADR-063: Daily scope and identity reconciliation
 
-Status: Superseded in part by ADR-066 for page-display total comparability.
+Status: Superseded in part by ADR-066 for page-display total comparability and ADR-073 for new candidate-range bounds.
 
 ## Context
 
@@ -8,7 +8,7 @@ Several August 8 snapshots contained 62 unique waybills while staff observed 68 
 
 ## Decision
 
-New daily reads start at the real 14:00 business boundary and may retain only the next-day 14:30 candidate safety tail. The former 13:30 start is accepted solely for replaying sealed historical evidence and cannot create a new production snapshot. The daily connector lets the Chengfeng page produce the final authoritative query without pressing Reset first. It replaces only the validated business date, location and pagination fields, while bounded non-sensitive page-owned filter values remain private inside the browser worker. This preserves account- and page-scope values that Reset can replace with a narrower default. Each snapshot records only redacted completeness evidence: displayed total, response total, response page count, pages actually read, unique identity total, scope hash, completeness result and diagnostic code.
+The identity-reconciliation decision remains authoritative. ADR-073 supersedes the former fixed next-day 14:30 bound for new tasks: each task now freezes a versioned candidate range whose default end is server current time. The former 13:30 start and 14:30 safety-tail shape remain accepted solely for replaying sealed historical evidence. The daily connector lets the Chengfeng page produce the final authoritative query without pressing Reset first. It replaces only the validated business date, location, frozen time range and pagination fields, while bounded non-sensitive page-owned filter values remain private inside the browser worker. This preserves account- and page-scope values that Reset can replace with a narrower default. Each snapshot records only redacted completeness evidence: displayed total, response total, response page count, pages actually read, unique identity total, scope hash, completeness result and diagnostic code.
 
 `scope_complete` is true only when the displayed, response and unique totals reconcile, the platform page count equals the pages actually read, pagination is complete and identities contain no duplicates. A mismatch returns an incomplete business read even when records were downloaded. It must not fall back to an older snapshot or cached 62-item result.
 

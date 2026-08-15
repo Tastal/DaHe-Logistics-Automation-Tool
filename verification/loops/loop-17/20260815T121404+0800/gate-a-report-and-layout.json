@@ -1,0 +1,60 @@
+{
+  "accepted_at": "2026-08-15T12:15:35.6724277+08:00",
+  "application_version": "1.1.3",
+  "automated_checks": {
+    "daily_report_backend_and_workbook_tests_passed": 18,
+    "daily_workspace_and_datetime_frontend_tests_passed": 17,
+    "edge_e2e_scaling_cases_passed": 12,
+    "scaling_percentages": [
+      100,
+      125,
+      150,
+      200
+    ]
+  },
+  "chengfeng_platform_accessed": false,
+  "company_installed_ui": {
+    "business_date": "2026-08-12",
+    "contract_subject_code": "shanxi_guienbo",
+    "counts": {
+      "all": 136,
+      "needs_review": 0,
+      "reviewed": 136
+    },
+    "date_row_box": {
+      "height": 44,
+      "width": 182.90625,
+      "x": 670,
+      "y": 397.59375
+    },
+    "datetime_rows_overlap": false,
+    "input_sizes": {
+      "day": "44x44",
+      "hour": "44x44",
+      "minute": "44x44",
+      "month": "44x44",
+      "second": "44x44",
+      "year": "66x44"
+    },
+    "online_capture_complete": true,
+    "report_button_enabled": true,
+    "report_created_for_acceptance": false,
+    "screenshot_sha256": "7c1812aaadb72976a71599731c3a1881b45ec628142726d855280718b81e65f4",
+    "time_row_box": {
+      "height": 44,
+      "width": 159.5,
+      "x": 670,
+      "y": 445.59375
+    }
+  },
+  "implementation": {
+    "backend_built_in_report_defaults_supported": true,
+    "date_and_time_rows_split": true,
+    "frontend_legacy_confirmed_flag_gate_removed": true,
+    "fresh_default_settings_materialized_before_generation": true,
+    "report_generation_still_requires_nonempty_items_and_zero_review_items": true
+  },
+  "result": "passed",
+  "schema_revision": "0041_contract_subject_scope",
+  "schema_version": 1
+}
