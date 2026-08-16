@@ -69,7 +69,7 @@ except ModuleNotFoundError:
     )
 
 ROOT = Path(__file__).resolve().parents[1]
-REVISION = "0041_contract_subject_scope"
+REVISION = "0042_daily_capture_range"
 MINIMUM_SCHEMA_REVISION = "0039_network_batch_default"
 REPOSITORY = "Tastal/DaHe-Logistics-Automation-Tool"
 GITHUB_RELEASE_ASSET_LIMIT_BYTES = 2 * 1024 * 1024 * 1024

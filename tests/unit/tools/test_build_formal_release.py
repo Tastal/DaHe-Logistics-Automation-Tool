@@ -12,6 +12,7 @@ from dahe.adapters.ocr.runtime_layout import ActiveOcrComposition
 from tools.build_formal_release import (
     GITHUB_RELEASE_ASSET_LIMIT_BYTES,
     MINIMUM_SCHEMA_REVISION,
+    REVISION,
     _copy_browser_runtime,
     _copy_formal_pipeline_sources,
     _copy_operational_seed,
@@ -61,6 +62,7 @@ def test_formal_release_reads_version_from_its_source_checkout(tmp_path: Path) -
 
     assert _source_application_version(tmp_path / "source") == "1.1.0"
     assert MINIMUM_SCHEMA_REVISION == "0039_network_batch_default"
+    assert REVISION == "0042_daily_capture_range"
 
 
 def test_updater_is_carried_by_stable_and_versioned_locations(tmp_path: Path) -> None:
