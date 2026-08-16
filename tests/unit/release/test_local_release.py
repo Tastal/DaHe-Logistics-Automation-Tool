@@ -8,7 +8,6 @@ import pytest
 from dahe.release.local_release import (
     LocalReleaseError,
     _copy_formal_pipeline_project_sources,
-    _create_shortcut,
     _payload_files,
     _require_current_browser_runtime,
     _write_hidden_launcher,
@@ -54,28 +53,6 @@ def test_hidden_launcher_runs_the_diagnostic_launcher_without_a_window(
     assert not payload.startswith(b"\xef\xbb\xbf")
     assert '"start-dahe-diagnostic.cmd"' in content
     assert ", 0, False" in content
-
-
-def test_development_shortcut_uses_the_embedded_launcher_logo(
-    monkeypatch: pytest.MonkeyPatch,
-    tmp_path: Path,
-) -> None:
-    launcher = tmp_path / "DaHeLauncher.exe"
-    launcher.write_bytes(b"launcher")
-    shortcut = tmp_path / "大禾物流自动化平台.lnk"
-
-    def fake_run(command: tuple[str, ...], **kwargs: object) -> None:
-        environment = kwargs["env"]
-        assert isinstance(environment, dict)
-        assert environment["DAHE_LAUNCHER_PATH"] == str(launcher)
-        assert "$shortcut.IconLocation = $env:DAHE_LAUNCHER_PATH + ',0';" in command[-1]
-        shortcut.write_bytes(b"shortcut")
-
-    monkeypatch.setattr("dahe.release.local_release.subprocess.run", fake_run)
-
-    _create_shortcut(shortcut_path=shortcut, launcher_path=launcher)
-
-    assert shortcut.is_file()
 
 
 def test_release_copies_formal_pipeline_tool_sources(tmp_path: Path) -> None:

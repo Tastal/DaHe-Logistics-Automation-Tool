@@ -112,13 +112,60 @@ class SqliteDailyItemRepository:
         *,
         contract_subject_code: str = "shanxi_guienbo",
     ) -> tuple[DailyItemView, ...]:
+        _source, revisions, materialized = self._project_current_revisions(
+            business_date=business_date,
+            contract_subject_code=contract_subject_code,
+        )
+        outputs = self._load_latest_ocr_outputs(
+            tuple(
+                waybill_number
+                for revision in revisions
+                if (waybill_number := revision.waybill_number) is not None
+            ),
+            contract_subject_code=contract_subject_code,
+        )
+        return tuple(
+            self._view_for_machine(
+                revision,
+                ocr_outputs=(
+                    outputs.get(revision.waybill_number)
+                    if revision.waybill_number is not None
+                    else None
+                ),
+                materialized_at=materialized[revision.observation_id],
+                contract_subject_code=contract_subject_code,
+            )
+            for revision in revisions
+        )
+
+    def _project_current_revisions(
+        self,
+        *,
+        business_date: date,
+        contract_subject_code: str,
+        receive_place_keyword: str | None = None,
+    ) -> tuple[
+        DailySourceContext | None,
+        tuple[DailyRecordRevision, ...],
+        dict[str, str],
+    ]:
+        """Project one day onto its current capture before any consumer reads it."""
+
         source = self.latest_source_context(
             business_date,
             contract_subject_code=contract_subject_code,
         )
-        revisions = self._daily_store.list_latest_revisions_for_business_date_any(
-            business_date=business_date,
-            contract_subject_code=contract_subject_code,
+        revisions = (
+            self._daily_store.list_latest_revisions_for_business_date_any(
+                business_date=business_date,
+                contract_subject_code=contract_subject_code,
+            )
+            if receive_place_keyword is None
+            else self._daily_store.list_latest_revisions_for_business_date(
+                business_date=business_date,
+                receive_place_keyword=receive_place_keyword,
+                contract_subject_code=contract_subject_code,
+            )
         )
         if (
             source is not None
@@ -174,27 +221,7 @@ class SqliteDailyItemRepository:
                     ),
                 )
             )
-        outputs = self._load_latest_ocr_outputs(
-            tuple(
-                waybill_number
-                for revision in revisions
-                if (waybill_number := revision.waybill_number) is not None
-            ),
-            contract_subject_code=contract_subject_code,
-        )
-        return tuple(
-            self._view_for_machine(
-                revision,
-                ocr_outputs=(
-                    outputs.get(revision.waybill_number)
-                    if revision.waybill_number is not None
-                    else None
-                ),
-                materialized_at=materialized[revision.observation_id],
-                contract_subject_code=contract_subject_code,
-            )
-            for revision in revisions
-        )
+        return source, revisions, materialized
 
     def latest_source_context(
         self,
@@ -296,6 +323,44 @@ class SqliteDailyItemRepository:
             contract_subject_code=contract_subject_code,
         )
 
+    def get_item_for_business_date(
+        self,
+        platform_waybill_id: str,
+        *,
+        business_date: date,
+        contract_subject_code: str = "shanxi_guienbo",
+    ) -> DailyItemView:
+        """Read one item through the same current-day projection as the workspace."""
+
+        _source, revisions, materialized = self._project_current_revisions(
+            business_date=business_date,
+            contract_subject_code=contract_subject_code,
+        )
+        machine = next(
+            (
+                revision
+                for revision in revisions
+                if revision.platform_waybill_id == platform_waybill_id
+            ),
+            None,
+        )
+        if machine is None:
+            raise DailyItemConflictError("daily item processing is not complete")
+        outputs = self._load_latest_ocr_outputs(
+            (machine.waybill_number,) if machine.waybill_number is not None else (),
+            contract_subject_code=contract_subject_code,
+        )
+        return self._view_for_machine(
+            machine,
+            ocr_outputs=(
+                outputs.get(machine.waybill_number)
+                if machine.waybill_number is not None
+                else None
+            ),
+            materialized_at=materialized[machine.observation_id],
+            contract_subject_code=contract_subject_code,
+        )
+
     def effective_revisions(
         self,
         *,
@@ -303,18 +368,12 @@ class SqliteDailyItemRepository:
         receive_place_keyword: str,
         contract_subject_code: str = "shanxi_guienbo",
     ) -> tuple[DailyRecordRevision, ...]:
-        machine = self._daily_store.list_latest_revisions_for_business_date(
+        _source, machine, materialized = self._project_current_revisions(
             business_date=business_date,
             receive_place_keyword=receive_place_keyword,
             contract_subject_code=contract_subject_code,
         )
         result: list[DailyRecordRevision] = []
-        materialized = self._load_materialized_observations(machine)
-        machine = tuple(
-            revision
-            for revision in machine
-            if revision.observation_id in materialized
-        )
         outputs = self._load_latest_ocr_outputs(
             tuple(
                 waybill_number
@@ -426,6 +485,7 @@ class SqliteDailyItemRepository:
         self,
         *,
         platform_waybill_id: str,
+        business_date: date,
         expected_record_version: int,
         changes: dict[str, object],
         idempotency_key: str,
@@ -456,18 +516,18 @@ class SqliteDailyItemRepository:
                 or str(replay["platform_waybill_id"]) != platform_waybill_id
             ):
                 raise IdempotencyConflictError("daily item idempotency key reused")
-            return self.get_item(
+            return self.get_item_for_business_date(
                 platform_waybill_id,
+                business_date=business_date,
                 contract_subject_code=contract_subject_code,
             ), True
 
-        machine = self._daily_store.list_revisions(
+        current_view = self.get_item_for_business_date(
             platform_waybill_id,
+            business_date=business_date,
             contract_subject_code=contract_subject_code,
         )
-        if not machine:
-            raise DailyItemConflictError("daily item does not exist")
-        current = machine[-1]
+        current = current_view.machine
         with self._runtime.engine.connect() as connection:
             manual_count = int(
                 connection.execute(
@@ -485,7 +545,7 @@ class SqliteDailyItemRepository:
                 ).scalar_one_or_none()
                 or 0
             )
-        actual_version = _record_version(current.revision_number, manual_count)
+        actual_version = current_view.record_version
         if expected_record_version != actual_version:
             raise RecordVersionConflictError("daily item changed")
 
@@ -521,14 +581,15 @@ class SqliteDailyItemRepository:
             connection.execute(
                 update(DAILY_REPORTS)
                 .where(
-                    DAILY_REPORTS.c.business_date == self._business_date(current),
+                    DAILY_REPORTS.c.business_date == business_date.isoformat(),
                     DAILY_REPORTS.c.contract_subject_code
                     == contract_subject_code,
                 )
                 .values(stale=1, record_version=DAILY_REPORTS.c.record_version + 1)
             )
-        return self.get_item(
+        return self.get_item_for_business_date(
             platform_waybill_id,
+            business_date=business_date,
             contract_subject_code=contract_subject_code,
         ), False
 

@@ -18,7 +18,9 @@ from dahe_ocr_worker.model_manifest import (
 )
 from dahe_ocr_worker.network_guard import install_python_network_guard
 from dahe_ocr_worker.protocol import (
+    BATCH_PROTOCOL_VERSION,
     MAX_COMMAND_LINE_BYTES,
+    WorkerBatchImage,
     WorkerCommand,
     WorkerProtocolViolation,
     decode_command_bytes,
@@ -57,11 +59,14 @@ def _is_reparse_point(path: Path) -> bool:
     return bool(attributes & stat.FILE_ATTRIBUTE_REPARSE_POINT)
 
 
-def _resolve_image(data_root: Path, command: WorkerCommand) -> Path:
-    if command.relative_path is None or command.image_sha256 is None:
+def _resolve_image(
+    data_root: Path,
+    image: WorkerCommand | WorkerBatchImage,
+) -> Path:
+    if image.relative_path is None or image.image_sha256 is None:
         raise WorkerProtocolViolation("image command is missing evidence")
     current = data_root
-    for part in Path(command.relative_path).parts:
+    for part in Path(image.relative_path).parts:
         current = current / part
         if current.is_symlink() or _is_reparse_point(current):
             raise WorkerProtocolViolation("image path uses a link or reparse point")
@@ -75,16 +80,19 @@ def _resolve_image(data_root: Path, command: WorkerCommand) -> Path:
     return resolved
 
 
-def _read_verified_image(data_root: Path, command: WorkerCommand) -> bytes:
+def _read_verified_image(
+    data_root: Path,
+    image: WorkerCommand | WorkerBatchImage,
+) -> bytes:
     """Capture, bound, and hash the exact immutable bytes sent to OCR."""
 
-    resolved = _resolve_image(data_root, command)
+    resolved = _resolve_image(data_root, image)
     with resolved.open("rb") as image_stream:
         image_bytes = image_stream.read(MAX_IMAGE_BYTES + 1)
     if len(image_bytes) > MAX_IMAGE_BYTES:
         raise WorkerProtocolViolation("image evidence exceeds the byte limit")
     digest = hashlib.sha256(image_bytes).hexdigest()
-    if digest != command.image_sha256:
+    if digest != image.image_sha256:
         raise WorkerProtocolViolation("image evidence hash changed")
     return image_bytes
 
@@ -108,6 +116,17 @@ def _base_result(
     worker_identity: str,
     runtime_fingerprint: str,
 ) -> dict[str, object]:
+    if command.protocol_version == BATCH_PROTOCOL_VERSION:
+        return {
+            "protocol_version": BATCH_PROTOCOL_VERSION,
+            "command_id": command.command_id,
+            "status": "ok",
+            "worker_identity": worker_identity,
+            "runtime_fingerprint": runtime_fingerprint,
+            "elapsed_ms": 0,
+            "items": [],
+            "error": None,
+        }
     return {
         "protocol_version": 1,
         "command_id": command.command_id,
@@ -120,6 +139,51 @@ def _base_result(
         "fields": {},
         "role_observation": None,
         "error": None,
+    }
+
+
+def _error_result(
+    *,
+    command: WorkerCommand | None,
+    worker_identity: str,
+    runtime_fingerprint: str,
+    elapsed_ms: float,
+    kind: str,
+    error_type: str,
+) -> dict[str, object]:
+    command_id = "unparsed-command" if command is None else command.command_id
+    error = {
+        "kind": kind,
+        "message": "The local OCR worker could not complete this vehicle.",
+        "diagnostic_code": diagnostic_code(
+            kind,
+            runtime_fingerprint,
+            error_type,
+        ),
+    }
+    if command is not None and command.protocol_version == BATCH_PROTOCOL_VERSION:
+        return {
+            "protocol_version": BATCH_PROTOCOL_VERSION,
+            "command_id": command_id,
+            "status": "error",
+            "worker_identity": worker_identity,
+            "runtime_fingerprint": runtime_fingerprint,
+            "elapsed_ms": elapsed_ms,
+            "items": [],
+            "error": error,
+        }
+    return {
+        "protocol_version": 1,
+        "command_id": command_id,
+        "status": "error",
+        "worker_identity": worker_identity,
+        "runtime_fingerprint": runtime_fingerprint,
+        "verified_image_sha256": (None if command is None else command.image_sha256),
+        "elapsed_ms": elapsed_ms,
+        "text_lines": [],
+        "fields": {},
+        "role_observation": None,
+        "error": error,
     }
 
 
@@ -192,6 +256,25 @@ def _run_worker(
                 image_bytes = _read_verified_image(data_root, command)
                 extraction = engine.extract(image_bytes)
                 payload.update(extraction)
+            elif command.operation == "extract_batch":
+                batch_image_bytes = tuple(
+                    _read_verified_image(data_root, image) for image in command.images
+                )
+                extractions = engine.extract_batch(batch_image_bytes)
+                if len(extractions) != len(command.images):
+                    raise WorkerProtocolViolation("batch OCR output count changed")
+                payload["items"] = [
+                    {
+                        "role": image.role,
+                        "verified_image_sha256": image.image_sha256,
+                        **extraction,
+                    }
+                    for image, extraction in zip(
+                        command.images,
+                        extractions,
+                        strict=True,
+                    )
+                ]
             payload["elapsed_ms"] = max(
                 float(cast(float, payload["elapsed_ms"])),
                 (time.perf_counter() - started) * 1000,
@@ -201,68 +284,30 @@ def _run_worker(
                 protocol_stdout=protocol_stdout,
             )
         except WorkerProtocolViolation as exc:
-            if command is None:
-                fallback_command_id = "unparsed-command"
-                verified_image_sha256 = None
-            else:
-                fallback_command_id = command.command_id
-                verified_image_sha256 = command.image_sha256
             kind = _error_kind(exc)
             _write(
-                {
-                    "protocol_version": 1,
-                    "command_id": fallback_command_id,
-                    "status": "error",
-                    "worker_identity": worker_identity,
-                    "runtime_fingerprint": runtime_fingerprint,
-                    "verified_image_sha256": verified_image_sha256,
-                    "elapsed_ms": (time.perf_counter() - started) * 1000,
-                    "text_lines": [],
-                    "fields": {},
-                    "role_observation": None,
-                    "error": {
-                        "kind": kind,
-                        "message": "The local OCR worker could not complete this image.",
-                        "diagnostic_code": diagnostic_code(
-                            kind,
-                            runtime_fingerprint,
-                            type(exc).__name__,
-                        ),
-                    },
-                },
+                _error_result(
+                    command=command,
+                    worker_identity=worker_identity,
+                    runtime_fingerprint=runtime_fingerprint,
+                    elapsed_ms=(time.perf_counter() - started) * 1000,
+                    kind=kind,
+                    error_type=type(exc).__name__,
+                ),
                 protocol_stdout=protocol_stdout,
             )
             return 42
         except Exception as exc:
-            if command is None:
-                fallback_command_id = "unparsed-command"
-                verified_image_sha256 = None
-            else:
-                fallback_command_id = command.command_id
-                verified_image_sha256 = command.image_sha256
             kind = _error_kind(exc)
             _write(
-                {
-                    "protocol_version": 1,
-                    "command_id": fallback_command_id,
-                    "status": "error",
-                    "worker_identity": worker_identity,
-                    "runtime_fingerprint": runtime_fingerprint,
-                    "verified_image_sha256": verified_image_sha256,
-                    "elapsed_ms": (time.perf_counter() - started) * 1000,
-                    "text_lines": [],
-                    "fields": {},
-                    "role_observation": None,
-                    "error": {
-                        "kind": kind,
-                        "message": "The local OCR worker could not complete this image.",
-                        "diagnostic_code": diagnostic_code(
-                            kind,
-                            runtime_fingerprint,
-                            type(exc).__name__,
-                        ),
-                    },
-                },
+                _error_result(
+                    command=command,
+                    worker_identity=worker_identity,
+                    runtime_fingerprint=runtime_fingerprint,
+                    elapsed_ms=(time.perf_counter() - started) * 1000,
+                    kind=kind,
+                    error_type=type(exc).__name__,
+                ),
                 protocol_stdout=protocol_stdout,
             )
             # Inference failures can leave a device allocator or Paddle

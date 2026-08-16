@@ -1,0 +1,36 @@
+{
+  "application_version": "1.1.4-development-candidate",
+  "commands": [
+    {
+      "command": ".venv\\Scripts\\python.exe -m pytest <targeted daily capture, report, migration, and settings tests>",
+      "result": "217 passed"
+    },
+    {
+      "command": "npm.cmd --prefix frontend run check",
+      "result": "152 frontend tests passed and production build succeeded at the Gate A checkpoint"
+    }
+  ],
+  "durable_checkpoint_timing": {
+    "baseline_restore_commit_at": "2026-08-16T12:45:46+08:00",
+    "report_restore_commit_at": "2026-08-16T12:52:00+08:00",
+    "seconds_between_commits": 374,
+    "timing_note": "This measures durable commit checkpoints, not an inferred task start time."
+  },
+  "gate_id": "loop-18-rebuild-gate-a-baseline-and-report",
+  "implementation_commits": [
+    "c68b92d",
+    "ecd816c"
+  ],
+  "outcomes": {
+    "candidate_capture_range": "business-day 14:00 through task-start system time by default, with a versioned fixed-end option",
+    "legacy_pair_continuation_removed": true,
+    "original_workbook_candidate_count": 90,
+    "original_workbook_included_count": 82,
+    "original_workbook_outside_window_count": 8,
+    "report_window": "[business-day 14:00, next-day 14:00)",
+    "schema_revision": "0042_daily_capture_range",
+    "v1_1_3_behavior_baseline_restored": true
+  },
+  "recorded_at": "2026-08-16T14:06:27+08:00",
+  "status": "passed"
+}

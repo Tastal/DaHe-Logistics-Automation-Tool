@@ -1,0 +1,68 @@
+{
+  "company_computer": {
+    "deployment_attempted": false,
+    "fixed_ssh_key": {
+      "local_private_key_acl_restricted": true,
+      "public_fingerprint": "SHA256:nxMh+duuHuHWzhwHfrHAclvS2EI8xtraG5YEUAvzOCg",
+      "remote_public_key_installed": false
+    },
+    "reason": "The company computer is currently unreachable and the user explicitly deferred this deployment.",
+    "status": "deferred_by_user"
+  },
+  "github": {
+    "confirmed_assets": {
+      "DaHe-Logistics-Automation-Tool-1.1.4-Setup.exe": {
+        "server_digest": "sha256:b3d63324744be955586203ffebdf5c7ac5f2050bdd3fa23a3e31a2239f62a4d2",
+        "size": 424756789
+      },
+      "DaHe-Logistics-Automation-Tool-1.1.4-win-x64.zip": {
+        "server_digest": "sha256:e9a9b10f41ba7fb95cb67797810877f6cc7db59b5ecaff711014343485ab5b36",
+        "size": 61882063
+      },
+      "SHA256SUMS.txt": {
+        "server_digest": "sha256:8223177d71bf3f5412adf0231edf9438f168beadf12bb5622bedaed246556231",
+        "size": 440
+      },
+      "update-manifest.json": {
+        "server_digest": "sha256:417229e341545b0c5d7b3df37b7dec296eeb686bd42c4b508dc1c432b6c64eba",
+        "size": 1216
+      }
+    },
+    "connector_readback_succeeded": true,
+    "draft_asset_count": 4,
+    "draft_release_created": true,
+    "draft_release_id": 371070663,
+    "draft_release_url": "https://github.com/Tastal/DaHe-Logistics-Automation-Tool/releases/tag/untagged-737acf9dec4ce486a24d",
+    "main_commit_pushed": "5d06c3a0fa31b6bf427940c9ab297d6348692bd4",
+    "missing_assets": [
+      "DaHe-Logistics-Automation-Tool-1.1.4-gpu-addon-win-x64.zip"
+    ],
+    "official_asset_upload_confirmed": false,
+    "official_endpoints_blocked": [
+      "uploads.github.com (intermittent large-file disconnects)",
+      "github.com (browser timeout)"
+    ],
+    "published_latest": false,
+    "repository": "Tastal/DaHe-Logistics-Automation-Tool",
+    "setup_upload_confirmed": true,
+    "tag_commit_pushed": "5d06c3a0fa31b6bf427940c9ab297d6348692bd4",
+    "tag_name": "v1.1.4",
+    "gpu_upload_attempts": {
+      "attempt_count": 3,
+      "failure": "The official upload connection closed before GitHub created an asset.",
+      "server_asset_created": false
+    }
+  },
+  "kind": "loop_18_gate_c_public_release_and_company_deployment_evidence",
+  "local_release_archive": {
+    "asset_count": 5,
+    "asset_hashes_verified": true,
+    "path": "dist/releases/1.1.4"
+  },
+  "platform_accessed_after_gate_a": false,
+  "platform_business_write_request_count": 0,
+  "recorded_at": "2026-08-16T01:42:06.1405069+08:00",
+  "result": "blocked_external_release_and_deferred_company_deployment",
+  "schema_version": 1,
+  "source_export_manifest": "verification/loops/loop-18/20260815T191119+0800/source-export-manifest.json"
+}

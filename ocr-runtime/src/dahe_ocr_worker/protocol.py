@@ -8,6 +8,7 @@ from pathlib import PurePosixPath
 from typing import Any
 
 PROTOCOL_VERSION = 1
+BATCH_PROTOCOL_VERSION = 2
 MAX_COMMAND_LINE_BYTES = 64 * 1024
 MAX_RESULT_LINE_BYTES = 4 * 1024 * 1024
 MAX_COMMAND_ID_CHARS = 128
@@ -15,7 +16,7 @@ MAX_PROFILE_ID_CHARS = 128
 MAX_RELATIVE_PATH_CHARS = 512
 SHA256_PATTERN = re.compile(r"^[0-9a-f]{64}$")
 OPERATIONS = {"hello", "smoke", "extract", "shutdown"}
-COMMAND_FIELDS = {
+COMMAND_FIELDS_V1 = {
     "protocol_version",
     "command_id",
     "operation",
@@ -25,10 +26,29 @@ COMMAND_FIELDS = {
     "runtime_fingerprint",
     "profile_id",
 }
+# Kept for v1 conformance tests and older standalone tools.
+COMMAND_FIELDS = COMMAND_FIELDS_V1
+COMMAND_FIELDS_V2 = {
+    "protocol_version",
+    "command_id",
+    "operation",
+    "images",
+    "pipeline_fingerprint",
+    "runtime_fingerprint",
+    "profile_id",
+}
+IMAGE_FIELDS_V2 = {"image_sha256", "relative_path", "role"}
 
 
 class WorkerProtocolViolation(RuntimeError):
     """Raised when a command is not safe to execute."""
+
+
+@dataclass(frozen=True, slots=True)
+class WorkerBatchImage:
+    image_sha256: str
+    relative_path: str
+    role: str
 
 
 @dataclass(frozen=True, slots=True)
@@ -40,6 +60,8 @@ class WorkerCommand:
     pipeline_fingerprint: str | None
     runtime_fingerprint: str
     profile_id: str
+    protocol_version: int = PROTOCOL_VERSION
+    images: tuple[WorkerBatchImage, ...] = ()
 
 
 def _require_sha(value: object, field: str, *, optional: bool = False) -> str | None:
@@ -96,10 +118,64 @@ def parse_command(line: str) -> WorkerCommand:
         payload = json.loads(line)
     except json.JSONDecodeError as exc:
         raise WorkerProtocolViolation("command is not valid JSON") from exc
-    if not isinstance(payload, dict) or set(payload) != COMMAND_FIELDS:
-        raise WorkerProtocolViolation("command fields do not match protocol version 1")
-    if payload["protocol_version"] != PROTOCOL_VERSION:
-        raise WorkerProtocolViolation("command protocol version is unsupported")
+    if not isinstance(payload, dict):
+        raise WorkerProtocolViolation("command must be an object")
+    protocol_version = payload.get("protocol_version")
+    if protocol_version == BATCH_PROTOCOL_VERSION:
+        if set(payload) != COMMAND_FIELDS_V2:
+            raise WorkerProtocolViolation("command fields do not match protocol version 2")
+        if payload["operation"] != "extract_batch":
+            raise WorkerProtocolViolation("protocol version 2 only accepts extract_batch")
+        command_id = _require_text(
+            payload["command_id"],
+            "command_id",
+            max_chars=MAX_COMMAND_ID_CHARS,
+        )
+        profile_id = _require_text(
+            payload["profile_id"],
+            "profile_id",
+            max_chars=MAX_PROFILE_ID_CHARS,
+        )
+        runtime_fingerprint = _require_sha(
+            payload["runtime_fingerprint"],
+            "runtime_fingerprint",
+        )
+        pipeline_fingerprint = _require_sha(
+            payload["pipeline_fingerprint"],
+            "pipeline_fingerprint",
+        )
+        raw_images = payload["images"]
+        if not isinstance(raw_images, list) or not 1 <= len(raw_images) <= 2:
+            raise WorkerProtocolViolation("vehicle OCR batch must contain one or two images")
+        images: list[WorkerBatchImage] = []
+        roles: set[str] = set()
+        for raw_image in raw_images:
+            if not isinstance(raw_image, dict) or set(raw_image) != IMAGE_FIELDS_V2:
+                raise WorkerProtocolViolation("batch image fields are invalid")
+            role = raw_image["role"]
+            if role not in {"loading", "unloading"} or role in roles:
+                raise WorkerProtocolViolation("batch image roles must be unique")
+            roles.add(str(role))
+            images.append(
+                WorkerBatchImage(
+                    image_sha256=str(_require_sha(raw_image["image_sha256"], "image_sha256")),
+                    relative_path=_safe_relative_path(raw_image["relative_path"]),
+                    role=str(role),
+                )
+            )
+        return WorkerCommand(
+            command_id=command_id,
+            operation="extract_batch",
+            image_sha256=None,
+            relative_path=None,
+            pipeline_fingerprint=str(pipeline_fingerprint),
+            runtime_fingerprint=str(runtime_fingerprint),
+            profile_id=profile_id,
+            protocol_version=BATCH_PROTOCOL_VERSION,
+            images=tuple(images),
+        )
+    if protocol_version != PROTOCOL_VERSION or set(payload) != COMMAND_FIELDS_V1:
+        raise WorkerProtocolViolation("command fields do not match a supported protocol version")
     operation = payload["operation"]
     if operation not in OPERATIONS:
         raise WorkerProtocolViolation("command operation is unsupported")
@@ -127,9 +203,7 @@ def parse_command(line: str) -> WorkerCommand:
             payload[field] is not None
             for field in ("image_sha256", "relative_path", "pipeline_fingerprint")
         ):
-            raise WorkerProtocolViolation(
-                "non-image command contains image evidence"
-            )
+            raise WorkerProtocolViolation("non-image command contains image evidence")
         image_sha256 = None
         relative_path = None
         pipeline_fingerprint = None
@@ -141,6 +215,7 @@ def parse_command(line: str) -> WorkerCommand:
         pipeline_fingerprint=pipeline_fingerprint,
         runtime_fingerprint=str(runtime_fingerprint),
         profile_id=profile_id,
+        protocol_version=PROTOCOL_VERSION,
     )
 
 
@@ -165,9 +240,7 @@ def decode_command_bytes(raw_line: bytes) -> WorkerCommand:
 
 
 def diagnostic_code(kind: str, runtime_fingerprint: str, error_type: str) -> str:
-    digest = hashlib.sha256(
-        f"{kind}:{runtime_fingerprint}:{error_type}".encode()
-    ).hexdigest()
+    digest = hashlib.sha256(f"{kind}:{runtime_fingerprint}:{error_type}".encode()).hexdigest()
     return f"OCR-{digest[:12].upper()}"
 
 

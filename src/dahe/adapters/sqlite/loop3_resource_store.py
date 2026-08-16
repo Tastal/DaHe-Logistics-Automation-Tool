@@ -39,6 +39,14 @@ class SchedulerLeaseFencingError(RuntimeError):
 
 
 @dataclass(frozen=True, slots=True)
+class SchedulerOcrBatchItem:
+    shared_work_id: str
+    image_role: str
+    image_sha256: str
+    image_relative_path: str
+
+
+@dataclass(frozen=True, slots=True)
 class SchedulerLeaseGrant:
     """Process-local authority for one scheduler atomic stage."""
 
@@ -60,6 +68,7 @@ class SchedulerLeaseGrant:
     profile_id: str | None = None
     runtime_fingerprint: str | None = None
     pipeline_fingerprint: str | None = None
+    ocr_batch: tuple[SchedulerOcrBatchItem, ...] = ()
 
 
 def _fencing_token_digest(token: str) -> str:
@@ -485,10 +494,20 @@ class SqliteLoop3ResourceStore:
         )
         input_fingerprint = None
         if execution_kind == "ocr_image":
+            raw_batch = selected.get("ocr_batch")
+            if not isinstance(raw_batch, tuple) or not raw_batch:
+                raise RuntimeError("OCR vehicle candidate is missing frozen images")
             input_fingerprint = hashlib.sha256(
                 json.dumps(
                     {
-                        "image_sha256": selected.get("image_sha256"),
+                        "images": [
+                            {
+                                "image_role": item.image_role,
+                                "image_sha256": item.image_sha256,
+                                "shared_work_id": item.shared_work_id,
+                            }
+                            for item in raw_batch
+                        ],
                         "pipeline_fingerprint": pipeline_fingerprint,
                         "profile_id": (
                             None if identity is None else identity.profile_id
@@ -596,6 +615,11 @@ class SqliteLoop3ResourceStore:
                 None if identity is None else identity.runtime_fingerprint
             ),
             pipeline_fingerprint=pipeline_fingerprint,
+            ocr_batch=(
+                ()
+                if execution_kind != "ocr_image"
+                else tuple(selected["ocr_batch"])  # type: ignore[arg-type]
+            ),
         )
         connection.execute(
             LEASES.insert().values(
@@ -862,6 +886,7 @@ class SqliteLoop3ResourceStore:
                 SHARED_EVIDENCE_WORK.c.runtime_kind,
                 SHARED_EVIDENCE_WORK.c.pipeline_fingerprint,
                 SHARED_EVIDENCE_WORK.c.image_sha256,
+                SHARED_EVIDENCE_WORK.c.image_relative_path,
                 SHARED_EVIDENCE_CONSUMERS.c.image_role,
                 WORK_ITEMS,
                 JOBS.c.job_kind,
@@ -895,7 +920,11 @@ class SqliteLoop3ResourceStore:
                 ),
             )
         ).mappings()
-        candidates_by_shared: dict[str, dict[str, object]] = {}
+        grouped: dict[
+            tuple[str, str, str | None, str],
+            list[tuple[Mapping[Any, Any], SchedulerOcrBatchItem]],
+        ] = {}
+        seen_shared: set[str] = set()
         for row in rows:
             role = str(row["image_role"])
             already_complete = (
@@ -904,7 +933,7 @@ class SqliteLoop3ResourceStore:
                 else bool(row["unloading_ocr_complete"])
             )
             shared_work_id = str(row["shared_work_id"])
-            if already_complete:
+            if already_complete or shared_work_id in seen_shared:
                 continue
             execution_mode = str(row["execution_mode"])
             runtime_kind = (
@@ -924,36 +953,50 @@ class SqliteLoop3ResourceStore:
                 ):
                     continue
                 execution_kind = "ocr_image"
-            pair_continuation = (
-                bool(row["unloading_ocr_complete"])
-                if role == "loading"
-                else bool(row["loading_ocr_complete"])
+            seen_shared.add(shared_work_id)
+            key = (
+                str(row["work_item_id"]),
+                execution_kind,
+                runtime_kind,
+                str(row["pipeline_fingerprint"]),
             )
-            candidate = {
+            grouped.setdefault(key, []).append(
+                (
+                    row,
+                    SchedulerOcrBatchItem(
+                        shared_work_id=shared_work_id,
+                        image_role=role,
+                        image_sha256=str(row["image_sha256"]),
+                        image_relative_path=str(row["image_relative_path"]),
+                    ),
+                )
+            )
+        candidates: list[dict[str, object]] = []
+        for (_, execution_kind, runtime_kind, pipeline_fingerprint), group in grouped.items():
+            ordered_group = sorted(
+                group,
+                key=lambda item: 0 if item[1].image_role == "loading" else 1,
+            )
+            selected_row = ordered_group[0][0]
+            batch = tuple(item for _, item in ordered_group[:2])
+            candidates.append(
+                {
                     "owner_kind": "shared_evidence",
-                    "owner_id": shared_work_id,
-                    "work_item_id": str(row["work_item_id"]),
-                    "job_id": str(row["job_id"]),
-                    "job_kind": str(row["job_kind"]),
-                    "ready_sequence": int(row["ready_sequence"]),
-                    "item_index": int(row["item_index"]),
+                    "owner_id": batch[0].shared_work_id,
+                    "work_item_id": str(selected_row["work_item_id"]),
+                    "job_id": str(selected_row["job_id"]),
+                    "job_kind": str(selected_row["job_kind"]),
+                    "ready_sequence": int(selected_row["ready_sequence"]),
+                    "item_index": int(selected_row["item_index"]),
                     "stage": "audit.recognize",
                     "execution_kind": execution_kind,
                     "runtime_kind": runtime_kind,
-                    "pipeline_fingerprint": str(
-                        row["pipeline_fingerprint"]
-                    ),
-                    "image_sha256": str(row["image_sha256"]),
-                    "image_role": role,
-                    "pair_continuation": pair_continuation,
+                    "pipeline_fingerprint": pipeline_fingerprint,
+                    "image_sha256": batch[0].image_sha256,
+                    "ocr_batch": batch,
                 }
-            existing = candidates_by_shared.get(shared_work_id)
-            if existing is None or (
-                pair_continuation
-                and not bool(existing.get("pair_continuation", False))
-            ):
-                candidates_by_shared[shared_work_id] = candidate
-        return list(candidates_by_shared.values())
+            )
+        return candidates
 
     def refresh_job_aggregates(
         self,

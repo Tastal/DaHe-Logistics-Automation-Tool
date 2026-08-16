@@ -672,16 +672,20 @@ export function App({ services }: AppProps) {
         跳到主要内容
       </a>
       <header className="mobile-header">
-        <strong><span>大禾物流</span><span>自动化平台</span></strong>
-        {applicationVersion ? <span className="application-version" aria-label={`当前版本 v${applicationVersion}`}>v{applicationVersion}</span> : null}
+        <div className="product-title-stack">
+          <strong><span>大禾物流</span><span>自动化平台</span></strong>
+          {applicationVersion ? <span className="application-version" aria-label={`当前版本 v${applicationVersion}`}>v{applicationVersion}</span> : null}
+        </div>
       </header>
       <nav className="side-navigation" aria-label="主导航">
         <div className="product-name">
           <span className="product-mark" aria-hidden="true">
             <img src="/dahe-logo.png" alt="" />
           </span>
-          <strong><span>大禾物流</span><span>自动化平台</span></strong>
-          {applicationVersion ? <span className="application-version" aria-label={`当前版本 v${applicationVersion}`}>v{applicationVersion}</span> : null}
+          <div className="product-title-stack">
+            <strong><span>大禾物流</span><span>自动化平台</span></strong>
+            {applicationVersion ? <span className="application-version" aria-label={`当前版本 v${applicationVersion}`}>v{applicationVersion}</span> : null}
+          </div>
         </div>
         <div className="business-subject-heading">
           <span className="navigation-group-label">业务</span>

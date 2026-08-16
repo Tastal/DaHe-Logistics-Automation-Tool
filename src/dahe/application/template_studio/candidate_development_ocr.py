@@ -28,6 +28,7 @@ from dahe.jobs.ocr_execution import (
     OcrImageWork,
     OcrStageExecution,
     OcrStageWork,
+    OcrVehicleImageWork,
     RuntimeKindName,
 )
 from dahe.verification.locked_set_review_package import (
@@ -397,20 +398,26 @@ def _execute_image(
         identity = backend.identity_for(runtime_kind)
         attempt_id = uuid4().hex
         pipeline_fingerprint = pipeline_fingerprints[runtime_kind]
+        shared_work_id = _canonical_sha256(
+            {
+                "image_sha256": image.image_sha256,
+                "pipeline_fingerprint": pipeline_fingerprint,
+                "purpose": "candidate_review_development_ocr",
+            }
+        )
         work = OcrStageWork(
             stage_attempt_id=attempt_id,
-            shared_work_id=_canonical_sha256(
-                {
-                    "image_sha256": image.image_sha256,
-                    "pipeline_fingerprint": pipeline_fingerprint,
-                    "purpose": "candidate_review_development_ocr",
-                }
-            ),
             pipeline_fingerprint=pipeline_fingerprint,
             identity=identity,
-            image=OcrImageWork(
-                image_sha256=image.image_sha256,
-                relative_path=image.relative_path,
+            images=(
+                OcrVehicleImageWork(
+                    shared_work_id=shared_work_id,
+                    role="loading",
+                    image=OcrImageWork(
+                        image_sha256=image.image_sha256,
+                        relative_path=image.relative_path,
+                    ),
+                ),
             ),
         )
         started_ns[runtime_kind] = time.perf_counter_ns()

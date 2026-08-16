@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 from datetime import UTC, datetime
 from uuid import uuid4
@@ -54,6 +55,7 @@ from dahe.jobs.ocr_execution import (
     OcrRuntimeIdentity,
     OcrStageExecution,
     OcrStageWork,
+    OcrVehicleImageWork,
 )
 from dahe.jobs.settlement_capture_execution import (
     SETTLEMENT_CAPTURE_STAGE,
@@ -550,7 +552,7 @@ class SqliteLoop3SchedulerStore:
             )
             if grant.execution_kind == "ocr_image":
                 result = self._completed_ocr_results[grant.stage_attempt_id]
-                self._finish_ocr_image_attempt(
+                self._finish_ocr_vehicle_attempt(
                     connection,
                     grant=grant,
                     attempt=attempt,
@@ -1857,51 +1859,78 @@ class SqliteLoop3SchedulerStore:
         *,
         grant: SchedulerLeaseGrant,
     ) -> OcrStageWork:
-        shared = (
-            connection.execute(
-                select(SHARED_EVIDENCE_WORK).where(
-                    SHARED_EVIDENCE_WORK.c.shared_work_id == grant.owner_id
-                )
-            )
-            .mappings()
-            .one()
-        )
         required_values = (
             grant.runtime_kind,
             grant.profile_id,
             grant.runtime_fingerprint,
             grant.pipeline_fingerprint,
-            shared["image_sha256"],
-            shared["image_relative_path"],
         )
-        if any(value is None for value in required_values):
+        if any(value is None for value in required_values) or not grant.ocr_batch:
             raise RuntimeError("claimed OCR work is missing frozen identity")
         identity = OcrRuntimeIdentity(
             runtime_kind=str(grant.runtime_kind),  # type: ignore[arg-type]
             profile_id=str(grant.profile_id),
             runtime_fingerprint=str(grant.runtime_fingerprint),
         )
-        if (
-            grant.owner_kind != "shared_evidence"
-            or shared["execution_mode"] != "local"
-            or shared["runtime_kind"] != identity.runtime_kind
-            or shared["profile_id"] != identity.profile_id
-            or shared["runtime_fingerprint"] != identity.runtime_fingerprint
-            or shared["pipeline_fingerprint"] != grant.pipeline_fingerprint
-        ):
-            raise RuntimeError("claimed shared OCR identity changed before submission")
+        images: list[OcrVehicleImageWork] = []
+        for index, item in enumerate(grant.ocr_batch):
+            shared = (
+                connection.execute(
+                    select(SHARED_EVIDENCE_WORK).where(
+                        SHARED_EVIDENCE_WORK.c.shared_work_id
+                        == item.shared_work_id
+                    )
+                )
+                .mappings()
+                .one()
+            )
+            consumer_status = connection.execute(
+                select(SHARED_EVIDENCE_CONSUMERS.c.status).where(
+                    SHARED_EVIDENCE_CONSUMERS.c.shared_work_id
+                    == item.shared_work_id,
+                    SHARED_EVIDENCE_CONSUMERS.c.work_item_id
+                    == grant.work_item_id,
+                    SHARED_EVIDENCE_CONSUMERS.c.image_role
+                    == item.image_role,
+                )
+            ).scalar_one()
+            expected_status = "running" if index == 0 else "queued"
+            if (
+                grant.owner_kind != "shared_evidence"
+                or shared["status"] != expected_status
+                or consumer_status != "waiting"
+                or shared["execution_mode"] != "local"
+                or shared["runtime_kind"] != identity.runtime_kind
+                or shared["profile_id"] != identity.profile_id
+                or shared["runtime_fingerprint"]
+                != identity.runtime_fingerprint
+                or shared["pipeline_fingerprint"]
+                != grant.pipeline_fingerprint
+                or shared["image_sha256"] != item.image_sha256
+                or shared["image_relative_path"]
+                != item.image_relative_path
+            ):
+                raise RuntimeError(
+                    "claimed vehicle OCR identity changed before submission"
+                )
+            images.append(
+                OcrVehicleImageWork(
+                    shared_work_id=item.shared_work_id,
+                    role=item.image_role,  # type: ignore[arg-type]
+                    image=OcrImageWork(
+                        image_sha256=item.image_sha256,
+                        relative_path=item.image_relative_path,
+                    ),
+                )
+            )
         return OcrStageWork(
             stage_attempt_id=grant.stage_attempt_id,
-            shared_work_id=str(shared["shared_work_id"]),
             pipeline_fingerprint=str(grant.pipeline_fingerprint),
             identity=identity,
-            image=OcrImageWork(
-                image_sha256=str(shared["image_sha256"]),
-                relative_path=str(shared["image_relative_path"]),
-            ),
+            images=tuple(images),
         )
 
-    def _finish_ocr_image_attempt(
+    def _finish_ocr_vehicle_attempt(
         self,
         connection: Connection,
         *,
@@ -1922,32 +1951,50 @@ class SqliteLoop3SchedulerStore:
             raise SchedulerLeaseFencingError(
                 "OCR result identity does not match its fenced stage attempt"
             )
-        shared = (
-            connection.execute(
-                select(SHARED_EVIDENCE_WORK).where(
-                    SHARED_EVIDENCE_WORK.c.shared_work_id
-                    == result.shared_work_id
-                )
-            )
-            .mappings()
-            .one()
-        )
-        if (
-            shared["status"] != "running"
-            or shared["execution_mode"] != "local"
-            or shared["image_sha256"] != result.image.image_sha256
-            or shared["pipeline_fingerprint"] != result.pipeline_fingerprint
-            or shared["runtime_kind"] != result.identity.runtime_kind
-            or shared["profile_id"] != result.identity.profile_id
-            or shared["runtime_fingerprint"]
-            != result.identity.runtime_fingerprint
+        if tuple(item.shared_work_id for item in result.images) != tuple(
+            item.shared_work_id for item in grant.ocr_batch
         ):
             raise SchedulerLeaseFencingError(
-                "shared OCR identity changed before commit"
+                "OCR vehicle batch membership changed before commit"
             )
+        shared_rows = []
+        for index, image in enumerate(result.images):
+            shared = (
+                connection.execute(
+                    select(SHARED_EVIDENCE_WORK).where(
+                        SHARED_EVIDENCE_WORK.c.shared_work_id
+                        == image.shared_work_id
+                    )
+                )
+                .mappings()
+                .one()
+            )
+            expected_status = "running" if index == 0 else "queued"
+            if (
+                shared["status"] != expected_status
+                or shared["execution_mode"] != "local"
+                or shared["image_sha256"]
+                != image.image.image_sha256
+                or shared["pipeline_fingerprint"]
+                != result.pipeline_fingerprint
+                or shared["runtime_kind"] != result.identity.runtime_kind
+                or shared["profile_id"] != result.identity.profile_id
+                or shared["runtime_fingerprint"]
+                != result.identity.runtime_fingerprint
+            ):
+                raise SchedulerLeaseFencingError(
+                    "shared vehicle OCR identity changed before commit"
+                )
+            shared_rows.append(shared)
         if result.succeeded:
-            assert result.output is not None
-            connection.execute(
+            assert result.outputs is not None
+            combined_output_fingerprint = hashlib.sha256(
+                json.dumps(
+                    [output.output_fingerprint for output in result.outputs],
+                    separators=(",", ":"),
+                ).encode()
+            ).hexdigest()
+            finished = connection.execute(
                 update(STAGE_ATTEMPTS)
                 .where(
                     STAGE_ATTEMPTS.c.stage_attempt_id
@@ -1957,32 +2004,47 @@ class SqliteLoop3SchedulerStore:
                 .values(
                     status="succeeded",
                     finished_sequence=sequence,
-                    output_fingerprint=result.output.output_fingerprint,
+                    output_fingerprint=combined_output_fingerprint,
                     discarded=0,
                     diagnostic_code=None,
                     error_kind=None,
                 )
             )
-            connection.execute(
-                update(SHARED_EVIDENCE_WORK)
-                .where(
-                    SHARED_EVIDENCE_WORK.c.shared_work_id
-                    == result.shared_work_id,
-                    SHARED_EVIDENCE_WORK.c.record_version
-                    == shared["record_version"],
+            if finished.rowcount != 1:
+                raise SchedulerLeaseFencingError(
+                    "vehicle OCR stage changed before commit"
                 )
-                .values(
-                    status="succeeded",
-                    artifact_ref=f"local-ocr:{result.shared_work_id}",
-                    output_json=result.output.output_json,
-                    output_fingerprint=result.output.output_fingerprint,
-                    diagnostic_code=None,
-                    record_version=int(shared["record_version"]) + 1,
-                    attempt_count=int(shared["attempt_count"]) + 1,
+            for image, output, shared in zip(
+                result.images,
+                result.outputs,
+                shared_rows,
+                strict=True,
+            ):
+                updated = connection.execute(
+                    update(SHARED_EVIDENCE_WORK)
+                    .where(
+                        SHARED_EVIDENCE_WORK.c.shared_work_id
+                        == image.shared_work_id,
+                        SHARED_EVIDENCE_WORK.c.record_version
+                        == shared["record_version"],
+                    )
+                    .values(
+                        status="succeeded",
+                        artifact_ref=f"local-ocr:{image.shared_work_id}",
+                        output_json=output.output_json,
+                        output_fingerprint=output.output_fingerprint,
+                        diagnostic_code=None,
+                        record_version=int(shared["record_version"]) + 1,
+                        attempt_count=int(shared["attempt_count"]) + 1,
+                    )
                 )
-            )
+                if updated.rowcount != 1:
+                    raise SchedulerLeaseFencingError(
+                        "shared vehicle OCR work changed before commit"
+                    )
         else:
             assert result.error_kind is not None
+            shared = shared_rows[0]
             fallback_allowed = (
                 result.identity.runtime_kind == "gpu"
                 and result.error_kind.gpu_fallback_allowed
@@ -2052,7 +2114,14 @@ class SqliteLoop3SchedulerStore:
                 "committed": result.succeeded,
                 "diagnostic_code": result.diagnostic_code,
                 "discarded": not result.succeeded,
-                "image_sha256": result.image.image_sha256,
+                "images": [
+                    {
+                        "image_role": image.role,
+                        "image_sha256": image.image.image_sha256,
+                        "shared_work_id": image.shared_work_id,
+                    }
+                    for image in result.images
+                ],
                 "pipeline_fingerprint": result.pipeline_fingerprint,
                 "profile_id": result.identity.profile_id,
                 "runtime_fingerprint": result.identity.runtime_fingerprint,

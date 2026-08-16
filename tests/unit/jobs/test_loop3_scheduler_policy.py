@@ -87,26 +87,6 @@ def test_scheduler_rotation_and_fifo_are_deterministic() -> None:
     assert fifo == first
 
 
-def test_scheduler_finishes_same_truck_pair_before_job_rotation() -> None:
-    paired = {
-        **_candidate(job_id="a", job_kind="business", ready_sequence=8),
-        "pair_continuation": True,
-        "last_granted_sequence": 8,
-    }
-    other_job = {
-        **_candidate(job_id="b", job_kind="business", ready_sequence=2),
-        "last_granted_sequence": 0,
-    }
-
-    selected = choose_candidate(
-        [other_job, paired],
-        last_granted_job_id="a",
-        sequence=9,
-    )
-
-    assert selected == paired
-
-
 def test_three_sustained_jobs_rotate_without_starvation() -> None:
     candidates = [
         {

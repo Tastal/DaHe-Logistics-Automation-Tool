@@ -1,15 +1,21 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Sequence
 from threading import RLock
 from uuid import uuid4
 
 from dahe.adapters.ocr.errors import OcrErrorKind
 from dahe.adapters.ocr.fingerprints import build_ocr_output_fingerprint
 from dahe.adapters.ocr.protocol import (
+    OCR_BATCH_PROTOCOL_VERSION,
     OCR_PROTOCOL_VERSION,
+    OcrBatchCommand,
+    OcrBatchImage,
+    OcrBatchResult,
     OcrCommand,
     OcrOperation,
+    OcrResult,
     OcrResultStatus,
 )
 from dahe.adapters.ocr.worker_session import (
@@ -23,6 +29,7 @@ from dahe.jobs.ocr_execution import (
     OcrImageExecutionError,
     OcrImageWork,
     OcrRuntimeIdentity,
+    OcrVehicleImageWork,
 )
 
 
@@ -56,6 +63,18 @@ class NdjsonOcrRuntimeGateway:
         with self._lifecycle_lock:
             return self._extract_locked(
                 image,
+                pipeline_fingerprint=pipeline_fingerprint,
+            )
+
+    def extract_batch(
+        self,
+        images: Sequence[OcrVehicleImageWork],
+        *,
+        pipeline_fingerprint: str,
+    ) -> tuple[OcrImageExecution, ...]:
+        with self._lifecycle_lock:
+            return self._extract_batch_locked(
+                images,
                 pipeline_fingerprint=pipeline_fingerprint,
             )
 
@@ -130,6 +149,14 @@ class NdjsonOcrRuntimeGateway:
                 "OCR-WORKER-CRASHED",
                 str(exc),
             ) from exc
+        if not isinstance(result, OcrResult):
+            failure = OcrImageExecutionError(
+                OcrErrorKind.PROTOCOL_ERROR.value,
+                "OCR-WORKER-PROTOCOL",
+                "OCR worker returned a vehicle-batch result for one image",
+            )
+            self._restart_after_failure(failure)
+            raise failure
         if result.status is OcrResultStatus.ERROR:
             assert result.error is not None
             try:
@@ -165,6 +192,117 @@ class NdjsonOcrRuntimeGateway:
                 runtime_kind=self.identity.runtime_kind,
             ),
         )
+
+    def _extract_batch_locked(
+        self,
+        images: Sequence[OcrVehicleImageWork],
+        *,
+        pipeline_fingerprint: str,
+    ) -> tuple[OcrImageExecution, ...]:
+        self._ensure_live_worker()
+        command = OcrBatchCommand(
+            protocol_version=OCR_BATCH_PROTOCOL_VERSION,
+            command_id=uuid4().hex,
+            operation=OcrOperation.EXTRACT_BATCH,
+            images=tuple(
+                OcrBatchImage(
+                    image_sha256=item.image.image_sha256,
+                    relative_path=item.image.relative_path,
+                    role=item.role,
+                )
+                for item in images
+            ),
+            pipeline_fingerprint=pipeline_fingerprint,
+            runtime_fingerprint=self.identity.runtime_fingerprint,
+            profile_id=self.identity.profile_id,
+        )
+        try:
+            result = self._worker.request(
+                command,
+                timeout_seconds=self._timeout_seconds,
+            )
+        except WorkerTimeoutError as exc:
+            self._restart_after_failure(exc)
+            raise OcrImageExecutionError(
+                OcrErrorKind.WORKER_TIMEOUT.value,
+                "OCR-WORKER-TIMEOUT",
+                str(exc),
+            ) from exc
+        except WorkerProtocolError as exc:
+            self._restart_after_failure(exc)
+            raise OcrImageExecutionError(
+                OcrErrorKind.PROTOCOL_ERROR.value,
+                "OCR-WORKER-PROTOCOL",
+                str(exc),
+            ) from exc
+        except WorkerProcessError as exc:
+            self._restart_after_failure(exc)
+            raise OcrImageExecutionError(
+                OcrErrorKind.WORKER_CRASHED.value,
+                "OCR-WORKER-CRASHED",
+                str(exc),
+            ) from exc
+        if not isinstance(result, OcrBatchResult):
+            failure = OcrImageExecutionError(
+                OcrErrorKind.PROTOCOL_ERROR.value,
+                "OCR-WORKER-PROTOCOL",
+                "OCR worker returned a single-image result for a vehicle batch",
+            )
+            self._restart_after_failure(failure)
+            raise failure
+        if result.status is OcrResultStatus.ERROR:
+            assert result.error is not None
+            try:
+                error_kind = OcrErrorKind(result.error.kind)
+            except ValueError:
+                error_kind = OcrErrorKind.PROTOCOL_ERROR
+            failure = OcrImageExecutionError(
+                error_kind.value,
+                result.error.diagnostic_code,
+                result.error.message,
+            )
+            self._restart_after_failure(failure)
+            raise failure
+        outputs: list[OcrImageExecution] = []
+        for item in result.items:
+            single_result = OcrResult(
+                protocol_version=OCR_PROTOCOL_VERSION,
+                command_id=f"{result.command_id}:{item.role}",
+                status=OcrResultStatus.OK,
+                worker_identity=result.worker_identity,
+                runtime_fingerprint=result.runtime_fingerprint,
+                verified_image_sha256=item.verified_image_sha256,
+                elapsed_ms=item.elapsed_ms,
+                text_lines=item.text_lines,
+                fields=item.fields,
+                role_observation=item.role_observation,
+                error=None,
+            )
+            output_payload = single_result.model_dump(mode="json")
+            output_json = json.dumps(
+                output_payload,
+                ensure_ascii=False,
+                sort_keys=True,
+                separators=(",", ":"),
+            )
+            outputs.append(
+                OcrImageExecution(
+                    image_sha256=item.verified_image_sha256,
+                    output_json=output_json,
+                    output_fingerprint=build_ocr_output_fingerprint(
+                        image_sha256=item.verified_image_sha256,
+                        fields=output_payload["fields"],
+                        role_observation=output_payload["role_observation"],
+                        text_lines=output_payload["text_lines"],
+                        verified_image_sha256=output_payload["verified_image_sha256"],
+                        pipeline_fingerprint=pipeline_fingerprint,
+                        profile_id=self.identity.profile_id,
+                        runtime_fingerprint=self.identity.runtime_fingerprint,
+                        runtime_kind=self.identity.runtime_kind,
+                    ),
+                )
+            )
+        return tuple(outputs)
 
     def close(self) -> None:
         with self._lifecycle_lock:

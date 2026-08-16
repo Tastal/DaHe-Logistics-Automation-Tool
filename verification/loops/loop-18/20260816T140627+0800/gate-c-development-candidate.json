@@ -1,0 +1,134 @@
+{
+  "application_version": "1.1.4-development-candidate",
+  "development_runtime": {
+    "browser_worker_sha256": "b0ef0e62eb0f56b0f053d9a7f6690ecd76f691a34f5c772f3b122d681394b75c",
+    "cpu_fallback_available": true,
+    "gpu_addon_state": "active_composition",
+    "gpu_device": "NVIDIA GeForce RTX 4070 Laptop GPU",
+    "gpu_driver": "610.62",
+    "gpu_qualified": true,
+    "ocr_generation_id": "572f5c8c39624a28929bb2c327d9cdec",
+    "primary_runtime": "gpu",
+    "runtime_root": "%LOCALAPPDATA%/DaHeLogisticsDevelopment/runtimes"
+  },
+  "formal_data_safety": {
+    "backup_evidence": "%LOCALAPPDATA%/DaHeLogisticsAutomationTool/verification/loop18-rebuild-pre-uninstall-backup.json",
+    "backup_evidence_sha256": "4f5ac7bd8c87af32b8a593de01730874bf9774210649049f275acced48c9cc49",
+    "database_integrity": "ok",
+    "preserved": [
+      "SQLite business data",
+      "browser profile",
+      "logs",
+      "backups",
+      "manual review history"
+    ],
+    "schema_revision": "0042_daily_capture_range"
+  },
+  "full_check_attempts": [
+    {
+      "command": ".venv\\Scripts\\python.exe tools/check.py",
+      "duration_seconds": 1005.29,
+      "failure": "The rebuild suffix in current_loop violated the existing ^loop-[0-9]+$ Ledger schema. Product, OCR, report, browser, frontend, Ruff, and mypy checks passed in this attempt.",
+      "resolution": "Use loop-18 as current_loop and retain rebuild only in the run and gate identifiers; verify with the narrow Ledger test before the final frozen full run.",
+      "result": "3058 passed, 9 skipped, 1 failed"
+    },
+    {
+      "command": ".venv\\Scripts\\python.exe tools/check.py",
+      "duration_seconds": 836.67,
+      "result": "passed: Ruff, mypy for 367 source files, frontend 25 files and 154 tests plus build, pytest 3063 passed and 9 symlink-privilege skips"
+    },
+    {
+      "command": "npm.cmd --prefix frontend run test:e2e",
+      "result": "29 passed"
+    }
+  ],
+  "gate_id": "loop-18-rebuild-gate-c-development-candidate",
+  "local_development_entry": {
+    "cold_starts": 2,
+    "desktop_shortcut": "Desktop/大禾物流自动化平台.lnk",
+    "desktop_shortcut_sha256": "139344ccc74a56956efb21ed7ddca37270153876f484157e0904d2d3c15b43e6",
+    "installed_program_root_exists": false,
+    "readiness_http_status": 200,
+    "readiness_identity": {
+      "application_version": "1.1.4",
+      "build_git_commit": "development",
+      "resource_sha256": "b105f91a13d39330760ddf1230d2c33436e58773f2f05a21c8aa0b7677abab99",
+      "schema_revision": "0042_daily_capture_range"
+    },
+    "runtime_command": "python.exe -m dahe --serve --production-read-only --data-root %LOCALAPPDATA%/DaHeLogisticsAutomationTool --no-browser",
+    "runtime_identity_note": "The desktop shortcut invokes the project .venv; Windows reports the venv base CPython executable in the process command line. No packaged DaHeApp executable or installed application directory remains."
+  },
+  "publication_blocked_until_user_acceptance": true,
+  "real_platform_read_only_acceptance": {
+    "daily": {
+      "after_hillstone_disabled": {
+        "audit_evidence_sha256": "97cc84bf58bfef88e082420b68c7f971a5e5643665f0e78cde1bc61695d275f3",
+        "audit_request_counts": {
+          "allowed": 9,
+          "attempted": 9,
+          "denied": 0,
+          "succeeded": 9
+        },
+        "business_date": "2026-08-16",
+        "contract_subject_code": "shanxi_guienbo",
+        "elapsed_seconds": 81,
+        "frozen_waybill_count": 3,
+        "freshness": "cache_refresh_count=1 page_count=1 route=/wayBill duration_ms=55233 settlement_prepare_count=0 settlement_list_request_count=0",
+        "job_id": "27422f39f07147d7a3df324b290d371a",
+        "online_capture_complete": true,
+        "platform_write_request_count": 0,
+        "result": "passed",
+        "visible_prefix_observed": [
+          0,
+          1,
+          2,
+          3
+        ]
+      },
+      "while_hillstone_connected": {
+        "diagnostic_code": "CF-DAILY-BROWSER-RUNTIME-FAILED",
+        "job_id": "22df7e46db3441dd921bc82d1102cba4",
+        "result": "failed",
+        "technical_error": "browser_daily_route_unavailable"
+      },
+      "network_inference": "The same build failed to make /wayBill ready while Hillstone was connected and passed after Hillstone was disabled. This strongly supports external network interference but does not prove exclusive causality."
+    },
+    "settlement": {
+      "audit_evidence_sha256": "a63a8d4453b872fbaf1753403f5d38563811a895a3ca485d4d54fc13213576a5",
+      "audit_request_counts": {
+        "allowed": 263,
+        "attempted": 263,
+        "denied": 0,
+        "succeeded": 263
+      },
+      "elapsed_seconds": 694,
+      "frozen_waybill_count": 87,
+      "freshness": "cache_refresh_count=1 query_attempt_count=1 page_count=1 route=/billablewaybill",
+      "online_image_count": 174,
+      "platform_write_request_count": 0,
+      "result": "passed",
+      "visible_prefix_observed": [
+        0,
+        6,
+        15,
+        25,
+        37,
+        77,
+        87
+      ]
+    }
+  },
+  "recorded_at": "2026-08-16T15:47:00+08:00",
+  "remaining_user_acceptance": [
+    "Confirm settlement and daily pages from the unique development shortcut.",
+    "Confirm perceived offline-review speed and per-vehicle progress.",
+    "Confirm the strict daily report result and title layout before authorizing publication."
+  ],
+  "status": "passed",
+  "unresolved_risks": [
+    "Nine symlink-only checks remain skipped because the current Windows account cannot create symbolic links.",
+    "The settlement opening phase remains labeled opening_browser longer than the actual browser startup and early remaining-time estimates are pessimistic.",
+    "Hillstone interference is strongly indicated by the controlled retry but exclusive causality is not proven.",
+    "The user has not accepted the development candidate; installer creation, public source publication, GitHub Release work, and company-computer deployment remain prohibited."
+  ]
+}

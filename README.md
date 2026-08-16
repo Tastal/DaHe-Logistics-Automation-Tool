@@ -27,7 +27,7 @@ operator can select `山西贵恩博` or `上海晋亿晟` without navigating th
 the selected subject is verified only when a settlement or daily read starts,
 and its tasks, reviews, history, reuse index and reports remain isolated. Schema
 `0041_contract_subject_scope` assigns all pre-existing records to Shanxi. The
-1.1.4 installer keeps GitHub as the only online source, retains validated resumable
+1.1.3 formal release keeps GitHub as the only online source, retains validated resumable
 application-ZIP downloads and supports an equally validated local package
 import for unstable networks. Its formal GPU add-on is installed and qualified
 by the versioned updater; copying the GPU ZIP by hand does not activate it. A
@@ -40,10 +40,13 @@ window. New daily reads freeze a configurable candidate range that defaults to
 business-day 14:00 through server-now; the workbook independently includes only
 effective loading times in `[14:00, next-day 14:00)`. Loading-ticket OCR or a
 manual revision is primary, while platform loading time is a blank-cell fallback
-for inclusion and ordering. Offline OCR keeps one GPU Worker and gives the other
-side of the same vehicle one pairing priority before returning to cross-job
-fairness. Schema `0042_daily_capture_range` stores the versioned settings and
-frozen task range.
+for inclusion and ordering. Offline OCR keeps one persistent GPU Worker and
+processes one vehicle at a time. OCR protocol v2 sends the vehicle's one or two
+available tickets through one ordered fast batch, refines only the unresolved
+side, persists the vehicle atomically, and then advances progress by one vehicle.
+An allowed GPU failure discards the uncommitted vehicle group before CPU reruns
+that whole group. Schema `0042_daily_capture_range` stores the versioned settings
+and frozen task range.
 
 The committed development checkout is the authoritative latest implementation.
 Run and verify it only through `.venv\Scripts\python.exe`. An installed build is
@@ -51,6 +54,21 @@ a frozen release and is updated only when the user explicitly requests a new
 package; development work must never patch the installed directory in place.
 Every handoff reports the source HEAD, the executable identity currently bound
 to port 8877, and the installed release identity separately.
+
+For the user-accepted development-only workstation mode, keep browser and OCR
+runtimes under `%LOCALAPPDATA%\DaHeLogisticsDevelopment\runtimes` and preserve
+business data under `%LOCALAPPDATA%\DaHeLogisticsAutomationTool`. After those
+independent runtimes pass their smoke checks and the installed application has
+been removed normally, create the sole desktop development entry with:
+
+```powershell
+.\.venv\Scripts\python.exe tools\install_development_shortcut.py
+```
+
+The shortcut invokes the project `.venv`, the fixed production-read-only
+profile and the formal data root through a hidden PowerShell window. If the
+same development service is already ready on port 8877 it only opens the
+console. A different or unknown listener is reported and is never terminated.
 
 ## Bootstrap
 
@@ -93,8 +111,8 @@ narrow preflight is:
 npm.cmd --prefix frontend run check
 ```
 
-Loop 18's narrow preflight adds the report boundary, candidate-range, paired
-OCR, version and shortcut-icon contracts:
+Loop 18 rebuild's narrow preflight adds the report boundary, candidate-range,
+vehicle-batch OCR, atomic fallback, progress and visual contracts:
 
 ```powershell
 .\.venv\Scripts\python.exe -m pytest `
@@ -102,16 +120,23 @@ OCR, version and shortcut-icon contracts:
   tests\unit\application\daily\test_capture.py `
   tests\unit\application\daily\test_report_workbook.py `
   tests\unit\application\daily\test_unloading_time.py `
-  tests\unit\jobs\test_loop3_scheduler_policy.py `
-  tests\unit\tools\test_build_formal_release.py `
-  tests\unit\release\test_local_release.py `
+  tests\contract\test_loop6_ocr_protocol.py `
+  tests\contract\test_loop6_protocol_conformance.py `
+  tests\unit\ocr\test_worker_engine_contract.py `
+  tests\unit\ocr\test_worker_image_contract.py `
   tests\integration\test_daily_items_api.py `
   tests\integration\test_daily_report_api.py `
   tests\integration\test_loop3_scheduler.py `
-  tests\integration\test_loop4_data_foundation.py `
-  tests\integration\test_loop9_platform_api.py -q
+  tests\integration\test_loop6_persistent_ocr_scheduler.py -q
 npm.cmd --prefix frontend run check
+npm.cmd --prefix frontend run test:e2e -- --grep "title layout|progress visual|risk warning visual"
 ```
+
+The visual preflight uses the installed Microsoft Edge channel. Its screenshots
+cover 1366x768, 1920x1080 and 2560x1440 at simulated Windows 100%, 125%, 150%
+and 200% scaling. A developer must open and inspect the generated images under
+`output/playwright/loop18-rebuild`; passing assertions alone does not satisfy the
+UI gate.
 
 These commands do not replace `tools/check.py`. The capture, migration, and
 projection tests use temporary databases; never exercise write acceptance

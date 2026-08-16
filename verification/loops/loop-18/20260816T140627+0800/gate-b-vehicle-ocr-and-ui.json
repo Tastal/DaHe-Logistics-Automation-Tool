@@ -1,0 +1,83 @@
+{
+  "application_version": "1.1.4-development-candidate",
+  "commands": [
+    {
+      "command": ".venv\\Scripts\\python.exe -m pytest <targeted OCR protocol, worker, scheduler, integration, and vehicle progress tests>",
+      "result": "255 passed, 1 skipped because Windows symbolic-link privileges are unavailable"
+    },
+    {
+      "command": ".venv\\Scripts\\python.exe -m pytest <final targeted protocol, worker, and scheduler set>",
+      "result": "138 passed in 53.13 seconds"
+    },
+    {
+      "command": ".venv\\Scripts\\python.exe -m pytest <worker engine and image tests>",
+      "result": "68 passed"
+    },
+    {
+      "command": "npm.cmd --prefix frontend run check",
+      "result": "25 files, 154 tests passed and production build succeeded"
+    },
+    {
+      "command": "npm.cmd --prefix frontend run test:e2e -- --grep \"title layout|progress visual|risk warning visual\"",
+      "result": "15 passed after visual defects were corrected"
+    },
+    {
+      "command": ".venv\\Scripts\\python.exe -m ruff check <changed Python files> && .venv\\Scripts\\python.exe -m mypy src",
+      "result": "ruff passed; mypy passed for 302 source files"
+    }
+  ],
+  "durable_checkpoint_timing": {
+    "gate_a_commit_at": "2026-08-16T12:52:00+08:00",
+    "gate_b_commit_at": "2026-08-16T14:13:22+08:00",
+    "seconds_between_commits": 4882,
+    "timing_note": "This measures durable commit checkpoints and includes implementation, targeted verification, performance comparison, screenshot generation, human review, and two UI corrections."
+  },
+  "gate_id": "loop-18-rebuild-gate-b-vehicle-ocr-and-ui",
+  "implementation_commit": "0597c9941347c6ff6cfefe050e001ca8fc12f729",
+  "outcomes": {
+    "atomic_vehicle_gpu_to_cpu_fallback": true,
+    "continuous_frozen_order_progress": true,
+    "gpu_process_count": 1,
+    "gpu_resource_slot_count": 1,
+    "ocr_protocol": "v2 extract_batch with one or two role-bound images",
+    "platform_expected_weight_sent_to_ocr": false,
+    "version_label_position": "below the two-line product title"
+  },
+  "performance": {
+    "candidate_second_run_first_vehicle_seconds": 4.431222,
+    "candidate_second_run_total_seconds": 5.498417,
+    "candidate_total_change_vs_baseline_percent": -0.788,
+    "cpu_fallback_used": false,
+    "device": "NVIDIA GeForce RTX 4070 Laptop GPU",
+    "driver": "610.62",
+    "gpu_worker_observed": true,
+    "peak_gpu_memory_mib": 1734,
+    "v1_1_3_second_run_first_vehicle_seconds": 4.454444,
+    "v1_1_3_second_run_total_seconds": 5.542127
+  },
+  "recorded_at": "2026-08-16T14:13:22+08:00",
+  "status": "passed",
+  "visual_gate": {
+    "functional_screens_reviewed": [
+      "settlement progress",
+      "daily vehicle progress and time fields",
+      "daily report settings risk warning"
+    ],
+    "human_reviewed": true,
+    "resolutions": [
+      "1366x768",
+      "1920x1080",
+      "2560x1440"
+    ],
+    "scales_percent": [
+      100,
+      125,
+      150,
+      200
+    ],
+    "visual_defects_found_and_fixed": [
+      "the 1366x768 200 percent utility navigation clipped before it was changed to a two-row layout",
+      "the risk-warning screenshot did not initially contain the warning before the test scrolled it into view"
+    ]
+  }
+}

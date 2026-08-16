@@ -1,0 +1,87 @@
+{
+  "correction_id": "loop-18-rebuild-daily-range-and-progress-projection",
+  "recorded_at": "2026-08-16T16:55:00+08:00",
+  "source_baseline": "b36e5dbc326b12a2bd464e40ef1c590002c6d900",
+  "status": "passed",
+  "defects": {
+    "daily_capture": {
+      "diagnostic_code": "CF-DAILY-CONTRACT-BROWSER-DAILY-BUSINESS-PARAMETERS-INVALID",
+      "root_cause": "The browser worker retained a superseded upper bound of business-day start plus 24 hours 30 minutes even though the accepted current-time mode has no arbitrary duration cap.",
+      "resolution": "Keep the exact 14:00 start and end-not-before-start checks, but remove the obsolete upper-duration rejection."
+    },
+    "settlement_projection": {
+      "observed_wrong_projection": "Generic capture job progress reported 1/1 shadow review before the authoritative business-read progress was loaded.",
+      "resolution": "Load the authoritative business-read progress whenever the source capture changes, reject stale source_job_id values, and show a neutral loading state until that response arrives."
+    }
+  },
+  "automated_checks": [
+    {
+      "command": ".venv\\Scripts\\python.exe -m pytest tests/unit/platform/test_loop9_daily_browser_worker.py tests/unit/application/chengfeng/test_operational_capture.py tests/integration/test_daily_operational_progress_api.py -q",
+      "result": "70 passed, 1 symlink-privilege skip"
+    },
+    {
+      "command": "npm.cmd --prefix frontend exec -- vitest run src/features/audit/BusinessConnectionBar.test.tsx src/features/audit/AuditReviewQueue.test.tsx src/features/audit/BusinessWorkspace.test.tsx",
+      "result": "17 passed"
+    },
+    {
+      "command": "npm.cmd --prefix frontend run check",
+      "result": "passed: boundary, lint, typecheck, 155 tests, and production build"
+    },
+    {
+      "command": ".venv\\Scripts\\python.exe tools\\check.py",
+      "duration_seconds": 1000.56,
+      "result": "passed: Ruff, mypy, frontend check and build, pytest 3064 passed with 9 symlink-privilege skips"
+    },
+    {
+      "command": "npm.cmd --prefix frontend run test:e2e -- --grep \"progress visual\"",
+      "result": "2 passed with Microsoft Edge"
+    }
+  ],
+  "real_platform_read_only_acceptance": {
+    "business_date": "2026-08-15",
+    "contract_subject_code": "shanxi_guienbo",
+    "job_id": "4cedad69dae34bcb808a0bfb8c071dbf",
+    "frozen_waybill_count": 103,
+    "downloaded_image_count": 205,
+    "online_capture_complete": true,
+    "audit_evidence_sha256": "14d1ca56497043a241d2d244652a37f8548d278d5348d65ac69a5938dc14c985",
+    "audit_request_counts": {
+      "allowed": 310,
+      "attempted": 310,
+      "denied": 0,
+      "succeeded": 310
+    },
+    "operation_counts": {
+      "list_daily_waybills": 2,
+      "get_waybill_detail": 103,
+      "download_ticket_image": 205
+    },
+    "platform_write_request_count": 0,
+    "redirect_count": 0
+  },
+  "visual_inspection": {
+    "actual_edge_session": true,
+    "settlement_result": "The page opened directly with 87 total, 7 waiting review, 0 problem waybills, and 80 settleable; no 1/1 shadow-review projection was visible.",
+    "daily_result": "The daily page rendered current business-date results without overlap, clipping, or the former browser-parameter failure.",
+    "screenshots": [
+      {
+        "path": "output/playwright/loop18-fix/settlement-1920x1080.png",
+        "sha256": "37035321c1a1b312c1cd961b8e48a5ed51b0d16c7a9f245708a9d3b8f1a2e91b"
+      },
+      {
+        "path": "output/playwright/loop18-fix/daily-1920x1080.png",
+        "sha256": "7109d80f81d7dec2f360d62c7a64bb5cfac2a809366630f917e852e37355e1a3"
+      }
+    ]
+  },
+  "runtime_identity_before_final_commit": {
+    "application_version": "1.1.4",
+    "build_git_commit": "development",
+    "resource_sha256": "6c5796a40f87d8d60f0fffecbf38438921e4cd68d85ec0b9380f271f38ad1597",
+    "schema_revision": "0042_daily_capture_range",
+    "parent_runtime": ".venv/Scripts/python.exe",
+    "installed_program_root_exists": false,
+    "desktop_shortcut_sha256": "139344ccc74a56956efb21ed7ddca37270153876f484157e0904d2d3c15b43e6"
+  },
+  "publication_blocked_until_user_acceptance": true
+}

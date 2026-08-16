@@ -183,18 +183,37 @@ class OcrImageWork:
 
 
 @dataclass(frozen=True, slots=True)
+class OcrVehicleImageWork:
+    shared_work_id: str
+    role: Literal["loading", "unloading"]
+    image: OcrImageWork
+
+    def __post_init__(self) -> None:
+        if not self.shared_work_id.strip():
+            raise ValueError("shared OCR work identity is required")
+
+
+@dataclass(frozen=True, slots=True)
 class OcrStageWork:
-    """One image-sized scheduler quantum owned by shared evidence work."""
+    """One vehicle-sized scheduler quantum with one or two role-bound images."""
 
     stage_attempt_id: str
-    shared_work_id: str
     pipeline_fingerprint: str
     identity: OcrRuntimeIdentity
-    image: OcrImageWork
+    images: tuple[OcrVehicleImageWork, ...]
 
     def __post_init__(self) -> None:
         if len(self.pipeline_fingerprint) != 64 or not _is_lower_hex(self.pipeline_fingerprint):
             raise ValueError("OCR pipeline fingerprint must be lowercase SHA-256")
+        if not 1 <= len(self.images) <= 2:
+            raise ValueError("vehicle OCR work must contain one or two images")
+        roles = tuple(image.role for image in self.images)
+        if len(set(roles)) != len(roles):
+            raise ValueError("vehicle OCR work roles must be unique")
+
+    @property
+    def shared_work_id(self) -> str:
+        return self.images[0].shared_work_id
 
 
 @dataclass(frozen=True, slots=True)
@@ -207,17 +226,28 @@ class OcrImageExecution:
 @dataclass(frozen=True, slots=True)
 class OcrStageExecution:
     stage_attempt_id: str
-    shared_work_id: str
     pipeline_fingerprint: str
     identity: OcrRuntimeIdentity
-    image: OcrImageWork
-    output: OcrImageExecution | None
+    images: tuple[OcrVehicleImageWork, ...]
+    outputs: tuple[OcrImageExecution, ...] | None
     error_kind: OcrErrorKind | None
     diagnostic_code: str | None
 
     @property
     def succeeded(self) -> bool:
-        return self.output is not None and self.error_kind is None
+        return self.outputs is not None and self.error_kind is None
+
+    @property
+    def shared_work_id(self) -> str:
+        return self.images[0].shared_work_id
+
+    @property
+    def output(self) -> OcrImageExecution | None:
+        """Keep independent single-image verification consumers compatible."""
+
+        if self.outputs is None or len(self.outputs) != 1:
+            return None
+        return self.outputs[0]
 
 
 class OcrImageExecutionError(RuntimeError):
@@ -242,6 +272,13 @@ class OcrRuntimeGateway(Protocol):
         *,
         pipeline_fingerprint: str,
     ) -> OcrImageExecution: ...
+
+    def extract_batch(
+        self,
+        images: Sequence[OcrVehicleImageWork],
+        *,
+        pipeline_fingerprint: str,
+    ) -> tuple[OcrImageExecution, ...]: ...
 
     def close(self) -> None: ...
 
@@ -352,11 +389,11 @@ class AsyncOcrExecutionBackend:
             if work.stage_attempt_id in self._futures:
                 raise RuntimeError("OCR stage attempt was submitted twice")
             self._futures[work.stage_attempt_id] = self._executor.submit(
-                self._execute_image,
+                self._execute_vehicle,
                 work,
             )
 
-    def _execute_image(self, work: OcrStageWork) -> OcrStageExecution:
+    def _execute_vehicle(self, work: OcrStageWork) -> OcrStageExecution:
         gateway = self._gateways[work.identity.runtime_kind]
         if gateway.identity != work.identity:
             return self._failure(
@@ -365,17 +402,34 @@ class AsyncOcrExecutionBackend:
                 diagnostic_code="OCR-RUNTIME-IDENTITY-CHANGED",
             )
         try:
-            output = gateway.extract(
-                work.image,
-                pipeline_fingerprint=work.pipeline_fingerprint,
-            )
+            extract_batch = getattr(gateway, "extract_batch", None)
+            if extract_batch is None:
+                outputs = tuple(
+                    gateway.extract(
+                        vehicle_image.image,
+                        pipeline_fingerprint=work.pipeline_fingerprint,
+                    )
+                    for vehicle_image in work.images
+                )
+            else:
+                outputs = extract_batch(
+                    work.images,
+                    pipeline_fingerprint=work.pipeline_fingerprint,
+                )
             if gateway.identity != work.identity:
                 raise OcrImageExecutionError(
                     OcrErrorKind.PROTOCOL_ERROR,
                     "OCR-RUNTIME-IDENTITY-CHANGED",
                     "OCR runtime identity changed during the image quantum",
                 )
-            if output.image_sha256 != work.image.image_sha256:
+            if len(outputs) != len(work.images) or any(
+                output.image_sha256 != vehicle_image.image.image_sha256
+                for vehicle_image, output in zip(
+                    work.images,
+                    outputs,
+                    strict=True,
+                )
+            ):
                 raise OcrImageExecutionError(
                     OcrErrorKind.EVIDENCE_MISMATCH,
                     "OCR-EVIDENCE-IDENTITY-MISMATCH",
@@ -395,11 +449,10 @@ class AsyncOcrExecutionBackend:
             )
         return OcrStageExecution(
             stage_attempt_id=work.stage_attempt_id,
-            shared_work_id=work.shared_work_id,
             pipeline_fingerprint=work.pipeline_fingerprint,
             identity=work.identity,
-            image=work.image,
-            output=output,
+            images=work.images,
+            outputs=outputs,
             error_kind=None,
             diagnostic_code=None,
         )
@@ -413,11 +466,10 @@ class AsyncOcrExecutionBackend:
     ) -> OcrStageExecution:
         return OcrStageExecution(
             stage_attempt_id=work.stage_attempt_id,
-            shared_work_id=work.shared_work_id,
             pipeline_fingerprint=work.pipeline_fingerprint,
             identity=work.identity,
-            image=work.image,
-            output=None,
+            images=work.images,
+            outputs=None,
             error_kind=error_kind,
             diagnostic_code=diagnostic_code,
         )

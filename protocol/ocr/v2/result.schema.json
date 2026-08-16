@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dahe.local/protocol/ocr/v2/result.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "protocol_version",
+    "command_id",
+    "status",
+    "worker_identity",
+    "runtime_fingerprint",
+    "elapsed_ms",
+    "items",
+    "error"
+  ],
+  "properties": {
+    "protocol_version": {"const": 2},
+    "command_id": {"type": "string", "minLength": 1, "maxLength": 128},
+    "status": {"enum": ["ok", "error"]},
+    "worker_identity": {"type": "string", "minLength": 1, "maxLength": 128},
+    "runtime_fingerprint": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "elapsed_ms": {"type": "number", "minimum": 0},
+    "items": {
+      "type": "array",
+      "maxItems": 2,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "role",
+          "verified_image_sha256",
+          "elapsed_ms",
+          "text_lines",
+          "fields",
+          "role_observation"
+        ],
+        "properties": {
+          "role": {"enum": ["loading", "unloading"]},
+          "verified_image_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+          "elapsed_ms": {"type": "number", "minimum": 0},
+          "text_lines": {"type": "array"},
+          "fields": {"type": "object"},
+          "role_observation": {"type": ["object", "null"]}
+        }
+      }
+    },
+    "error": {"type": ["object", "null"]}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"status": {"const": "ok"}}},
+      "then": {
+        "properties": {
+          "items": {"minItems": 1},
+          "error": {"type": "null"}
+        }
+      }
+    },
+    {
+      "if": {"properties": {"status": {"const": "error"}}},
+      "then": {
+        "properties": {
+          "items": {"maxItems": 0},
+          "error": {"type": "object"}
+        }
+      }
+    }
+  ]
+}

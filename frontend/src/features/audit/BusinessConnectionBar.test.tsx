@@ -59,6 +59,117 @@ function session(overrides: Partial<PlatformSession> = {}): PlatformSession {
 }
 
 describe("Business connection bar", () => {
+  it("loads authoritative progress before showing a terminal capture job summary", async () => {
+    const loadProgress = vi.fn(async () => ({
+      jobId: "capture-terminal",
+      phase: "offline_review",
+      label: "正在离线审核",
+      current: 0,
+      total: 87,
+      fetched: 87,
+      recognized: 0,
+      missingFields: 0,
+      technicalFailed: 0,
+      committedBatches: 0,
+      startedAt: "2026-08-16T16:02:41+08:00",
+      phaseStartedAt: "2026-08-16T16:04:34+08:00",
+      updatedAt: "2026-08-16T16:04:34+08:00",
+      finishedAt: null,
+      elapsedSeconds: 113,
+      estimatedRemainingSeconds: null,
+      estimateState: "estimating",
+      isTerminal: false,
+      sourceJobId: "capture-terminal",
+      sourceRecordVersion: 3,
+      captureMode: "whole_run_v1",
+      visiblePrefixCount: 0,
+      onlineCaptureComplete: true,
+      reviewJob: null,
+    } as const));
+    const services = {
+      startPlatformBusinessRead: vi.fn(),
+      loadPlatformBusinessReadProgress: loadProgress,
+      subscribePlatformBusinessReadProgress: vi.fn(() => () => undefined),
+    } as unknown as AppServices;
+
+    render(
+      <BusinessConnectionBar
+        services={services}
+        jobs={[{
+          jobId: "capture-terminal",
+          taskType: "settlement_capture",
+          jobStatus: "succeeded",
+          statusLabel: "已完成",
+          currentStage: "finalize",
+          currentStageLabel: "运单获取完成",
+          progressLabel: "已处理 1/1，影子审核完成",
+          recordVersion: 3,
+          counts: { total: 1, processed: 1, remaining: 0, waitingUser: 0, failed: 0 },
+          actions: {},
+        } as never]}
+      />,
+    );
+
+    expect(await screen.findByText(/正在离线审核 0\/87/)).toBeVisible();
+    expect(loadProgress).toHaveBeenCalledWith("capture-terminal");
+    expect(screen.queryByText(/影子审核完成/)).not.toBeInTheDocument();
+  });
+
+  it("shows the visible vehicle prefix during live offline review", async () => {
+    const liveProgress = {
+        jobId: "capture-1",
+        phase: "offline_review",
+        label: "正在离线审核",
+        current: 3,
+        total: 10,
+        fetched: 10,
+        recognized: 3,
+        missingFields: 0,
+        technicalFailed: 0,
+        committedBatches: 0,
+        startedAt: "2026-08-15T14:00:00+08:00",
+        phaseStartedAt: "2026-08-15T14:00:12+08:00",
+        updatedAt: "2026-08-15T14:00:18+08:00",
+        finishedAt: null,
+        elapsedSeconds: 18,
+        estimatedRemainingSeconds: 42,
+        estimateState: "estimated",
+        isTerminal: false,
+        sourceJobId: "capture-1",
+        sourceRecordVersion: 1,
+        captureMode: "whole_run_v1",
+        visiblePrefixCount: 3,
+        onlineCaptureComplete: true,
+        reviewJob: null,
+      } as const;
+    const services = {
+      startPlatformBusinessRead: vi.fn(),
+      subscribePlatformBusinessReadProgress: vi.fn((_jobId, onProgress) => {
+        queueMicrotask(() => onProgress(liveProgress));
+        return () => undefined;
+      }),
+    } as unknown as AppServices;
+    render(
+      <BusinessConnectionBar
+        services={services}
+        jobs={[{
+          jobId: "capture-1",
+          taskType: "settlement_capture",
+          jobStatus: "running",
+          statusLabel: "运行中",
+          currentStage: "offline_review",
+          currentStageLabel: "正在离线审核",
+          progressLabel: "正在离线审核",
+          recordVersion: 1,
+          counts: { total: 10, processed: 3, remaining: 7, waitingUser: 0, failed: 0 },
+          actions: {},
+        } as never]}
+      />,
+    );
+
+    expect(await screen.findByText(/正在离线审核 3\/10/)).toBeVisible();
+  });
+
   it("starts one read directly without daily confirmation fields", async () => {
     const start = vi.fn(async () => ({
       created: true,

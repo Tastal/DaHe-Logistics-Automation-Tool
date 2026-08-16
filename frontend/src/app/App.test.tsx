@@ -156,6 +156,16 @@ describe("B version application shell", () => {
     const versions = await screen.findAllByLabelText("当前版本 v1.1.4");
     expect(versions).toHaveLength(2);
     expect(versions.every((version) => version.textContent === "v1.1.4")).toBe(true);
+    expect(
+      versions.every((version) =>
+        version.parentElement?.classList.contains("product-title-stack"),
+      ),
+    ).toBe(true);
+    expect(
+      versions.every((version) =>
+        version.previousElementSibling?.textContent === "大禾物流自动化平台",
+      ),
+    ).toBe(true);
     expect(loadReadinessVersion).toHaveBeenCalledOnce();
   });
 

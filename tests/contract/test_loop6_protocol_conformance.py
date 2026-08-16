@@ -18,6 +18,8 @@ from dahe.adapters.ocr.protocol import (
     MAX_PROFILE_ID_CHARS,
     MAX_RELATIVE_PATH_CHARS,
     MAX_RESULT_LINE_BYTES,
+    OCR_BATCH_PROTOCOL_VERSION,
+    OcrBatchCommand,
     OcrCommand,
     OcrProtocolError,
     parse_result_line,
@@ -37,9 +39,7 @@ def _worker_protocol(project_root: Path) -> Iterator[ModuleType]:
     finally:
         sys.path.remove(worker_src)
         for module_name in tuple(sys.modules):
-            if module_name == "dahe_ocr_worker" or module_name.startswith(
-                "dahe_ocr_worker."
-            ):
+            if module_name == "dahe_ocr_worker" or module_name.startswith("dahe_ocr_worker."):
                 sys.modules.pop(module_name, None)
 
 
@@ -69,6 +69,29 @@ def _hello_payload() -> dict[str, object]:
     return payload
 
 
+def _batch_payload() -> dict[str, object]:
+    return {
+        "protocol_version": OCR_BATCH_PROTOCOL_VERSION,
+        "command_id": "vehicle-001",
+        "operation": "extract_batch",
+        "images": [
+            {
+                "image_sha256": IMAGE_SHA,
+                "relative_path": "证据/装货.png",
+                "role": "loading",
+            },
+            {
+                "image_sha256": "4" * 64,
+                "relative_path": "证据/卸货.png",
+                "role": "unloading",
+            },
+        ],
+        "pipeline_fingerprint": PIPELINE_SHA,
+        "runtime_fingerprint": RUNTIME_SHA,
+        "profile_id": "gpu-portable",
+    }
+
+
 @pytest.mark.parametrize("payload_factory", [_extract_payload, _hello_payload])
 def test_main_schema_and_worker_accept_the_same_valid_commands(
     project_root: Path,
@@ -76,9 +99,9 @@ def test_main_schema_and_worker_accept_the_same_valid_commands(
 ) -> None:
     payload = payload_factory()  # type: ignore[operator]
     schema = json.loads(
-        (
-            project_root / "protocol" / "ocr" / "v1" / "command.schema.json"
-        ).read_text(encoding="utf-8")
+        (project_root / "protocol" / "ocr" / "v1" / "command.schema.json").read_text(
+            encoding="utf-8"
+        )
     )
 
     Draft202012Validator(schema).validate(payload)
@@ -91,6 +114,32 @@ def test_main_schema_and_worker_accept_the_same_valid_commands(
     assert worker_command.command_id == main_command.command_id
     assert worker_command.operation == main_command.operation.value
     assert worker_command.relative_path == main_command.relative_path
+
+
+def test_main_schema_and_worker_accept_the_same_vehicle_batch(
+    project_root: Path,
+) -> None:
+    payload = _batch_payload()
+    schema = json.loads(
+        (project_root / "protocol" / "ocr" / "v2" / "command.schema.json").read_text(
+            encoding="utf-8"
+        )
+    )
+
+    Draft202012Validator(schema).validate(payload)
+    main_command = OcrBatchCommand.model_validate(payload)
+    with _worker_protocol(project_root) as worker_protocol:
+        worker_command = worker_protocol.parse_command(
+            json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
+        )
+
+    assert worker_command.protocol_version == main_command.protocol_version == 2
+    assert [image.role for image in worker_command.images] == [
+        image.role for image in main_command.images
+    ]
+    assert [image.image_sha256 for image in worker_command.images] == [
+        image.image_sha256 for image in main_command.images
+    ]
 
 
 @pytest.mark.parametrize(
@@ -114,9 +163,9 @@ def test_main_schema_and_worker_reject_the_same_invalid_commands(
     payload = _extract_payload()
     payload[field] = value
     schema = json.loads(
-        (
-            project_root / "protocol" / "ocr" / "v1" / "command.schema.json"
-        ).read_text(encoding="utf-8")
+        (project_root / "protocol" / "ocr" / "v1" / "command.schema.json").read_text(
+            encoding="utf-8"
+        )
     )
 
     assert list(Draft202012Validator(schema).iter_errors(payload))
@@ -133,9 +182,9 @@ def test_main_schema_and_worker_reject_the_same_invalid_commands(
 
 def test_three_protocol_surfaces_share_limits_and_fields(project_root: Path) -> None:
     schema = json.loads(
-        (
-            project_root / "protocol" / "ocr" / "v1" / "command.schema.json"
-        ).read_text(encoding="utf-8")
+        (project_root / "protocol" / "ocr" / "v1" / "command.schema.json").read_text(
+            encoding="utf-8"
+        )
     )
     main_fields = set(OcrCommand.model_fields)
 
@@ -149,10 +198,7 @@ def test_three_protocol_surfaces_share_limits_and_fields(project_root: Path) -> 
     assert set(schema["properties"]) == main_fields
     assert schema["properties"]["command_id"]["maxLength"] == MAX_COMMAND_ID_CHARS
     assert schema["properties"]["profile_id"]["maxLength"] == MAX_PROFILE_ID_CHARS
-    assert (
-        schema["properties"]["relative_path"]["maxLength"]
-        == MAX_RELATIVE_PATH_CHARS
-    )
+    assert schema["properties"]["relative_path"]["maxLength"] == MAX_RELATIVE_PATH_CHARS
 
 
 def test_worker_wire_decoder_rejects_invalid_utf8_or_unterminated_commands(
@@ -203,9 +249,9 @@ def test_main_result_schema_and_worker_serializer_share_one_bounded_contract(
         "error": None,
     }
     schema = json.loads(
-        (
-            project_root / "protocol" / "ocr" / "v1" / "result.schema.json"
-        ).read_text(encoding="utf-8")
+        (project_root / "protocol" / "ocr" / "v1" / "result.schema.json").read_text(
+            encoding="utf-8"
+        )
     )
 
     Draft202012Validator(schema).validate(payload)

@@ -15,6 +15,8 @@ from dahe.adapters.ocr.protocol import (
     OcrProtocolError,
     OcrResult,
     OcrResultStatus,
+    OcrWorkerCommand,
+    OcrWorkerResult,
     parse_result_line,
     validate_result_for_command,
 )
@@ -148,10 +150,10 @@ class SupervisedNdjsonWorker:
 
     def request(
         self,
-        command: OcrCommand,
+        command: OcrWorkerCommand,
         *,
         timeout_seconds: float,
-    ) -> OcrResult:
+    ) -> OcrWorkerResult:
         with self._lifecycle_lock:
             if self._closed:
                 raise WorkerProcessError("the OCR worker session is closed")
@@ -235,6 +237,9 @@ class SupervisedNdjsonWorker:
             ),
             timeout_seconds=timeout_seconds,
         )
+        if not isinstance(result, OcrResult):
+            self._close_after_protocol_failure()
+            raise WorkerProtocolError("OCR handshake returned a batch result")
         if result.status is not OcrResultStatus.OK:
             self._close_after_protocol_failure()
             raise WorkerProcessError("OCR worker handshake failed")

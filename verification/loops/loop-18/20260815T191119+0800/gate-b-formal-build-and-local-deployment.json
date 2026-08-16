@@ -1,0 +1,109 @@
+{
+  "accepted_at": "2026-08-15T22:55:13.5870629+08:00",
+  "application_version": "1.1.4",
+  "automated_checks": {
+    "authoritative_command": ".venv\\Scripts\\python.exe tools\\check.py",
+    "edge_e2e_command": "npm.cmd --prefix frontend run test:e2e",
+    "edge_e2e_passed": 14,
+    "frontend_tests_passed": 152,
+    "mypy_source_files": 364,
+    "python_tests_passed": 3060,
+    "python_tests_skipped": 9,
+    "ruff_status": "passed",
+    "skip_reason": "The current Windows account cannot create symbolic links; all non-link path-safety coverage passed."
+  },
+  "database": {
+    "backup_integrity": "ok",
+    "backup_sha256": "9ecc072329896c7b3375c9760394df9761f1f4290d374824aa6c58396ebdb298",
+    "current_integrity": "ok",
+    "migration_matrix_covered": [
+      "empty-to-0042",
+      "0039-to-0042",
+      "0040-to-0042",
+      "0041-to-0042",
+      "repeat-0042"
+    ],
+    "schema_revision": "0042_daily_capture_range",
+    "verified_business_table_count": 16,
+    "verified_business_table_counts_unchanged": true
+  },
+  "defender": {
+    "formal_application_zip": "no threats",
+    "formal_gpu_addon_zip": "no threats",
+    "formal_setup": "no threats",
+    "installed_application": "no threats",
+    "installed_launcher": "no threats",
+    "installed_updater": "no threats"
+  },
+  "formal_assets": {
+    "DaHe-Logistics-Automation-Tool-1.1.4-Setup.exe": {
+      "sha256": "b3d63324744be955586203ffebdf5c7ac5f2050bdd3fa23a3e31a2239f62a4d2",
+      "size": 424756789
+    },
+    "DaHe-Logistics-Automation-Tool-1.1.4-gpu-addon-win-x64.zip": {
+      "below_github_two_gib_limit": true,
+      "sha256": "5532cd42ce3bc583dd62265bd7a173bab0174cd0af007c39c5a0d7fd5c5ab08a",
+      "size": 2018833314
+    },
+    "DaHe-Logistics-Automation-Tool-1.1.4-win-x64.zip": {
+      "sha256": "e9a9b10f41ba7fb95cb67797810877f6cc7db59b5ecaff711014343485ab5b36",
+      "size": 61882063
+    },
+    "SHA256SUMS.txt": {
+      "listed_download_hashes_match": true,
+      "sha256": "8223177d71bf3f5412adf0231edf9438f168beadf12bb5622bedaed246556231",
+      "size": 440
+    },
+    "update-manifest.json": {
+      "sha256": "417229e341545b0c5d7b3df37b7dec296eeb686bd42c4b508dc1c432b6c64eba",
+      "size": 1216
+    }
+  },
+  "formal_build": {
+    "asset_count": 5,
+    "build_git_commit": "5d06c3a0fa31b6bf427940c9ab297d6348692bd4",
+    "minimum_schema_revision": "0039_network_batch_default",
+    "minimum_updater_version": "1.0.0",
+    "resource_sha256": "b8d4715fac3e662ddf544b2c964049fa522f81be49dc4f5e2b89ed4b5944464f",
+    "target_schema_revision": "0042_daily_capture_range"
+  },
+  "git_bundle": {
+    "complete_history": true,
+    "head_commit": "23f803c26925773ea977df4322ca390a65237a61",
+    "name": "DaHe-internal-history-v1.1.4.bundle",
+    "sha256": "1bf397f2f6cb6e99ea5c551403b9f7b769d58fca006acc1600ebdda28959c3a2",
+    "size": 12788748,
+    "status": "verified"
+  },
+  "gpu_performance": {
+    "baseline_elapsed_ms": 15724.64,
+    "candidate_elapsed_ms": 5750.77,
+    "candidate_runtime_generation": "774be672a94d4c15b41736229bb0bba9",
+    "candidate_worker_source_sha256": "f458dafe37fd89628742218cd6285907d54eeedd0a41b3e7416d743fcd0b2d3b",
+    "critical_fixture_matches": "2/2",
+    "first_vehicle_target_seconds": 120,
+    "improvement_percent": 63.42,
+    "ocr_call_count_increased": false,
+    "performance_gate": "passed"
+  },
+  "local_installation": {
+    "application_version": "1.1.4",
+    "build_git_commit": "5d06c3a0fa31b6bf427940c9ab297d6348692bd4",
+    "cold_start_readiness_http_statuses": [200, 200],
+    "cpu_fallback_available": true,
+    "gpu_addon_state": "active",
+    "gpu_package_version": "1.1.4",
+    "gpu_qualified": true,
+    "installed_version_directories": ["1.1.3", "1.1.4"],
+    "primary_runtime": "gpu",
+    "resource_sha256": "b8d4715fac3e662ddf544b2c964049fa522f81be49dc4f5e2b89ed4b5944464f",
+    "schema_revision": "0042_daily_capture_range",
+    "setup_exit_code": 0,
+    "shortcut_icon": "DaHeLogisticsAutomationTool/dahe-logo.ico,0",
+    "shortcut_target": "DaHeLogisticsAutomationTool/DaHeLauncher.exe",
+    "stable_shortcut_count": 1
+  },
+  "result": "passed",
+  "schema_version": 1,
+  "source_export_manifest": "verification/loops/loop-18/20260815T191119+0800/source-export-manifest.json"
+}

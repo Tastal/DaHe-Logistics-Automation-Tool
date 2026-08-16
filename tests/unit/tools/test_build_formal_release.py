@@ -7,7 +7,6 @@ import zipfile
 from pathlib import Path
 
 import pytest
-from PIL import Image
 
 from dahe.adapters.ocr.runtime_layout import ActiveOcrComposition
 from tools.build_formal_release import (
@@ -603,50 +602,3 @@ def test_small_stable_updater_is_separate_console_onefile(
         )
         == output
     )
-
-
-def test_launcher_build_uses_the_multisize_dahe_logo(
-    monkeypatch: pytest.MonkeyPatch,
-    tmp_path: Path,
-) -> None:
-    source_root = tmp_path / "source"
-    entrypoint = source_root / "tools" / "entrypoints" / "dahe_launcher.py"
-    entrypoint.parent.mkdir(parents=True)
-    entrypoint.write_text("", encoding="utf-8")
-    icon = source_root / "packaging" / "dahe-logo.ico"
-    icon.parent.mkdir(parents=True)
-    icon.write_bytes(b"icon")
-    output = tmp_path / "dist" / "DaHeLauncher.exe"
-
-    def fake_run(command: list[str], **_: object) -> subprocess.CompletedProcess[str]:
-        output.parent.mkdir(parents=True)
-        output.write_bytes(b"launcher")
-        assert command[command.index("--icon") + 1] == str(icon.resolve())
-        return subprocess.CompletedProcess(command, 0)
-
-    monkeypatch.setattr(subprocess, "run", fake_run)
-
-    assert _run_pyinstaller(
-        source_root=source_root,
-        entrypoint=entrypoint,
-        name="DaHeLauncher",
-        dist_root=tmp_path / "dist",
-        work_root=tmp_path / "work",
-        one_file=True,
-        icon=icon,
-    ) == output
-
-
-def test_checked_in_logo_contains_windows_shell_sizes() -> None:
-    icon = Path(__file__).parents[3] / "packaging" / "dahe-logo.ico"
-
-    with Image.open(icon) as image:
-        assert image.ico.sizes() == {
-            (16, 16),
-            (24, 24),
-            (32, 32),
-            (48, 48),
-            (64, 64),
-            (128, 128),
-            (256, 256),
-        }

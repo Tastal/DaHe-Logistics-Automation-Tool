@@ -25,7 +25,9 @@ function settlementProgress(
   if (liveProgress) {
     return {
       phase: liveProgress.phase,
-      label: liveProgress.label,
+      label: liveProgress.phase === "offline_review"
+        ? `正在离线审核 ${liveProgress.visiblePrefixCount}/${liveProgress.total}`
+        : liveProgress.label,
       current: liveProgress.current,
       total: liveProgress.total,
       startedAt: liveProgress.startedAt,
@@ -41,10 +43,12 @@ function settlementProgress(
   }
   if (!latestFetch) {
     return {
-      phase: job ? "read" : "idle",
-      label: job?.progressLabel || "尚未启动",
-      current: job?.counts?.processed ?? 0,
-      total: job?.counts?.total ?? 0,
+      phase: job?.jobStatus === "succeeded" ? "finalize" : job ? "read" : "idle",
+      label: job?.jobStatus === "succeeded"
+        ? "正在加载本次结果"
+        : job?.progressLabel || "尚未启动",
+      current: 0,
+      total: 0,
     };
   }
   const total = latestFetch.progressTotal;
@@ -120,10 +124,24 @@ export function BusinessConnectionBar({
   const jobId = sourceJob?.jobId;
   const currentProgress = liveProgress?.sourceJobId === jobId ? liveProgress : null;
   useEffect(() => {
-    if (!jobId || !services.subscribePlatformBusinessReadProgress) return;
-    return services.subscribePlatformBusinessReadProgress(jobId, (next) => {
-      if (next.sourceJobId === jobId) setLiveProgress(next);
-    });
+    if (!jobId) return undefined;
+    let active = true;
+    void services.loadPlatformBusinessReadProgress?.(jobId).then(
+      (next) => {
+        if (active && next.sourceJobId === jobId) setLiveProgress(next);
+      },
+      () => undefined,
+    );
+    const unsubscribe = services.subscribePlatformBusinessReadProgress?.(
+      jobId,
+      (next) => {
+        if (active && next.sourceJobId === jobId) setLiveProgress(next);
+      },
+    );
+    return () => {
+      active = false;
+      unsubscribe?.();
+    };
   }, [jobId, services]);
   if (!services.startPlatformBusinessRead) return null;
 

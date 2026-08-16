@@ -42,7 +42,7 @@ Section "Install"
   WriteRegDWORD HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\DaHeLogisticsAutomationTool" "NoRepair" 1
   Delete "$DESKTOP\大禾物流.lnk"
   Delete "$DESKTOP\大禾物流自动化平台.lnk"
-  CreateShortcut "$DESKTOP\大禾物流自动化平台.lnk" "$INSTDIR\DaHeLauncher.exe" "" "$INSTDIR\dahe-logo.ico" 0
+  CreateShortcut "$DESKTOP\大禾物流自动化平台.lnk" "$INSTDIR\DaHeLauncher.exe"
 SectionEnd
 
 Section "Uninstall"

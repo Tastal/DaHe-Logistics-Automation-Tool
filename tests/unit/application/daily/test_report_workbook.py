@@ -270,6 +270,49 @@ def test_workbook_is_written_formally_then_reopened_and_validated(
         }
 
 
+def test_workbook_keeps_manually_confirmed_missing_values_truly_blank(
+    tmp_path: Path,
+) -> None:
+    settings = _settings(tmp_path)
+    built = build_daily_report_result(
+        business_date=date(2026, 8, 1),
+        settings=settings,
+        revisions=(
+            _revision(
+                identity="blank",
+                loading_time=None,
+                unloading_time=None,
+                vehicle="陕A00001",
+                loading=None,
+                unloading=None,
+            ),
+        ),
+        platform_loading_times={
+            "blank": datetime(2026, 8, 1, 15, 0, tzinfo=SHANGHAI),
+        },
+    )
+
+    assert len(built.rows) == 1
+    assert built.rows[0].loading_time is None
+    result = DailyReportWorkbook().write_pending(
+        business_date=date(2026, 8, 1),
+        settings=settings,
+        rows=built.rows,
+    )
+
+    with zipfile.ZipFile(result.path) as archive:
+        root = ElementTree.fromstring(archive.read("xl/worksheets/sheet1.xml"))
+    namespace = {"x": "http://schemas.openxmlformats.org/spreadsheetml/2006/main"}
+    cells = {
+        cell.attrib["r"]: cell
+        for cell in root.findall("x:sheetData/x:row/x:c", namespace)
+    }
+    for coordinate in ("D2", "F2", "G2", "J2"):
+        assert coordinate in cells
+        assert cells[coordinate].find("x:v", namespace) is None
+        assert cells[coordinate].find("x:is", namespace) is None
+
+
 def test_workbook_atomically_replaces_an_existing_formal_file(
     tmp_path: Path,
 ) -> None:

@@ -1,0 +1,11 @@
+{
+  "kind": "loop_18_supersession_evidence",
+  "recorded_at": "2026-08-16T12:45:46+08:00",
+  "result": "user_acceptance_failed",
+  "reason": "The published candidate's connection reliability and offline-review latency did not meet user acceptance. Its daily capture-range and report-window behavior was accepted and is the only business behavior carried into the rebuild.",
+  "replacement_branch": "codex/v1_1_4_rebuild",
+  "replacement_baseline_commit": "c68b92d7d34ab506cb62162b48bb49b154530e66",
+  "preserved_evidence": true,
+  "release_status": "not_a_user_accepted_release",
+  "schema_version": 1
+}

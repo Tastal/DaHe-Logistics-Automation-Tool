@@ -28,6 +28,7 @@ frontend/dist/
 frontend/*.tsbuildinfo
 output/
 .playwright-cli/
+/test-results/
 .schemathesis/
 
 # Local configuration and secrets

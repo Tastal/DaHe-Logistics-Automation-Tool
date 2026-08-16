@@ -124,6 +124,15 @@ function dailyProgress(
   ) return { phase: "login", label: "正在登录平台", current: 0, total, ...timing };
   const stage = job.currentStage ?? "";
   if (stage.includes("login")) return { phase: "login", label: "正在登录平台", current: 0, total, ...timing };
+  if (progress?.phase === "offline_review") {
+    return {
+      phase: "offline_review",
+      label: `正在离线审核 ${progress.visiblePrefixCount}/${total}`,
+      current: progress.visiblePrefixCount,
+      total,
+      ...timing,
+    };
+  }
   if (progress?.label) return { phase: progress.phase, label: progress.label, current: progress.current, total, ...timing };
   if (stage.includes("acquire") || stage.includes("read")) return { phase: "read", label: `正在读取运单 ${progress?.fetched ?? 0}/${total}`, current: progress?.fetched ?? 0, total, ...timing };
   if (stage.includes("download") || stage.includes("evidence")) return { phase: "download", label: `正在下载磅单 ${Math.min((progress?.fetched ?? 0) * 2, total * 2)}/${total * 2}`, current: progress?.fetched ?? 0, total, ...timing };

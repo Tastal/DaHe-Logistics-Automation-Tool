@@ -621,6 +621,10 @@ def _run_one(
                 ),
                 timeout_seconds=180,
             )
+            if not isinstance(result, OcrResult):
+                raise SystemExit(
+                    f"{runtime_kind.value.upper()} smoke returned an unexpected batch result"
+                )
             if result.status is not OcrResultStatus.OK:
                 error = result.error.kind if result.error is not None else "unknown"
                 raise SystemExit(

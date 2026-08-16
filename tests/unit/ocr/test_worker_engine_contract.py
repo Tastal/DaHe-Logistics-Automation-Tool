@@ -498,9 +498,7 @@ def test_worker_recovers_a_jpeg_missing_only_its_end_marker(
     monkeypatch.setitem(sys.modules, "numpy", numpy)
 
     with _worker_engine(project_root) as engine:
-        image_array, width, height = engine.PaddleEngine._decode_image(
-            captured[:-2]
-        )
+        image_array, width, height = engine.PaddleEngine._decode_image(captured[:-2])
 
     assert (width, height) == (12, 8)
     assert tuple(image_array.shape) == (8, 12, 3)
@@ -1346,3 +1344,72 @@ def test_large_image_uses_capped_orientation_probes_then_full_resolution_final_o
     assert result["role_observation"]["orientation_degrees"] == 90
     assert result["fields"]["factory_net"]["amount"] == "33.33"
     assert all(line["text"] != "11.11" for line in result["text_lines"])
+
+
+def test_vehicle_batch_runs_both_source_images_in_one_fast_prediction(
+    project_root: Path,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class FakeImageArray:
+        def __init__(self, name: str) -> None:
+            self.name = name
+
+    class FakePrediction:
+        def __init__(self, amount: str) -> None:
+            self.json = {
+                "res": {
+                    "rec_texts": [
+                        "UNLOADING TICKET",
+                        "FACTORYNET",
+                        amount,
+                        "GROSS",
+                    ],
+                    "rec_scores": [0.99, 0.98, 0.97, 0.96],
+                    "rec_boxes": [
+                        [10, 10, 50, 20],
+                        [10, 30, 30, 40],
+                        [35, 30, 50, 40],
+                        [10, 50, 30, 60],
+                    ],
+                }
+            }
+
+    prediction_inputs: list[list[str]] = []
+
+    class FakePipeline:
+        def predict(
+            self,
+            image_arrays: list[FakeImageArray],
+            **_options: object,
+        ) -> list[FakePrediction]:
+            prediction_inputs.append([image.name for image in image_arrays])
+            return [FakePrediction("31.25"), FakePrediction("31.30")]
+
+    images = iter((FakeImageArray("loading"), FakeImageArray("unloading")))
+
+    with _worker_engine(project_root) as engine:
+        monkeypatch.setattr(
+            engine.PaddleEngine,
+            "_decode_image",
+            staticmethod(lambda _payload: (next(images), 100, 100)),
+        )
+        worker = engine.PaddleEngine(
+            engine.EngineConfig(
+                runtime_kind="gpu",
+                current_device_index=0,
+                models_dir=tmp_path,
+                precision="fp16",
+                batch_size=6,
+                cpu_threads=1,
+            )
+        )
+        worker._pipeline = FakePipeline()
+
+        results = worker.extract_batch((b"loading", b"unloading"))
+
+    assert prediction_inputs == [["loading", "unloading"]]
+    assert [result["fields"]["factory_net"]["amount"] for result in results] == [
+        "31.25",
+        "31.30",
+    ]

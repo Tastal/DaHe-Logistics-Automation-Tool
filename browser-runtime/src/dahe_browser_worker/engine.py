@@ -1829,7 +1829,6 @@ def _validate_daily_read_parameters(
     if (
         (start.hour, start.minute, start.second) != (14, 0, 0)
         or end < start
-        or end > start + timedelta(days=1, minutes=30)
     ):
         raise BrowserReadError("browser_daily_business_parameters_invalid")
     return data

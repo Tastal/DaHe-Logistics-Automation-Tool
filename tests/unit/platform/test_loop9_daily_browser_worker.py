@@ -2456,7 +2456,7 @@ def test_read_staging_recovery_rejects_reparse_guard_before_unlink(
     assert payload.read_text(encoding="utf-8") == "keep"
 
 
-def test_daily_read_rejects_end_before_start_or_after_safety_boundary(
+def test_daily_read_rejects_end_before_start(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
@@ -2479,10 +2479,7 @@ def test_daily_read_rejects_end_before_start_or_after_safety_boundary(
     }
     worker._daily_response_fields = engine_module._json_fields(_daily_payload())
 
-    for end_time in (
-        "2026-07-28 13:59:59",
-        "2026-07-29 14:30:01",
-    ):
+    for end_time in ("2026-07-28 13:59:59",):
         parameters = {**_daily_parameters(), "loadEndTime": end_time}
         command = protocol.ReadDailyJsonCommand(
             request_id=f"read-daily-invalid-{end_time[-2:]}",
@@ -2494,6 +2491,60 @@ def test_daily_read_rejects_end_before_start_or_after_safety_boundary(
         with pytest.raises(engine_module.BrowserReadError) as raised:
             worker.read(command)
         assert raised.value.code == "browser_daily_business_parameters_invalid"
+
+
+def test_daily_read_accepts_system_current_time_after_the_old_safety_boundary(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    engine_module, protocol = _load_worker_modules(monkeypatch)
+
+    class Response:
+        status = 200
+        headers: ClassVar[dict[str, str]] = {"content-type": "application/json"}
+
+        def body(self) -> bytes:
+            return b'{"data":{"total":0,"list":[]}}'
+
+    class RequestContext:
+        def fetch(self, url: str, **options: object) -> Response:
+            del url, options
+            return Response()
+
+    class Context:
+        request = RequestContext()
+
+    worker = engine_module.BrowserEngine()
+    worker._context = Context()
+    worker._staging_root = tmp_path
+    worker._daily_session_headers = {"authorization": "Bearer private"}
+    worker._daily_body = {
+        **_daily_parameters(),
+        "loadStartTime": "",
+        "loadEndTime": "",
+        "receivePlace": "",
+        "pageNumber": 1,
+        "pageSize": 1,
+    }
+    worker._daily_response_fields = engine_module._json_fields(_daily_payload())
+
+    parameters = {
+        **_daily_parameters(),
+        "loadEndTime": "2026-07-29 16:05:22",
+    }
+    command = protocol.ReadDailyJsonCommand(
+        request_id="read-daily-system-current-time",
+        operation="list_daily_waybills",
+        method="POST",
+        url=DAILY_URL,
+        parameters=parameters,
+    )
+
+    result = worker.read(command)
+
+    assert result["media_type"] == "application/json"
+    staged_path = tmp_path.joinpath(*str(result["relative_path"]).split("/"))
+    assert json.loads(staged_path.read_bytes()) == {"data": {"total": 0, "list": []}}
 
 
 def test_read_daily_json_rejects_arbitrary_url_and_changed_shape(

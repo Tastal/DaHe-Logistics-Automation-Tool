@@ -236,12 +236,29 @@ def build_daily_item_router(
             payload.contract_subject_code
         )
         try:
-            current = repository.get_item(
+            current = repository.get_item_for_business_date(
                 platform_waybill_id,
+                business_date=payload.business_date,
                 contract_subject_code=subject_code,
             )
             actual_business_date = repository.business_date_for(current.machine)
         except DailyItemConflictError as exc:
+            try:
+                historical = repository.get_item(
+                    platform_waybill_id,
+                    contract_subject_code=subject_code,
+                )
+                historical_business_date = repository.business_date_for(
+                    historical.machine
+                )
+            except DailyItemConflictError:
+                raise ApiError(409, "daily_item_conflict", str(exc)) from exc
+            if historical_business_date != payload.business_date:
+                raise ApiError(
+                    409,
+                    "daily_item_business_date_conflict",
+                    "记录不属于当前业务日。请刷新后重试。",
+                ) from exc
             raise ApiError(409, "daily_item_conflict", str(exc)) from exc
         if actual_business_date != payload.business_date:
             raise ApiError(
@@ -278,6 +295,7 @@ def build_daily_item_router(
         try:
             item, replayed = repository.append_revision(
                 platform_waybill_id=platform_waybill_id,
+                business_date=payload.business_date,
                 expected_record_version=payload.expected_record_version,
                 changes=changes,
                 idempotency_key=idempotency_key,

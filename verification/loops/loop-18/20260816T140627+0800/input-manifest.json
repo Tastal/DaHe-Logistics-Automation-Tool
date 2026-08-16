@@ -1,0 +1,29 @@
+{
+  "allowed_external_resources": [
+    "project-local .venv",
+    "existing isolated development browser runtime",
+    "existing isolated development CPU and GPU OCR runtimes",
+    "sanitized local fixtures",
+    "real Chengfeng platform only during the final approved read-only acceptance window"
+  ],
+  "application_version": "1.1.4-development-candidate",
+  "assumptions": [
+    "the public repository, release assets, and company computer remain unchanged until the user explicitly authorizes publication",
+    "the installed local application is removed only after an independent development-runtime smoke passes",
+    "GPU performance evidence is invalid if CPU fallback is used",
+    "all Chengfeng business writes remain forbidden"
+  ],
+  "chengfeng_platform_access": "deferred-to-gate-c-read-only-acceptance",
+  "frozen_input": "DaHe Loop 18 rebuild plan accepted on 2026-08-16",
+  "loop_id": "loop-18-rebuild",
+  "product_or_schema_change": true,
+  "schema_revision": "0042_daily_capture_range",
+  "source_baseline": "e2b6bcf",
+  "working_branch": "codex/v1_1_4_rebuild",
+  "write_boundaries": [
+    "project source, tests, durable documentation, and Loop 18 rebuild evidence",
+    "isolated development runtime under LocalAppData/DaHeLogisticsDevelopment",
+    "local installed application program files only after the independent development smoke passes",
+    "one desktop development shortcut after installed-program removal"
+  ]
+}

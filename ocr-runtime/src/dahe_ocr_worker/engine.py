@@ -477,8 +477,7 @@ class PaddleEngine:
                     if (
                         source_width <= 0
                         or source_height <= 0
-                        or source_width * source_height
-                        > MAX_IMAGE_PIXELS
+                        or source_width * source_height > MAX_IMAGE_PIXELS
                     ):
                         raise WorkerProtocolViolation(
                             "image dimensions exceed the safe pixel limit"
@@ -487,9 +486,7 @@ class PaddleEngine:
                     with ImageOps.exif_transpose(source) as oriented:
                         width, height = oriented.size
                         with oriented.convert("RGB") as rgb:
-                            image_array = np.ascontiguousarray(
-                                np.asarray(rgb)
-                            )
+                            image_array = np.ascontiguousarray(np.asarray(rgb))
             return image_array, width, height
 
         try:
@@ -736,7 +733,55 @@ class PaddleEngine:
             )
         if len(predictions) != 1:
             raise RuntimeError("PaddleOCR did not return exactly one image result")
-        payload = self._payload(predictions[0])
+        return self._prediction_lines(
+            predictions[0],
+            width=width,
+            height=height,
+        )
+
+    def _predict_lines_batch(
+        self,
+        *,
+        pipeline: Any,
+        image_arrays: Sequence[Any],
+        dimensions: Sequence[tuple[int, int]],
+    ) -> list[list[dict[str, Any]]]:
+        if not 1 <= len(image_arrays) <= 2 or len(image_arrays) != len(dimensions):
+            raise RuntimeError("vehicle OCR batch dimensions are invalid")
+        with contextlib.redirect_stdout(sys.stderr):
+            predictions = list(
+                pipeline.predict(
+                    list(image_arrays),
+                    use_doc_orientation_classify=False,
+                    use_doc_unwarping=False,
+                    use_textline_orientation=False,
+                    text_det_limit_side_len=1600,
+                    text_det_limit_type="max",
+                )
+            )
+        if len(predictions) != len(image_arrays):
+            raise RuntimeError("PaddleOCR batch result count changed")
+        return [
+            self._prediction_lines(
+                prediction,
+                width=width,
+                height=height,
+            )
+            for prediction, (width, height) in zip(
+                predictions,
+                dimensions,
+                strict=True,
+            )
+        ]
+
+    def _prediction_lines(
+        self,
+        prediction: Any,
+        *,
+        width: int,
+        height: int,
+    ) -> list[dict[str, Any]]:
+        payload = self._payload(prediction)
         texts, scores, boxes = _validated_prediction_arrays(payload)
         lines: list[dict[str, Any]] = []
         total_text_chars = 0
@@ -779,30 +824,14 @@ class PaddleEngine:
             )
         return lines
 
-    def _candidate(
+    def _candidate_from_lines(
         self,
         *,
-        pipeline: Any,
-        source_image_array: Any,
-        source_width: int,
-        source_height: int,
+        canonical_lines: list[dict[str, Any]],
+        width: int,
+        height: int,
         orientation_degrees: int,
     ) -> _OcrCandidate:
-        image_array = self._rotate_image_for_ocr(
-            source_image_array,
-            orientation_degrees,
-        )
-        width, height = self._oriented_dimensions(
-            source_width,
-            source_height,
-            orientation_degrees,
-        )
-        canonical_lines = self._predict_lines(
-            pipeline=pipeline,
-            image_array=image_array,
-            width=width,
-            height=height,
-        )
         source_lines = [
             {
                 **line,
@@ -838,17 +867,46 @@ class PaddleEngine:
             independent_marker_line_hits=marker_evidence.independent_marker_line_hits,
         )
 
-    def extract(self, image_bytes: bytes) -> dict[str, Any]:
-        started = time.perf_counter()
-        image_array, width, height = self._decode_image(image_bytes)
-        pipeline = self._load_pipeline()
-        first = self._candidate(
-            pipeline=pipeline,
-            source_image_array=image_array,
-            source_width=width,
-            source_height=height,
-            orientation_degrees=0,
+    def _candidate(
+        self,
+        *,
+        pipeline: Any,
+        source_image_array: Any,
+        source_width: int,
+        source_height: int,
+        orientation_degrees: int,
+    ) -> _OcrCandidate:
+        image_array = self._rotate_image_for_ocr(
+            source_image_array,
+            orientation_degrees,
         )
+        width, height = self._oriented_dimensions(
+            source_width,
+            source_height,
+            orientation_degrees,
+        )
+        canonical_lines = self._predict_lines(
+            pipeline=pipeline,
+            image_array=image_array,
+            width=width,
+            height=height,
+        )
+        return self._candidate_from_lines(
+            canonical_lines=canonical_lines,
+            width=width,
+            height=height,
+            orientation_degrees=orientation_degrees,
+        )
+
+    def _complete_orientation_search(
+        self,
+        *,
+        pipeline: Any,
+        image_array: Any,
+        width: int,
+        height: int,
+        first: _OcrCandidate,
+    ) -> _OcrCandidate:
         selected = first
         if not first.strong_orientation_signal:
             if width * height > MAX_ORIENTATION_PROBE_PIXELS:
@@ -896,9 +954,17 @@ class PaddleEngine:
                     ),
                 ]
                 selected = _select_ocr_candidate(candidates)
+        return selected
+
+    def _public_result(
+        self,
+        selected: _OcrCandidate,
+        *,
+        elapsed_ms: float,
+    ) -> dict[str, Any]:
         public_lines = _role_safe_lines(selected.source_lines)
         return {
-            "elapsed_ms": (time.perf_counter() - started) * 1000,
+            "elapsed_ms": elapsed_ms,
             "text_lines": public_lines,
             "fields": selected.canonical_fields,
             "role_observation": self._role_observation(
@@ -906,3 +972,67 @@ class PaddleEngine:
                 orientation_degrees=selected.orientation_degrees,
             ),
         }
+
+    def extract(self, image_bytes: bytes) -> dict[str, Any]:
+        started = time.perf_counter()
+        image_array, width, height = self._decode_image(image_bytes)
+        pipeline = self._load_pipeline()
+        first = self._candidate(
+            pipeline=pipeline,
+            source_image_array=image_array,
+            source_width=width,
+            source_height=height,
+            orientation_degrees=0,
+        )
+        selected = self._complete_orientation_search(
+            pipeline=pipeline,
+            image_array=image_array,
+            width=width,
+            height=height,
+            first=first,
+        )
+        return self._public_result(
+            selected,
+            elapsed_ms=(time.perf_counter() - started) * 1000,
+        )
+
+    def extract_batch(
+        self,
+        image_bytes: Sequence[bytes],
+    ) -> tuple[dict[str, Any], ...]:
+        """Run both source orientations together, then refine only weak sides."""
+
+        if not 1 <= len(image_bytes) <= 2:
+            raise WorkerProtocolViolation("vehicle OCR batch must contain one or two images")
+        started = time.perf_counter()
+        decoded = tuple(self._decode_image(payload) for payload in image_bytes)
+        pipeline = self._load_pipeline()
+        source_lines = self._predict_lines_batch(
+            pipeline=pipeline,
+            image_arrays=tuple(item[0] for item in decoded),
+            dimensions=tuple((item[1], item[2]) for item in decoded),
+        )
+        selected = tuple(
+            self._complete_orientation_search(
+                pipeline=pipeline,
+                image_array=image_array,
+                width=width,
+                height=height,
+                first=self._candidate_from_lines(
+                    canonical_lines=lines,
+                    width=width,
+                    height=height,
+                    orientation_degrees=0,
+                ),
+            )
+            for (image_array, width, height), lines in zip(
+                decoded,
+                source_lines,
+                strict=True,
+            )
+        )
+        elapsed_ms = (time.perf_counter() - started) * 1000
+        per_image_elapsed = elapsed_ms / len(selected)
+        return tuple(
+            self._public_result(candidate, elapsed_ms=per_image_elapsed) for candidate in selected
+        )

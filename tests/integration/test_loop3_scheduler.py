@@ -794,35 +794,6 @@ def test_scheduler_runs_independent_resources_fairly_and_isolates_review_items(
     )
 
 
-def test_single_gpu_finishes_both_images_for_one_truck_before_the_next(
-    loop3_app: tuple[FastAPI, TestClient, str],
-) -> None:
-    app, client, csrf = loop3_app
-    job = _create_job(
-        client,
-        csrf,
-        "audit-batch-long-001",
-        key="loop18-paired-ocr",
-    )
-    scheduler = _scheduler(app)
-    scheduler.run_until_quiescent(max_ticks=120)
-
-    attempts = [
-        attempt
-        for attempt in app.state.repository.list_stage_attempts()
-        if attempt["consumer_job_id"] == job["job_id"]
-        and attempt["resource_name"] == "gpu_ocr_slot"
-    ]
-    work_item_order = [str(attempt["work_item_id"]) for attempt in attempts]
-
-    assert len(work_item_order) == 12
-    assert all(
-        work_item_order[index] == work_item_order[index + 1]
-        for index in range(0, len(work_item_order), 2)
-    )
-    assert len(set(work_item_order[0::2])) == 6
-
-
 def test_pause_finishes_atomic_ocr_releases_lease_and_resume_skips_download(
     loop3_app: tuple[FastAPI, TestClient, str],
 ) -> None:

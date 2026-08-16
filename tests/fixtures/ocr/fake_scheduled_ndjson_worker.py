@@ -38,13 +38,57 @@ def _result(
     }
 
 
+def _batch_result(
+    command: dict[str, object],
+    *,
+    status: str = "ok",
+    error: dict[str, str] | None = None,
+) -> dict[str, object]:
+    items: list[dict[str, object]] = []
+    if status == "ok":
+        for image in command["images"]:  # type: ignore[union-attr]
+            assert isinstance(image, dict)
+            items.append(
+                {
+                    "role": image["role"],
+                    "verified_image_sha256": image["image_sha256"],
+                    "elapsed_ms": 1,
+                    "text_lines": [],
+                    "fields": {
+                        "ordinary_net": {
+                            "raw_text": "12.34 t",
+                            "amount": "12.34",
+                            "unit": "t",
+                            "confidence": "0.99",
+                        }
+                    },
+                    "role_observation": None,
+                }
+            )
+    return {
+        "protocol_version": 2,
+        "command_id": command["command_id"],
+        "status": status,
+        "worker_identity": f"scheduled-{command['profile_id']}",
+        "runtime_fingerprint": command["runtime_fingerprint"],
+        "elapsed_ms": 1,
+        "items": items,
+        "error": error,
+    }
+
+
 for raw_line in sys.stdin:
     command = json.loads(raw_line)
     operation = command["operation"]
     profile_id = str(command["profile_id"])
     relative_path = str(command.get("relative_path") or "")
+    batch_paths = tuple(
+        str(image.get("relative_path") or "")
+        for image in command.get("images", [])
+        if isinstance(image, dict)
+    )
 
-    if profile_id == "test-crash-once" and operation == "extract":
+    if profile_id == "test-crash-once" and operation in {"extract", "extract_batch"}:
         marker = Path("crash-once.marker")
         if not marker.exists():
             marker.write_text("crashed", encoding="utf-8")
@@ -54,11 +98,15 @@ for raw_line in sys.stdin:
         time.sleep(0.15)
 
     if (
-        operation == "extract"
+        operation in {"extract", "extract_batch"}
         and profile_id.startswith("gpu-fail-second")
-        and relative_path.endswith("unloading.png")
+        and (
+            relative_path.endswith("unloading.png")
+            or any(path.endswith("unloading.png") for path in batch_paths)
+        )
     ):
-        payload = _result(
+        factory = _batch_result if operation == "extract_batch" else _result
+        payload = factory(
             command,
             status="error",
             error={
@@ -67,8 +115,9 @@ for raw_line in sys.stdin:
                 "diagnostic_code": "LOOP6-FAKE-GPU-OOM",
             },
         )
-    elif operation == "extract" and profile_id.startswith("cpu-fail"):
-        payload = _result(
+    elif operation in {"extract", "extract_batch"} and profile_id.startswith("cpu-fail"):
+        factory = _batch_result if operation == "extract_batch" else _result
+        payload = factory(
             command,
             status="error",
             error={
@@ -78,7 +127,7 @@ for raw_line in sys.stdin:
             },
         )
     else:
-        payload = _result(command)
+        payload = _batch_result(command) if operation == "extract_batch" else _result(command)
 
     print(json.dumps(payload, separators=(",", ":")), flush=True)
     if operation == "shutdown":

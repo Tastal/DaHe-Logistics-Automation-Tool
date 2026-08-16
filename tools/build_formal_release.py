@@ -69,7 +69,7 @@ except ModuleNotFoundError:
     )
 
 ROOT = Path(__file__).resolve().parents[1]
-REVISION = "0042_daily_capture_range"
+REVISION = "0041_contract_subject_scope"
 MINIMUM_SCHEMA_REVISION = "0039_network_batch_default"
 REPOSITORY = "Tastal/DaHe-Logistics-Automation-Tool"
 GITHUB_RELEASE_ASSET_LIMIT_BYTES = 2 * 1024 * 1024 * 1024
@@ -182,7 +182,6 @@ def _run_pyinstaller(
     work_root: Path,
     one_file: bool,
     windowed: bool = False,
-    icon: Path | None = None,
 ) -> Path:
     command = [
         os.fspath(Path(sys.executable)),
@@ -205,8 +204,6 @@ def _run_pyinstaller(
         "--onefile" if one_file else "--onedir",
         os.fspath(entrypoint),
     ]
-    if icon is not None:
-        command[-1:-1] = ["--icon", os.fspath(icon.resolve(strict=True))]
     subprocess.run(command, cwd=source_root, check=True, shell=False)
     result = dist_root / (f"{name}.exe" if one_file else name)
     if not result.exists():
@@ -884,13 +881,8 @@ def main() -> int:
         dist_root=dist,
         work_root=work,
         one_file=True,
-        icon=source_root / "packaging" / "dahe-logo.ico",
     )
     shutil.copy2(launcher, payload / "DaHeLauncher.exe")
-    shutil.copy2(
-        source_root / "packaging" / "dahe-logo.ico",
-        payload / "dahe-logo.ico",
-    )
     _copy_browser_runtime(
         browser_runtime,
         payload / "runtimes" / "browser",

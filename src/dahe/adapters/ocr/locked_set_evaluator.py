@@ -38,6 +38,7 @@ from dahe.jobs.ocr_execution import (
     OcrRuntimeIdentity,
     OcrStageExecution,
     OcrStageWork,
+    OcrVehicleImageWork,
     RuntimeKindName,
 )
 from dahe.verification.application_build import ApplicationBuildManifest
@@ -237,20 +238,26 @@ class LocalOcrLockedImageEvaluator:
             pipeline_contract_fingerprint=self._pipeline_contract_sha256,
         )
         attempt_id = uuid4().hex
+        shared_work_id = _canonical_sha256(
+            {
+                "image_sha256": image.image_sha256,
+                "pipeline_fingerprint": runtime_pipeline,
+                "purpose": "formal_locked_set_role_evaluation",
+            }
+        )
         work = OcrStageWork(
             stage_attempt_id=attempt_id,
-            shared_work_id=_canonical_sha256(
-                {
-                    "image_sha256": image.image_sha256,
-                    "pipeline_fingerprint": runtime_pipeline,
-                    "purpose": "formal_locked_set_role_evaluation",
-                }
-            ),
             pipeline_fingerprint=runtime_pipeline,
             identity=identity,
-            image=OcrImageWork(
-                image_sha256=image.image_sha256,
-                relative_path=image.relative_path,
+            images=(
+                OcrVehicleImageWork(
+                    shared_work_id=shared_work_id,
+                    role="loading",
+                    image=OcrImageWork(
+                        image_sha256=image.image_sha256,
+                        relative_path=image.relative_path,
+                    ),
+                ),
             ),
         )
         self._backend.submit(work)

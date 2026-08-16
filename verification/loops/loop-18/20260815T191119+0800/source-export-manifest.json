@@ -1,0 +1,31 @@
+{
+  "aggregate_algorithm": "sorted git ls-tree path + mode + type + blob_oid, UTF-8 LF",
+  "aggregate_sha256": "c6d464859978d9a545abe7227c3efa4173a7dfd3d23a25b623e6ac8e4b4a16b1",
+  "compared_file_count": 1108,
+  "created_at": "2026-08-15T22:55:13.5870629+08:00",
+  "excluded_files": [
+    "output/playwright/settlement-125-percent.png",
+    "output/playwright/settlement-150-percent.png",
+    "output/playwright/settlement-detail-1366x768.png",
+    "output/playwright/settlement-detail-200-percent.png",
+    "output/playwright/settlement-list-200-percent.png",
+    "output/playwright/system-status-1920x1080.png"
+  ],
+  "exclusion_reason": "Real business screenshots are not public source or release inputs.",
+  "gitleaks": {
+    "findings": 0,
+    "report_sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+    "summary_sha256": "63ad2fe8714ba7f6036fb214e7c8ea9ef41815094a4cc5e34c8c9d235d08186f",
+    "version": "8.30.1"
+  },
+  "internal_release_source_commit": "23f803c26925773ea977df4322ca390a65237a61",
+  "internal_tracked_file_count": 1114,
+  "kind": "loop_18_sanitized_public_source_export",
+  "mismatch_count": 0,
+  "missing_count": 0,
+  "public_commit": "5d06c3a0fa31b6bf427940c9ab297d6348692bd4",
+  "public_parent_commit": "81d7974754990540b109e25968cabdd9b82671d5",
+  "public_tag": "v1.1.4",
+  "public_tracked_file_count": 1108,
+  "schema_version": 1
+}

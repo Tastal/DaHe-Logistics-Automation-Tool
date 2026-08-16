@@ -190,3 +190,114 @@ def test_worker_exits_after_one_inference_failure(
     assert extract_calls == 1
     assert len(output_lines) == 1
     assert json.loads(output_lines[0])["status"] == "error"
+
+
+def test_worker_executes_one_vehicle_batch_and_preserves_role_order(
+    project_root: Path,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    data_root = tmp_path / "data"
+    loading = data_root / "evidence" / "loading.png"
+    unloading = data_root / "evidence" / "unloading.png"
+    loading.parent.mkdir(parents=True)
+    loading.write_bytes(b"loading-evidence")
+    unloading.write_bytes(b"unloading-evidence")
+    models_dir = tmp_path / "models"
+    models_dir.mkdir()
+    manifest = models_dir / "model-manifest.json"
+    manifest.write_text("{}", encoding="utf-8")
+    runtime_fingerprint = "2" * 64
+    profile_id = "gpu-batch-test"
+    command = {
+        "protocol_version": 2,
+        "command_id": "vehicle-batch",
+        "operation": "extract_batch",
+        "images": [
+            {
+                "image_sha256": hashlib.sha256(loading.read_bytes()).hexdigest(),
+                "relative_path": "evidence/loading.png",
+                "role": "loading",
+            },
+            {
+                "image_sha256": hashlib.sha256(unloading.read_bytes()).hexdigest(),
+                "relative_path": "evidence/unloading.png",
+                "role": "unloading",
+            },
+        ],
+        "pipeline_fingerprint": "1" * 64,
+        "runtime_fingerprint": runtime_fingerprint,
+        "profile_id": profile_id,
+    }
+    stdin_bytes = json.dumps(command, separators=(",", ":")).encode("utf-8") + b"\n"
+    fake_stdin = io.TextIOWrapper(io.BytesIO(stdin_bytes), encoding="utf-8")
+    captured: list[tuple[bytes, ...]] = []
+    output_lines: list[str] = []
+
+    class BatchEngine:
+        def __init__(self, _config: object) -> None:
+            return None
+
+        def extract_batch(
+            self,
+            image_bytes: tuple[bytes, ...],
+        ) -> tuple[dict[str, object], ...]:
+            captured.append(image_bytes)
+            return tuple(
+                {
+                    "elapsed_ms": 1,
+                    "text_lines": [],
+                    "fields": {},
+                    "role_observation": None,
+                }
+                for _ in image_bytes
+            )
+
+    class FakeProtocolStdout:
+        @staticmethod
+        def write_line(line: str) -> None:
+            output_lines.append(line)
+
+    @contextmanager
+    def fake_isolation() -> Iterator[FakeProtocolStdout]:
+        yield FakeProtocolStdout()
+
+    with _worker_main(project_root) as module:
+        monkeypatch.setattr(
+            module,
+            "_parser",
+            lambda: SimpleNamespace(
+                parse_args=lambda: SimpleNamespace(
+                    runtime_kind="gpu",
+                    data_root=data_root,
+                    models_dir=models_dir,
+                    model_manifest=manifest,
+                    runtime_fingerprint=runtime_fingerprint,
+                    profile_id=profile_id,
+                    device_index=0,
+                    precision="fp16",
+                    batch_size=6,
+                    cpu_threads=4,
+                )
+            ),
+        )
+        monkeypatch.setattr(module, "PaddleEngine", BatchEngine)
+        monkeypatch.setattr(
+            module,
+            "load_and_verify_model_manifest",
+            lambda **_kwargs: {},
+        )
+        monkeypatch.setattr(module, "install_python_network_guard", lambda: None)
+        monkeypatch.setattr(module, "isolated_protocol_stdout", fake_isolation)
+        monkeypatch.setattr(module.sys, "stdin", fake_stdin)
+
+        exit_code = module.main()
+
+    assert exit_code == 0
+    assert captured == [(b"loading-evidence", b"unloading-evidence")]
+    payload = json.loads(output_lines[0])
+    assert payload["protocol_version"] == 2
+    assert [item["role"] for item in payload["items"]] == [
+        "loading",
+        "unloading",
+    ]

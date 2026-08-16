@@ -22,6 +22,7 @@ from dahe.adapters.sqlite.daily_store import SqliteDailyStore
 from dahe.adapters.sqlite.repository import SqliteJobRepository
 from dahe.adapters.sqlite.runtime import SqliteRuntime
 from dahe.adapters.sqlite.schema import (
+    DAILY_MANUAL_REVISIONS,
     DAILY_REPORTS,
     JOBS,
     OPERATIONAL_CAPTURE_RUNS,
@@ -49,6 +50,7 @@ def _fixture(
     tmp_path: Path,
     *,
     item_count: int = 1,
+    missing_unloading_net_tonnes: bool = False,
     missing_unloading_time: bool = False,
 ) -> tuple[TestClient, SqliteRuntime, SqliteDailyStore]:
     runtime = SqliteRuntime(
@@ -85,7 +87,11 @@ def _fixture(
                     loading_time=datetime(2026, 8, 5, 18, 57, 54, tzinfo=SHANGHAI),
                     vehicle_number="陕A12345",
                     loading_net_tonnes=Decimal("33.08"),
-                    unloading_net_tonnes=Decimal("33.04"),
+                    unloading_net_tonnes=(
+                        None
+                        if missing_unloading_net_tonnes
+                        else Decimal("33.04")
+                    ),
                     coal_type="兖矿陕动四号（5600）",
                     unloading_place="象道货22",
                     unloading_time=(
@@ -190,7 +196,11 @@ def test_whole_run_projects_unchanged_current_observation_without_duplicate_revi
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    client, runtime, store = _fixture(tmp_path)
+    client, runtime, store = _fixture(
+        tmp_path,
+        missing_unloading_net_tonnes=True,
+        missing_unloading_time=True,
+    )
     repository = SqliteJobRepository(
         runtime,
         scheduler_instance_id="daily-items-whole-run",
@@ -328,6 +338,7 @@ def test_whole_run_projects_unchanged_current_observation_without_duplicate_revi
             lambda _self, revisions, **_kwargs: {
                 revision.observation_id: captured_at.isoformat()
                 for revision in revisions
+                if revision.observation_id == "daily-items-current-observation"
             },
         )
 
@@ -335,10 +346,65 @@ def test_whole_run_projects_unchanged_current_observation_without_duplicate_revi
 
         assert response.status_code == 200
         assert response.json()["counts"]["all"] == 1
+        assert response.json()["counts"]["needs_review"] == 1
         assert [item["waybill_number"] for item in response.json()["items"]] == [
             "YD-001"
         ]
         assert len(store.list_revisions("platform-1")) == 1
+
+        current = response.json()["items"][0]
+        payload = {
+            "business_date": "2026-08-05",
+            "expected_record_version": current["record_version"],
+            "changes": {
+                "unloading_net_tonnes": None,
+                "unloading_time": None,
+            },
+        }
+        saved = client.post(
+            "/api/v1/daily/items/platform-1/revisions",
+            headers={"Idempotency-Key": "daily-whole-run-explicit-blank"},
+            json=payload,
+        )
+        replay = client.post(
+            "/api/v1/daily/items/platform-1/revisions",
+            headers={"Idempotency-Key": "daily-whole-run-explicit-blank"},
+            json=payload,
+        )
+
+        assert saved.status_code == 200
+        assert replay.status_code == 200
+        assert replay.json()["idempotent_replay"] is True
+        assert saved.json()["item"]["effective_fields"]["unloading_net_tonnes"] is None
+        assert saved.json()["item"]["effective_fields"]["unloading_time"] is None
+        assert saved.json()["counts"] == {
+            "all": 1,
+            "needs_review": 0,
+            "reviewed": 1,
+            "complete": 1,
+        }
+        with runtime.engine.connect() as connection:
+            manual_rows = tuple(
+                connection.execute(select(DAILY_MANUAL_REVISIONS)).mappings()
+            )
+        assert len(manual_rows) == 1
+        assert manual_rows[0]["base_observation_id"] == (
+            "daily-items-current-observation"
+        )
+
+        report_revisions = SqliteDailyItemRepository(
+            runtime,
+            store,
+        ).effective_revisions(
+            business_date=date(2026, 8, 5),
+            receive_place_keyword="榆林",
+        )
+        assert len(report_revisions) == 1
+        assert report_revisions[0].observation_id == (
+            "daily-items-current-observation"
+        )
+        assert report_revisions[0].fields.unloading_net_tonnes is None
+        assert report_revisions[0].fields.unloading_time is None
     finally:
         runtime.close()
 

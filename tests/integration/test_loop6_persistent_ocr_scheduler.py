@@ -308,19 +308,11 @@ def test_gpu_only_policy_does_not_queue_an_unavailable_cpu_fallback(
     assert attempts == [
         {
             "runtime_kind": "gpu",
-            "status": "succeeded",
-            "error_kind": None,
-        },
-        {
-            "runtime_kind": "gpu",
             "status": "failed",
             "error_kind": "out_of_memory",
         },
     ]
-    assert leases == [
-        {"resource_name": "gpu_ocr_slot"},
-        {"resource_name": "gpu_ocr_slot"},
-    ]
+    assert leases == [{"resource_name": "gpu_ocr_slot"}]
 
 
 def test_backend_presence_never_routes_fake_pipeline_ids_to_local_protocol(
@@ -415,6 +407,135 @@ def test_daily_observation_job_commits_runtime_output_without_finance_review(
     assert item.business_outcome is None
     assert item.review_reason is None
     assert item.diagnostic_code is None
+
+
+def test_one_vehicle_uses_one_batch_stage_and_commits_both_images(
+    project_root: Path,
+    tmp_path: Path,
+) -> None:
+    backend = _backend(
+        project_root,
+        tmp_path / "workers",
+        gpu_profile="gpu-qualified",
+    )
+    repository = TemporarySqliteJobRepository(
+        tmp_path / "data",
+        ocr_execution_backend=backend,
+    )
+    scheduler = CooperativeScheduler(repository)
+    try:
+        job_id = _create(repository, _audit_spec("loop18-vehicle-batch"))
+        _drive_until(
+            scheduler,
+            lambda: repository.get_job(job_id).status is JobStatus.SUCCEEDED,
+        )
+        attempts = _rows(
+            repository,
+            "SELECT status, runtime_kind, input_fingerprint, output_fingerprint "
+            "FROM stage_attempts WHERE owner_kind = 'shared_evidence' "
+            "AND work_item_id = "
+            "(SELECT work_item_id FROM work_items "
+            f"WHERE job_id = '{job_id}') AND stage = 'audit.recognize'",
+        )
+        shared = _rows(
+            repository,
+            "SELECT image_sha256, status, output_fingerprint "
+            "FROM shared_evidence_work WHERE execution_mode = 'local' "
+            "ORDER BY image_sha256",
+        )
+        generation = _rows(
+            repository,
+            "SELECT status, committed_runtime_kind, loading_output_json, "
+            "unloading_output_json FROM ocr_run_generations WHERE work_item_id = "
+            "(SELECT work_item_id FROM work_items "
+            f"WHERE job_id = '{job_id}')",
+        )
+    finally:
+        backend.close()
+        repository.close()
+
+    assert len(attempts) == 1
+    assert attempts[0]["status"] == "succeeded"
+    assert attempts[0]["runtime_kind"] == "gpu"
+    assert attempts[0]["input_fingerprint"]
+    assert attempts[0]["output_fingerprint"]
+    assert shared == [
+        {
+            "image_sha256": LOADING_SHA256,
+            "status": "succeeded",
+            "output_fingerprint": shared[0]["output_fingerprint"],
+        },
+        {
+            "image_sha256": UNLOADING_SHA256,
+            "status": "succeeded",
+            "output_fingerprint": shared[1]["output_fingerprint"],
+        },
+    ]
+    assert all(row["output_fingerprint"] for row in shared)
+    assert generation[0]["status"] == "succeeded"
+    assert generation[0]["committed_runtime_kind"] == "gpu"
+    assert generation[0]["loading_output_json"]
+    assert generation[0]["unloading_output_json"]
+
+
+def test_vehicle_batches_publish_a_contiguous_prefix_in_frozen_order(
+    project_root: Path,
+    tmp_path: Path,
+) -> None:
+    backend = _backend(
+        project_root,
+        tmp_path / "workers",
+        gpu_profile="gpu-qualified-slow",
+    )
+    repository = TemporarySqliteJobRepository(
+        tmp_path / "data",
+        ocr_execution_backend=backend,
+    )
+    scheduler = CooperativeScheduler(repository)
+    base = _audit_spec("loop18-vehicle-prefix")
+    spec = replace(
+        base,
+        items=tuple(
+            replace(
+                base.items[0],
+                item_key=f"loop18-vehicle-prefix-{index}",
+                loading_image_sha256=str(index * 2 + 1) * 64,
+                unloading_image_sha256=str(index * 2 + 2) * 64,
+                loading_image_relative_path=f"evidence/{index}/loading.png",
+                unloading_image_relative_path=f"evidence/{index}/unloading.png",
+            )
+            for index in range(3)
+        ),
+    )
+    observed_prefixes: list[int] = []
+    try:
+        job_id = _create(repository, spec)
+        deadline = time.monotonic() + 8
+        while time.monotonic() < deadline:
+            scheduler.tick()
+            items = repository.list_items(job_id)
+            prefix = 0
+            for item in items:
+                if item.status is not WorkItemStatus.SUCCEEDED:
+                    break
+                prefix += 1
+            if not observed_prefixes or observed_prefixes[-1] != prefix:
+                observed_prefixes.append(prefix)
+            if repository.get_job(job_id).status is JobStatus.SUCCEEDED:
+                break
+            time.sleep(0.01)
+        attempts = _rows(
+            repository,
+            "SELECT COUNT(*) AS count FROM stage_attempts "
+            "WHERE consumer_job_id = "
+            f"'{job_id}' AND stage = 'audit.recognize'",
+        )
+    finally:
+        backend.close()
+        repository.close()
+
+    assert observed_prefixes == [0, 1, 2, 3]
+    assert attempts == [{"count": 3}]
 
 
 def _audit_spec(fixture_id: str) -> ScheduledJobSpec:
@@ -658,7 +779,7 @@ def _rows(
         return [dict(row) for row in connection.execute(text(sql)).mappings()]
 
 
-def test_second_gpu_image_failure_releases_gpu_and_cpu_restarts_both_images(
+def test_vehicle_gpu_failure_releases_gpu_and_cpu_restarts_both_images(
     project_root: Path,
     tmp_path: Path,
 ) -> None:
@@ -719,41 +840,31 @@ def test_second_gpu_image_failure_releases_gpu_and_cpu_restarts_both_images(
     assert len(generation) == 1
     assert generation[0]["status"] == "succeeded"
     assert generation[0]["committed_runtime_kind"] == "cpu"
-    assert len(attempts) == 4
+    assert len(attempts) == 2
     assert [row["resource_name"] for row in attempts] == [
         "gpu_ocr_slot",
-        "gpu_ocr_slot",
-        "cpu_ocr_slot",
         "cpu_ocr_slot",
     ]
     assert [row["status"] for row in attempts] == [
-        "succeeded",
         "failed",
         "succeeded",
-        "succeeded",
     ]
-    assert attempts[1]["discarded"] == 1
-    assert attempts[1]["error_kind"] == "out_of_memory"
-    assert all(row["discarded"] == 0 for row in (attempts[0], *attempts[2:]))
+    assert attempts[0]["discarded"] == 1
+    assert attempts[0]["error_kind"] == "out_of_memory"
+    assert attempts[1]["discarded"] == 0
     assert {row["generation_id"] for row in attempts} == {None}
     assert attempts[0]["runtime_fingerprint"] == GPU_RUNTIME_SHA256
-    assert attempts[1]["runtime_fingerprint"] == GPU_RUNTIME_SHA256
-    assert {row["runtime_fingerprint"] for row in attempts[2:]} == {CPU_RUNTIME_SHA256}
+    assert attempts[1]["runtime_fingerprint"] == CPU_RUNTIME_SHA256
     gpu_pipeline = str(attempts[0]["pipeline_fingerprint"])
-    cpu_pipeline = str(attempts[2]["pipeline_fingerprint"])
+    cpu_pipeline = str(attempts[1]["pipeline_fingerprint"])
     assert gpu_pipeline != cpu_pipeline
     assert len(gpu_pipeline) == len(cpu_pipeline) == 64
-    assert {row["pipeline_fingerprint"] for row in attempts[:2]} == {gpu_pipeline}
-    assert {row["pipeline_fingerprint"] for row in attempts[2:]} == {cpu_pipeline}
     assert generation[0]["pipeline_fingerprint"] == cpu_pipeline
     assert all(row["input_fingerprint"] for row in attempts)
-    assert attempts[0]["output_fingerprint"]
-    assert attempts[1]["output_fingerprint"] is None
-    assert all(row["output_fingerprint"] for row in attempts[2:])
+    assert attempts[0]["output_fingerprint"] is None
+    assert attempts[1]["output_fingerprint"]
     assert [(row["resource_name"], row["status"]) for row in leases] == [
         ("gpu_ocr_slot", "released"),
-        ("gpu_ocr_slot", "released"),
-        ("cpu_ocr_slot", "released"),
         ("cpu_ocr_slot", "released"),
     ]
     assert len(shared_work) == 4
@@ -765,14 +876,14 @@ def test_second_gpu_image_failure_releases_gpu_and_cpu_restarts_both_images(
     ]
     assert {row["pipeline_fingerprint"] for row in shared_work[:2]} == {gpu_pipeline}
     assert {row["pipeline_fingerprint"] for row in shared_work[2:]} == {cpu_pipeline}
-    assert shared_work[0]["status"] == "succeeded"
-    assert shared_work[0]["output_fingerprint"]
-    assert shared_work[1]["status"] == "failed"
-    assert shared_work[1]["output_fingerprint"] is None
+    assert {row["status"] for row in shared_work[:2]} == {"failed", "cancelled"}
+    assert all(row["output_fingerprint"] is None for row in shared_work[:2])
+    assert all(row["status"] == "succeeded" for row in shared_work[2:])
+    assert all(row["output_fingerprint"] for row in shared_work[2:])
     payloads = [json.loads(str(row["payload_json"])) for row in checkpoints]
     assert any(row["stage"] == "audit.download_evidence" for row in checkpoints)
     assert any(
-        payload.get("discarded") is True and payload.get("completed_images") == ["loading"]
+        payload.get("discarded") is True and payload.get("completed_images") == []
         for payload in payloads
     )
     committed = [payload for payload in payloads if payload.get("committed") is True]
@@ -826,9 +937,8 @@ def test_two_jobs_share_each_runtime_aware_image_artifact_once(
         repository.close()
 
     assert attempts == [
-        {"runtime_kind": "cpu", "status": "succeeded", "count": 2},
+        {"runtime_kind": "cpu", "status": "succeeded", "count": 1},
         {"runtime_kind": "gpu", "status": "failed", "count": 1},
-        {"runtime_kind": "gpu", "status": "succeeded", "count": 1},
     ]
     assert len(shared_work) == 4
     cpu_rows = [row for row in shared_work if row["runtime_kind"] == "cpu"]
@@ -993,7 +1103,7 @@ def test_pause_waits_for_image_checkpoint_and_resume_does_not_redownload(
     assert completed_item.ocr_generation_id == paused_item.ocr_generation_id
     assert download_attempts_before == download_attempts_after == 1
     assert ocr_attempts_before == 1
-    assert ocr_attempts_after == 2
+    assert ocr_attempts_after == 1
 
 
 def test_stale_ocr_lease_cannot_commit_worker_result(

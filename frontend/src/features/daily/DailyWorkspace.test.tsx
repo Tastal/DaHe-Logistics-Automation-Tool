@@ -434,4 +434,59 @@ describe("Daily workspace", () => {
     ).toBeVisible();
     expect(screen.queryByRole("status", { name: "已完成 0/10" })).toBeNull();
   });
+
+  it("shows the visible vehicle prefix while the review job is still running", async () => {
+    const liveProgress = {
+        jobId: "daily-job",
+        phase: "offline_review",
+        label: "正在离线审核",
+        current: 3,
+        total: 10,
+        fetched: 10,
+        recognized: 3,
+        missingFields: 0,
+        technicalFailed: 0,
+        committedBatches: 0,
+        startedAt: "2026-08-05T20:00:00+08:00",
+        phaseStartedAt: "2026-08-05T20:00:12+08:00",
+        updatedAt: "2026-08-05T20:00:18+08:00",
+        finishedAt: null,
+        elapsedSeconds: 18,
+        estimatedRemainingSeconds: 42,
+        estimateState: "estimated",
+        isTerminal: false,
+        sourceJobId: "daily-job",
+        sourceRecordVersion: 1,
+        captureMode: "whole_run_v1",
+        visiblePrefixCount: 3,
+        onlineCaptureComplete: true,
+        reviewJob: null,
+      } as const;
+    const services = {
+      loadDailyItems: vi.fn(async () => result("2026-08-05", [item])),
+      loadPlatformBusinessReadProgress: vi.fn(async () => liveProgress),
+      subscribePlatformBusinessReadProgress: vi.fn((_jobId, onProgress) => {
+        queueMicrotask(() => onProgress(liveProgress));
+        return () => undefined;
+      }),
+    } as unknown as AppServices;
+    const jobs = [{
+      jobId: "daily-job",
+      taskType: "daily",
+      scopeLabel: "装卸车明细 2026-08-05",
+      jobStatus: "running",
+      statusLabel: "运行中",
+      currentStage: "offline_review",
+      currentStageLabel: "正在离线审核",
+      progressLabel: "正在离线审核",
+      counts: { total: 10, processed: 3, remaining: 7, waitingUser: 0, failed: 0 },
+      actions: {},
+      recordVersion: 1,
+      updatedAt: "2026-08-05T20:00:18+08:00",
+    }] as never;
+    localStorage.setItem("dahe:last-daily-business-date", "2026-08-05");
+    render(<DailyWorkspace services={services} jobs={jobs} />);
+
+    expect(await screen.findByText(/正在离线审核 3\/10/)).toBeVisible();
+  });
 });
