@@ -21,12 +21,47 @@ from dahe.domain.daily.models import (
     DailyCandidate,
     DailyCandidateSnapshot,
     DailyObservationFields,
+    DailyRecordRevision,
     DailyWaybillObservation,
 )
 from dahe.jobs.specs import ScheduledJobSpec, ScheduledWorkItemSpec
 
 PROJECT_ROOT = Path(__file__).parents[2]
 HASH = hashlib.sha256(b"daily-report").hexdigest()
+
+
+class _TrustedDailyItems:
+    """Test authority that marks the seeded business time as already validated."""
+
+    def __init__(self, store: SqliteDailyStore) -> None:
+        self._store = store
+
+    def effective_revisions(
+        self,
+        *,
+        business_date: date,
+        receive_place_keyword: str,
+        contract_subject_code: str,
+    ) -> tuple[DailyRecordRevision, ...]:
+        return self._store.list_latest_revisions_for_business_date(
+            business_date=business_date,
+            receive_place_keyword=receive_place_keyword,
+            contract_subject_code=contract_subject_code,
+        )
+
+    @staticmethod
+    def primary_loading_time_ids(
+        revisions: tuple[DailyRecordRevision, ...],
+        **_kwargs: object,
+    ) -> frozenset[str]:
+        return frozenset(revision.platform_waybill_id for revision in revisions)
+
+    @staticmethod
+    def manual_loading_time_ids(
+        _revisions: tuple[DailyRecordRevision, ...],
+        **_kwargs: object,
+    ) -> frozenset[str]:
+        return frozenset()
 
 
 def _runtime(tmp_path: Path) -> SqliteRuntime:
@@ -179,6 +214,7 @@ def test_unconfirmed_legacy_settings_allow_direct_report(tmp_path: Path) -> None
         repository = SqliteDailyReportRepository(
             runtime=runtime,
             daily_store=daily,
+            daily_items=_TrustedDailyItems(daily),  # type: ignore[arg-type]
             default_output_directory=(tmp_path / "reports").resolve(),
         )
         settings = repository.save_settings(
@@ -217,6 +253,7 @@ def test_report_generation_is_idempotent_and_directly_formal(
         repository = SqliteDailyReportRepository(
             runtime=runtime,
             daily_store=daily,
+            daily_items=_TrustedDailyItems(daily),  # type: ignore[arg-type]
             default_output_directory=(tmp_path / "reports").resolve(),
         )
         settings = repository.save_settings(
@@ -245,7 +282,7 @@ def test_report_generation_is_idempotent_and_directly_formal(
         assert replay.report_id == report.report_id
         assert report.status == "confirmed"
         assert report.row_count == 1
-        assert report.path.name == "装卸车明细-山西贵恩博-2026-08-01.xlsx"
+        assert report.path.name == "20260801-山西贵恩博-金鸡滩煤矿装卸车明细.xlsx"
         assert report.path.is_file()
 
         replaced, replaced_replay = repository.create_report(
@@ -274,6 +311,7 @@ def test_direct_generation_overwrites_an_external_edit_and_keeps_history(
         repository = SqliteDailyReportRepository(
             runtime=runtime,
             daily_store=daily,
+            daily_items=_TrustedDailyItems(daily),  # type: ignore[arg-type]
             default_output_directory=(tmp_path / "reports").resolve(),
         )
         settings = repository.save_settings(
@@ -332,6 +370,7 @@ def test_same_waybill_and_business_date_are_isolated_by_contract_subject(
         repository = SqliteDailyReportRepository(
             runtime=runtime,
             daily_store=daily,
+            daily_items=_TrustedDailyItems(daily),  # type: ignore[arg-type]
             default_output_directory=(tmp_path / "reports").resolve(),
         )
         settings = repository.save_settings(

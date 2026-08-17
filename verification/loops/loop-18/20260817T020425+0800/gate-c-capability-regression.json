@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "evidence_id": "loop-18-platform-time-correction-gate-c",
+  "recorded_at": "2026-08-17T03:57:00+08:00",
+  "status": "passed_with_recorded_environment_limit",
+  "scope": "Regression, GPU, UI screenshot, and full repository gates for the corrected development candidate.",
+  "preserved_v1_1_4_contracts": [
+    "Schema 0042 daily capture range and report window settings",
+    "vehicle-at-a-time OCR with GPU as primary runtime and live progress",
+    "contract-subject isolation",
+    "settlement and daily browser connection contracts",
+    "explicit manual blank review",
+    "title version placement, daily time input layout, and development shortcut contract"
+  ],
+  "full_check": {
+    "command": ".venv\\Scripts\\python.exe tools\\check.py",
+    "result": {
+      "ruff": "passed",
+      "mypy": "passed for 368 source files",
+      "frontend": "25 files, 155 tests, typecheck, lint, boundary check, and production build passed",
+      "pytest": "3102 passed, 9 skipped",
+      "pytest_duration_seconds": 1112.82
+    },
+    "skips": "Nine symlink-only tests were skipped because this Windows account lacks symbolic-link privilege."
+  },
+  "visual_gate": {
+    "command": "npm.cmd --prefix frontend run test:e2e -- loop18-rebuild-visual.spec.ts",
+    "result": "16 passed in 14.0 seconds and every screenshot was manually inspected",
+    "matrix": {
+      "viewport_sizes": ["1366x768", "1920x1080", "2560x1440"],
+      "windows_scaling_percent": [100, 125, 150, 200]
+    },
+    "screens": [
+      "settlement progress",
+      "daily vehicle progress",
+      "daily report settings warning",
+      "explicit blank saved"
+    ],
+    "observed": "No title wrapping, overlap, crop, navigation overflow, or stale technical error was present.",
+    "representative_hashes": {
+      "daily_explicit_blank_saved": "bb654cbe9beceed261beb93a1fe37fae61456944bb071627cae5d016b6182fa9",
+      "daily_progress": "7a4c016014f5f85272a2f3020e3e9b539a23ab6bab3cdce2afdde3ae36a16e1e",
+      "settings_warning": "1b0cd910f1014897a449163a440ea94a58fa914840443dd499db815567b688fd"
+    }
+  },
+  "safety": {
+    "platform_accessed": false,
+    "platform_write_request_count": 0,
+    "production_database_modified": false,
+    "company_computer_deployed": false,
+    "local_formal_application_installed": false
+  },
+  "remaining_environment_limits": [
+    "Windows symbolic-link privilege is unavailable for nine optional-path tests.",
+    "Unsigned Windows binaries can still trigger SmartScreen reputation warnings."
+  ]
+}

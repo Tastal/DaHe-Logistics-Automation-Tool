@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "evidence_id": "loop-18-platform-time-correction-gate-a",
+  "recorded_at": "2026-08-17T03:18:00+08:00",
+  "status": "passed",
+  "scope": "Business-time source isolation on a SQLite online backup and current-image evidence projection.",
+  "safety": {
+    "production_database_modified": false,
+    "platform_accessed": false,
+    "platform_write_request_count": 0,
+    "working_database_sha256": "004e506ea1712aa3b4e06546d8996be73d26af5c52732e7b31b512345c01e9c3"
+  },
+  "named_waybill_results": [
+    {
+      "platform_waybill_id": "SXYD20260816112043033765",
+      "qualified_loading_time_evidence": false,
+      "effective_loading_time": null,
+      "requires_human_review": true
+    },
+    {
+      "platform_waybill_id": "SXYD20260816101259026239",
+      "qualified_loading_time_evidence": false,
+      "effective_loading_time": null,
+      "requires_human_review": true
+    },
+    {
+      "platform_waybill_id": "SXYD20260816060218006604",
+      "qualified_loading_time_evidence": false,
+      "effective_loading_time": null,
+      "requires_human_review": true
+    }
+  ],
+  "implementation_contracts": [
+    "Captured machine business fields are sanitized before current-image OCR evidence and compatible manual revisions are projected.",
+    "Platform loading time is retained only in the platform snapshot and never assigned to loading_time.",
+    "A time-only OCR candidate cannot borrow a calendar date from the platform.",
+    "Changing the simulated platform time does not alter API business-time fields or workbook time cells.",
+    "The API source enum contains no platform value for business times."
+  ],
+  "automated_checks": {
+    "targeted_command": ".venv\\Scripts\\python.exe -m pytest tests/unit/application/daily/test_unloading_time.py tests/unit/application/daily/test_ocr_fields.py tests/unit/application/daily/test_report_workbook.py tests/integration/test_daily_items_api.py tests/integration/test_daily_report_api.py tests/integration/test_daily_reports.py tests/integration/test_loop6_persistent_ocr_scheduler.py -q",
+    "result": "92 passed in 44.15 seconds",
+    "broader_result": "242 Loop 18 tests passed in 68.81 seconds"
+  },
+  "gpu_probes": [
+    {
+      "fixture_kind": "sanitized non-standard handwritten loading ticket",
+      "runtime": "gpu",
+      "elapsed_seconds": 14.844,
+      "projected_weight": null,
+      "projected_time": null
+    },
+    {
+      "fixture_kind": "sanitized standard pending-unload loading ticket",
+      "runtime": "gpu",
+      "elapsed_seconds": 5.36,
+      "projected_weight_tonnes": 33.26,
+      "projected_time": "23:02:23"
+    }
+  ]
+}

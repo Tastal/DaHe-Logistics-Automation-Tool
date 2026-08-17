@@ -222,7 +222,7 @@ export interface DailyItem {
   unloadingTicket: DailyTicketReference | null;
   machineFields: Record<DailyEditableField, string | null>;
   effectiveFields: Record<DailyEditableField, string | null>;
-  fieldSources: Record<DailyEditableField, "machine" | "manual">;
+  fieldSources: Record<DailyEditableField, "machine" | "ocr" | "manual">;
   fieldIssues: Record<DailyEditableField, { hasIssue: boolean; message: string | null }>;
   reviewState: "reviewed" | "needs_review";
   materializedAt: string;

@@ -21,11 +21,46 @@ from dahe.domain.daily.models import (
     DailyCandidate,
     DailyCandidateSnapshot,
     DailyObservationFields,
+    DailyRecordRevision,
     DailyWaybillObservation,
 )
 
 PROJECT_ROOT = Path(__file__).parents[2]
 HASH = hashlib.sha256(b"daily-report-api").hexdigest()
+
+
+class _TrustedDailyItems:
+    """Test authority that marks the seeded business time as already validated."""
+
+    def __init__(self, store: SqliteDailyStore) -> None:
+        self._store = store
+
+    def effective_revisions(
+        self,
+        *,
+        business_date: date,
+        receive_place_keyword: str,
+        contract_subject_code: str,
+    ) -> tuple[DailyRecordRevision, ...]:
+        return self._store.list_latest_revisions_for_business_date(
+            business_date=business_date,
+            receive_place_keyword=receive_place_keyword,
+            contract_subject_code=contract_subject_code,
+        )
+
+    @staticmethod
+    def primary_loading_time_ids(
+        revisions: tuple[DailyRecordRevision, ...],
+        **_kwargs: object,
+    ) -> frozenset[str]:
+        return frozenset(revision.platform_waybill_id for revision in revisions)
+
+    @staticmethod
+    def manual_loading_time_ids(
+        _revisions: tuple[DailyRecordRevision, ...],
+        **_kwargs: object,
+    ) -> frozenset[str]:
+        return frozenset()
 
 
 def _client(
@@ -84,6 +119,7 @@ def _client(
     repository = SqliteDailyReportRepository(
         runtime=runtime,
         daily_store=daily,
+        daily_items=_TrustedDailyItems(daily),  # type: ignore[arg-type]
         default_output_directory=(tmp_path / "reports").resolve(),
     )
 
@@ -177,7 +213,7 @@ def test_report_api_saves_settings_and_creates_idempotently(tmp_path: Path) -> N
         assert created.json()["report"]["missing_effective_time_count"] == 0
         assert created.json()["report"]["status"] == "confirmed"
         assert created.json()["report"]["file_name"] == (
-            "装卸车明细-山西贵恩博-2026-08-01.xlsx"
+            "20260801-山西贵恩博-金鸡滩煤矿装卸车明细.xlsx"
         )
         opened = client.post(
             f"/api/v1/daily/reports/{created.json()['report']['report_id']}/open-folder",

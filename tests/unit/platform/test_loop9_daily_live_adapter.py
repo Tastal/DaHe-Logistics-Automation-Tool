@@ -573,7 +573,7 @@ def test_daily_detail_adapter_preserves_images_and_nullable_fields(
         )
     )
 
-    assert evidence.fields.loading_time == loading_time
+    assert evidence.fields.loading_time is None
     assert evidence.fields.vehicle_number == "陕A12345"
     assert evidence.fields.loading_net_tonnes == Decimal("33.08")
     assert evidence.fields.unloading_net_tonnes == Decimal("33.04")

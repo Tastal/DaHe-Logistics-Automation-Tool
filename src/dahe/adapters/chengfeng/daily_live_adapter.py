@@ -671,7 +671,7 @@ class ChengfengDailyDetailEvidenceAdapter(DailyDetailEvidencePort):
         fields = DailyObservationFields(
             shipping_mine=None,
             planned_date=None,
-            loading_time=candidate.platform_loading_time,
+            loading_time=None,
             vehicle_number=(
                 detail.vehicle_number or candidate.vehicle_number
             ),

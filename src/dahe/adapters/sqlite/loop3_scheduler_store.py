@@ -1684,16 +1684,27 @@ class SqliteLoop3SchedulerStore:
             ).mappings()
         )
         for item in rows:
-            missing_evidence = (
-                item["loading_image_sha256"] is None
-                or item["unloading_image_sha256"] is None
-                or item["loading_image_relative_path"] is None
-                or item["unloading_image_relative_path"] is None
+            loading_evidence_complete = (
+                item["loading_image_sha256"] is not None
+                and item["loading_image_relative_path"] is not None
+            )
+            unloading_evidence_complete = (
+                item["unloading_image_sha256"] is not None
+                and item["unloading_image_relative_path"] is not None
+            )
+            missing_ticket_review = (
+                item["fixture_outcome"] == "awaiting_review"
+                and item["fixture_review_reason"] == "missing_ticket"
+            )
+            pending_unloading = (
+                missing_ticket_review
+                and loading_evidence_complete
+                and not unloading_evidence_complete
             )
             if (
-                missing_evidence
-                and item["fixture_outcome"] == "awaiting_review"
-                and item["fixture_review_reason"] == "missing_ticket"
+                (not loading_evidence_complete or not unloading_evidence_complete)
+                and missing_ticket_review
+                and not pending_unloading
             ):
                 work_item_id = str(item["work_item_id"])
                 job_id = str(item["job_id"])
@@ -1779,10 +1790,8 @@ class SqliteLoop3SchedulerStore:
                 continue
             if (
                 pipeline_fingerprint is None
-                or item["loading_image_sha256"] is None
-                or item["unloading_image_sha256"] is None
-                or item["loading_image_relative_path"] is None
-                or item["unloading_image_relative_path"] is None
+                or not loading_evidence_complete
+                or (not unloading_evidence_complete and not pending_unloading)
             ):
                 connection.execute(
                     update(WORK_ITEMS)
@@ -1824,6 +1833,7 @@ class SqliteLoop3SchedulerStore:
                 .values(
                     ocr_generation_id=generation_id,
                     current_stage="audit.recognize",
+                    unloading_ocr_complete=(1 if pending_unloading else 0),
                     ready_sequence=WORK_ITEMS.c.ready_sequence + 1,
                     record_version=int(item["record_version"]) + 1,
                 )
@@ -1840,18 +1850,19 @@ class SqliteLoop3SchedulerStore:
                 profile_id=identity.profile_id,
                 runtime_fingerprint=identity.runtime_fingerprint,
             )
-            register_shared_consumer(
-                connection,
-                work_item_id=str(item["work_item_id"]),
-                image_role="unloading",
-                image_sha256=str(item["unloading_image_sha256"]),
-                image_relative_path=str(item["unloading_image_relative_path"]),
-                pipeline_fingerprint=runtime_pipeline_fingerprint,
-                execution_mode="local",
-                runtime_kind=identity.runtime_kind,
-                profile_id=identity.profile_id,
-                runtime_fingerprint=identity.runtime_fingerprint,
-            )
+            if unloading_evidence_complete:
+                register_shared_consumer(
+                    connection,
+                    work_item_id=str(item["work_item_id"]),
+                    image_role="unloading",
+                    image_sha256=str(item["unloading_image_sha256"]),
+                    image_relative_path=str(item["unloading_image_relative_path"]),
+                    pipeline_fingerprint=runtime_pipeline_fingerprint,
+                    execution_mode="local",
+                    runtime_kind=identity.runtime_kind,
+                    profile_id=identity.profile_id,
+                    runtime_fingerprint=identity.runtime_fingerprint,
+                )
 
     @staticmethod
     def _build_ocr_stage_work(
@@ -2190,6 +2201,14 @@ class SqliteLoop3SchedulerStore:
                 )
                 if output is not None
             ]
+            pending_unloading = (
+                row["fixture_outcome"] == "awaiting_review"
+                and row["fixture_review_reason"] == "missing_ticket"
+                and row["loading_image_sha256"] is not None
+                and row["loading_image_relative_path"] is not None
+                and row["unloading_image_sha256"] is None
+                and row["unloading_image_relative_path"] is None
+            )
             local_gpu_shared_ids = select(
                 SHARED_EVIDENCE_WORK.c.shared_work_id
             ).where(
@@ -2243,7 +2262,7 @@ class SqliteLoop3SchedulerStore:
                     status=WorkItemStatus.QUEUED.value,
                     current_stage="audit.recognize.loading",
                     loading_ocr_complete=0,
-                    unloading_ocr_complete=0,
+                    unloading_ocr_complete=(1 if pending_unloading else 0),
                     attempt_count=int(row["attempt_count"]) + 1,
                     diagnostic_code=None,
                     waiting_reason_kind=None,
@@ -2264,18 +2283,19 @@ class SqliteLoop3SchedulerStore:
                 profile_id=cpu_identity.profile_id,
                 runtime_fingerprint=cpu_identity.runtime_fingerprint,
             )
-            register_shared_consumer(
-                connection,
-                work_item_id=work_item_id,
-                image_role="unloading",
-                image_sha256=str(row["unloading_image_sha256"]),
-                image_relative_path=str(row["unloading_image_relative_path"]),
-                pipeline_fingerprint=cpu_pipeline_fingerprint,
-                execution_mode="local",
-                runtime_kind="cpu",
-                profile_id=cpu_identity.profile_id,
-                runtime_fingerprint=cpu_identity.runtime_fingerprint,
-            )
+            if not pending_unloading:
+                register_shared_consumer(
+                    connection,
+                    work_item_id=work_item_id,
+                    image_role="unloading",
+                    image_sha256=str(row["unloading_image_sha256"]),
+                    image_relative_path=str(row["unloading_image_relative_path"]),
+                    pipeline_fingerprint=cpu_pipeline_fingerprint,
+                    execution_mode="local",
+                    runtime_kind="cpu",
+                    profile_id=cpu_identity.profile_id,
+                    runtime_fingerprint=cpu_identity.runtime_fingerprint,
+                )
             self._save_checkpoint(
                 connection,
                 owner_kind="work_item",
@@ -2405,6 +2425,62 @@ class SqliteLoop3SchedulerStore:
         for item in rows:
             work_item_id = str(item["work_item_id"])
             job_id = str(item["job_id"])
+            pending_unloading = (
+                item["fixture_outcome"] == "awaiting_review"
+                and item["fixture_review_reason"] == "missing_ticket"
+                and item["loading_image_sha256"] is not None
+                and item["loading_image_relative_path"] is not None
+                and item["unloading_image_sha256"] is None
+                and item["unloading_image_relative_path"] is None
+            )
+            if pending_unloading:
+                for stage in ("audit.compare", "audit.finalize"):
+                    self._insert_completed_attempt(
+                        connection,
+                        owner_kind="work_item",
+                        owner_id=work_item_id,
+                        consumer_job_id=job_id,
+                        work_item_id=work_item_id,
+                        stage=stage,
+                        sequence=sequence,
+                    )
+                connection.execute(
+                    update(WORK_ITEMS)
+                    .where(
+                        WORK_ITEMS.c.work_item_id == work_item_id,
+                        WORK_ITEMS.c.record_version == item["record_version"],
+                    )
+                    .values(
+                        status=WorkItemStatus.WAITING_USER.value,
+                        current_stage="audit.finalize",
+                        business_outcome="awaiting_review",
+                        decision="review",
+                        review_reason="missing_ticket",
+                        diagnostic_code=None,
+                        ticket_loading_net=None,
+                        ticket_unloading_net=None,
+                        waiting_reason_kind="user",
+                        waiting_reason="missing_ticket",
+                        attempt_count=int(item["attempt_count"]) + 2,
+                        record_version=int(item["record_version"]) + 1,
+                    )
+                )
+                self._save_checkpoint(
+                    connection,
+                    owner_kind="work_item",
+                    owner_id=work_item_id,
+                    job_id=job_id,
+                    work_item_id=work_item_id,
+                    stage="audit.finalize",
+                    sequence=sequence,
+                    payload={
+                        "business_outcome": "awaiting_review",
+                        "committed": True,
+                        "decision": "review",
+                        "review_reason": "missing_ticket",
+                    },
+                )
+                continue
             diagnostic_code: str | None = None
             evaluation = None
             try:
@@ -3155,7 +3231,10 @@ class SqliteLoop3SchedulerStore:
                     generation_values["loading_output_fingerprint"] = shared[
                         "output_fingerprint"
                     ]
-                    pair_complete = generation["unloading_output_json"] is not None
+                    pair_complete = (
+                        generation["unloading_output_json"] is not None
+                        or bool(item["unloading_ocr_complete"])
+                    )
                 else:
                     generation_values["unloading_output_json"] = shared[
                         "output_json"

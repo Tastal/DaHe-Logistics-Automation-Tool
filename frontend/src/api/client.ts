@@ -327,7 +327,7 @@ interface WireDailyItem {
   unloading_ticket: { sha256: string; url: string } | null;
   machine_fields: Record<DailyEditableField, string | null>;
   effective_fields: Record<DailyEditableField, string | null>;
-  field_sources: Record<DailyEditableField, "machine" | "manual">;
+  field_sources: Record<DailyEditableField, "machine" | "ocr" | "manual">;
   field_issues: Record<DailyEditableField, { has_issue: boolean; message: string | null }>;
   review_state: "reviewed" | "needs_review";
   materialized_at: string;

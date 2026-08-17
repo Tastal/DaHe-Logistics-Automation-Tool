@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "evidence_id": "loop-18-platform-time-correction-release",
+  "recorded_at": "2026-08-17T04:00:00+08:00",
+  "status": "pending",
+  "reason": "Source and business gates passed; corrected assets, install validation, Defender scan, public source parity, redownload hashes, and Latest publication remain pending.",
+  "public_release_state": "draft",
+  "company_computer_deployed": false,
+  "local_formal_application_installed": false
+}

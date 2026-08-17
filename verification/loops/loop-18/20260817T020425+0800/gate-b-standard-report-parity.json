@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "evidence_id": "loop-18-platform-time-correction-gate-b",
+  "recorded_at": "2026-08-17T03:29:00+08:00",
+  "status": "passed",
+  "scope": "Read-only cell-level reconciliation against the user-designated standard workbook.",
+  "standard_workbook": {
+    "path": "C:/Users/aya72/Desktop/成丰装卸车明细/20260815-金鸡滩煤矿装卸车明细.xlsx",
+    "sha256": "cbb76b8599bcf8ec7a8bdb4cb7eb5e70e6f41907d592637e8ce03175f3a6921f"
+  },
+  "generated_workbook": {
+    "temporary_path": "%TEMP%/dahe-loop18-platform-time-projection-fresh/corrected-report/20260815-山西贵恩博-金鸡滩煤矿装卸车明细.xlsx",
+    "sha256": "69bcc7770bb840ce6db7c1a59a587c5370f4676ef2e0788be08a3e2c1b68b7ad",
+    "production_output_overwritten": false
+  },
+  "business_reconciliation": {
+    "detail_rows": 100,
+    "automatic_rows": 92,
+    "manual_rows": 7,
+    "pending_unload_rows": 1,
+    "blank_loading_time_cells": 2,
+    "blank_unloading_time_cells": 1,
+    "pending_unload_weight": 0.0,
+    "standard_dimensions": [102, 10],
+    "generated_dimensions": [102, 10]
+  },
+  "comparison": {
+    "normalization": [
+      "Loading times were compared to the nearest displayed second.",
+      "Unloading times were compared to the displayed minute because seconds are intentionally omitted.",
+      "Cell values, types, vehicle identifiers, weights, order, totals, and true blank cells were compared."
+    ],
+    "unexpected_difference_count": 0,
+    "hash_equality_required": false,
+    "result": "semantic cell and display-precision parity passed"
+  },
+  "sort_contract": [
+    "Rows with loading time sort first by loading time.",
+    "Rows with blank loading time and present unloading time sort next by unloading time.",
+    "Rows with both times blank sort next by an in-memory platform timestamp that is not exported.",
+    "Rows without any timestamp use stable waybill and vehicle ordering."
+  ]
+}

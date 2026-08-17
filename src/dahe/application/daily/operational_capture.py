@@ -5,7 +5,6 @@ import json
 from collections.abc import Callable
 from dataclasses import dataclass, replace
 from datetime import datetime
-from decimal import Decimal, InvalidOperation
 from typing import Protocol
 
 from dahe.application.chengfeng.durable_capture import (
@@ -548,12 +547,12 @@ class FastOperationalDailyCaptureCoordinator:
             fields = DailyObservationFields(
                 shipping_mine=None,
                 planned_date=None,
-                loading_time=candidate.platform_loading_time,
+                loading_time=None,
                 vehicle_number=(
                     detail.vehicle_number or candidate.vehicle_number
                 ),
-                loading_net_tonnes=_decimal(detail.loading_net),
-                unloading_net_tonnes=_decimal(detail.unloading_net),
+                loading_net_tonnes=None,
+                unloading_net_tonnes=None,
                 coal_type=None,
                 unloading_place=None,
                 unloading_time=None,
@@ -595,22 +594,6 @@ class FastOperationalDailyCaptureCoordinator:
                 )
             )
         return tuple(observations)
-
-
-def _decimal(value: str | None) -> Decimal | None:
-    if value is None:
-        return None
-    try:
-        parsed = Decimal(value)
-    except InvalidOperation as exc:
-        raise OperationalCaptureContractError(
-            "operational daily weight is invalid"
-        ) from exc
-    if not parsed.is_finite() or parsed < 0:
-        raise OperationalCaptureContractError(
-            "operational daily weight is invalid"
-        )
-    return parsed
 
 
 def _sha256(value: object) -> str:

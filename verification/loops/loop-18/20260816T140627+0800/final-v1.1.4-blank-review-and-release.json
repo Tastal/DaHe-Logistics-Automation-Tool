@@ -1,0 +1,163 @@
+{
+  "evidence_id": "loop-18-rebuild-v1.1.4-blank-review-and-release",
+  "recorded_at": "2026-08-16T19:56:45+08:00",
+  "status": "passed_with_recorded_environment_limit",
+  "scope": {
+    "business_change": "Allow projected current-run daily records to confirm every anomalous value as an explicit null and keep those cells blank in the report.",
+    "platform_accessed": false,
+    "platform_write_request_count": 0,
+    "database_migration_added": false,
+    "company_computer_deployed": false,
+    "local_formal_application_installed": false
+  },
+  "root_cause_and_resolution": {
+    "root_cause": "The workspace projected a reused historical machine result into the current capture, while save, idempotent replay, and report queries still resolved the older machine revision directly. The save therefore rejected a visible current-run item as incomplete and the report could omit the same projection.",
+    "resolution": "Use one current business-date, contract-subject, and source-capture projection for list, item lookup, save, idempotent replay, and report reads. Explicit null values remain authoritative manual confirmations and incomplete partial timestamps remain invalid."
+  },
+  "source_identity": {
+    "internal_branch": "codex/v1_1_4_rebuild",
+    "internal_fix_commit": "aba7172d6d6637c648b7796a0ed1e33fe07b75d5",
+    "internal_release_source_commit": "15a492e9764eadaa48c264746424d3f8567ed751",
+    "public_commit": "9db6043dcac9252201f7e283656eedf086d09c6c",
+    "public_main": "9db6043dcac9252201f7e283656eedf086d09c6c",
+    "public_tag": "9db6043dcac9252201f7e283656eedf086d09c6c",
+    "public_tree_parity": {
+      "internal_tracked_file_count": 1125,
+      "public_tracked_file_count": 1125,
+      "git_blob_mismatch_count": 0,
+      "excluded_non_public_artifacts": 6
+    },
+    "sensitive_scan": {
+      "tool": "gitleaks 8.30.1",
+      "finding_count": 0,
+      "report_sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+    }
+  },
+  "automated_checks": [
+    {
+      "scope": "blank review projection, API, database, workbook, frontend, and Edge regression",
+      "result": "passed; explicit null weight and time, idempotent replay, stale identity rejection, reviewed counts, true blank workbook cells, and the prior English processing error were covered"
+    },
+    {
+      "command": ".venv\\Scripts\\python.exe tools\\check.py",
+      "duration_seconds": 893.93,
+      "result": "passed: Ruff, mypy for 367 source files, frontend 25 files and 155 tests plus production build, pytest 3065 passed and 9 Windows symlink-privilege skips"
+    },
+    {
+      "command": "npm.cmd --prefix frontend run test:e2e",
+      "result": "30 passed with Microsoft Edge"
+    },
+    {
+      "command": "frontend Loop 18 visual screenshot suite",
+      "result": "16 passed and manually inspected at 1366x768, 1920x1080, 2560x1440 and 100%, 125%, 150%, 200% scaling"
+    }
+  ],
+  "visual_acceptance": {
+    "screenshot": "output/playwright/loop18-rebuild/daily-explicit-blank-saved.png",
+    "sha256": "16160d4d230893c6a9595c4c9ee084185550eb8b14c33f05e499bdd113ab0a68",
+    "observed": [
+      "The unloading weight and time remained empty.",
+      "The success toast used business language and no English technical error was shown.",
+      "The record moved to reviewed and the waiting-review count became zero.",
+      "The report action remained available."
+    ]
+  },
+  "formal_runtime_validation": {
+    "manifest": {
+      "version": "1.1.4",
+      "build_git_commit": "9db6043dcac9252201f7e283656eedf086d09c6c",
+      "resource_manifest_hash": "8063b9a93e49a2ef80800f6079e66108a2d1c1502d0f76115ebd85696328b6c6",
+      "minimum_schema_revision": "0039_network_batch_default",
+      "target_schema_revision": "0042_daily_capture_range"
+    },
+    "setup_payload_extraction": "passed",
+    "cpu_runtime_bootstrap_and_sanitized_fixture": "passed",
+    "gpu_install_and_status": {
+      "state": "active",
+      "primary_runtime": "gpu",
+      "gpu_qualified": true,
+      "cpu_fallback_available": true,
+      "package_version": "1.1.4"
+    },
+    "packaged_cold_starts": 2,
+    "readiness_http_status": 200,
+    "readiness_version": "1.1.4",
+    "readiness_schema_revision": "0042_daily_capture_range",
+    "database_integrity": "ok",
+    "ordinary_user_contract": {
+      "nsis_request_execution_level": "user",
+      "uac_admin_request_present": false,
+      "windows_sandbox_execution": "not run because Windows Sandbox exited immediately and querying the optional-feature state required elevation",
+      "substitute_validation": "The exact Setup payload and the same CPU bootstrap command were executed in an isolated install root; both packaged cold starts passed. This is not represented as a successful Windows Sandbox installation."
+    }
+  },
+  "defender": {
+    "engine_path": "Microsoft Defender Platform 4.18.26070.9-0",
+    "assets_scanned": [
+      "DaHe-Logistics-Automation-Tool-1.1.4-Setup.exe",
+      "DaHeApp.exe",
+      "DaHeLauncher.exe",
+      "DaHeUpdater.exe",
+      "DaHe-Logistics-Automation-Tool-1.1.4-gpu-addon-win-x64.zip"
+    ],
+    "result": "no threats found",
+    "exit_code": 0
+  },
+  "release": {
+    "repository": "Tastal/DaHe-Logistics-Automation-Tool",
+    "url": "https://github.com/Tastal/DaHe-Logistics-Automation-Tool/releases/tag/v1.1.4",
+    "draft": false,
+    "prerelease": false,
+    "latest": true,
+    "published_at": "2026-08-16T11:52:07Z",
+    "asset_count": 5,
+    "redownloaded_asset_count": 5,
+    "redownload_hash_mismatch_count": 0,
+    "assets": [
+      {
+        "name": "DaHe-Logistics-Automation-Tool-1.1.4-Setup.exe",
+        "size": 424683234,
+        "sha256": "2b05edaffac30baa757f1ebc2f82746859900df6ea215024347db3d40538369d"
+      },
+      {
+        "name": "DaHe-Logistics-Automation-Tool-1.1.4-win-x64.zip",
+        "size": 61895950,
+        "sha256": "ac8d01f3f999decf5992f4f33279c52a6db9a30b612292772d6373f896adbe35"
+      },
+      {
+        "name": "DaHe-Logistics-Automation-Tool-1.1.4-gpu-addon-win-x64.zip",
+        "size": 2018834750,
+        "sha256": "478a21cb54098d0bd836323fffb91beccce9c8c8b8ac8d532affaf1e073bf315"
+      },
+      {
+        "name": "update-manifest.json",
+        "size": 1216,
+        "sha256": "d5f3461c445e71540ae382d2a61411c8e8eb72c87805aa7a3cb522c9ad2dcbfa"
+      },
+      {
+        "name": "SHA256SUMS.txt",
+        "size": 440,
+        "sha256": "0c248bfd40a6bfcd38de53fd64b4775c7a8bbf41119acef5f781e332f5da25a6"
+      }
+    ]
+  },
+  "local_development_runtime": {
+    "readiness_http_status": 200,
+    "application_version": "1.1.4",
+    "build_git_commit": "development",
+    "schema_revision": "0042_daily_capture_range",
+    "database_integrity": "ok",
+    "primary_runtime": "gpu",
+    "gpu_qualified": true,
+    "cpu_fallback_available": true,
+    "process_entry": ".venv/Scripts/python.exe -m dahe --serve --production-read-only",
+    "installed_program_root_exists": false,
+    "desktop_shortcut_count": 1,
+    "desktop_shortcut_sha256": "139344ccc74a56956efb21ed7ddca37270153876f484157e0904d2d3c15b43e6"
+  },
+  "unresolved_risks": [
+    "Nine symlink-only tests remain skipped because the current Windows account cannot create symbolic links.",
+    "The current Windows host could not execute Windows Sandbox, so this exact Setup was not re-run in a separate ordinary-user desktop session; its user-level manifest and exact extracted installation pipeline passed.",
+    "Unsigned Windows binaries can still display SmartScreen unknown-publisher warnings even when Defender reports no threats."
+  ]
+}

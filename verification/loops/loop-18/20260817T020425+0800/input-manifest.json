@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "loop": "loop-18-platform-time-correction",
+  "recorded_at": "2026-08-17T02:04:25+08:00",
+  "source_baseline": {
+    "branch": "codex/v1_1_4_rebuild",
+    "commit": "33936c8993d3fc239086651b59cec4d24f8e3383",
+    "version": "1.1.4",
+    "schema_revision": "0042_daily_capture_range"
+  },
+  "frozen_business_contract": {
+    "platform_time_business_field_use": "forbidden",
+    "platform_time_report_membership_use": "forbidden",
+    "platform_time_hidden_sort_use": "allowed_only_when_both_business_times_are_blank",
+    "business_time_authority": [
+      "manual_value_or_explicit_manual_blank",
+      "qualified_ocr_evidence",
+      "missing_and_human_review"
+    ],
+    "report_window": "[business_date 14:00, next_day 14:00)",
+    "report_filename": "YYYYMMDD-<contract subject>-金鸡滩煤矿装卸车明细.xlsx"
+  },
+  "standard_workbook": {
+    "path": "C:/Users/aya72/Desktop/成丰装卸车明细/20260815-金鸡滩煤矿装卸车明细.xlsx",
+    "sha256": "cbb76b8599bcf8ec7a8bdb4cb7eb5e70e6f41907d592637e8ce03175f3a6921f",
+    "usage": "read-only business oracle; production rows were not copied into source fixtures"
+  },
+  "named_waybills": [
+    "SXYD20260816112043033765",
+    "SXYD20260816101259026239",
+    "SXYD20260816060218006604"
+  ],
+  "external_resources": {
+    "chengfeng_platform_accessed": false,
+    "production_database_modified": false,
+    "company_computer_deployed": false,
+    "github_release_mutation_allowed_before_gates": "draft_only"
+  }
+}

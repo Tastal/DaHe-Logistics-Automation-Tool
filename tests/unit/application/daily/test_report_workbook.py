@@ -29,6 +29,8 @@ def _revision(
     vehicle: str | None,
     loading: Decimal | None,
     unloading: Decimal | None,
+    loading_ticket: bool = True,
+    unloading_ticket: bool = True,
 ) -> DailyRecordRevision:
     digest = hashlib.sha256(identity.encode("utf-8")).hexdigest()
     return DailyRecordRevision(
@@ -49,8 +51,8 @@ def _revision(
             unloading_time=unloading_time,
         ),
         waybill_number=f"WB-{identity}",
-        loading_ticket_sha256=digest,
-        unloading_ticket_sha256=digest,
+        loading_ticket_sha256=digest if loading_ticket else None,
+        unloading_ticket_sha256=digest if unloading_ticket else None,
         created_at=datetime(2026, 8, 2, 15, 0, tzinfo=SHANGHAI),
     )
 
@@ -205,7 +207,10 @@ def test_report_strictly_filters_effective_loading_time_and_keeps_fallback_blank
         platform_loading_times={
             "fallback": datetime(2026, 8, 2, 13, 0, tzinfo=SHANGHAI),
         },
-        primary_loading_time_ids=frozenset({"early", "inside", "late"}),
+        primary_loading_time_ids=frozenset(
+            {"early", "inside", "fallback", "late"}
+        ),
+        manual_loading_time_ids=frozenset({"fallback"}),
     )
 
     assert [row.platform_waybill_id for row in result.rows] == ["inside", "fallback"]
@@ -241,7 +246,7 @@ def test_workbook_is_written_formally_then_reopened_and_validated(
         rows=rows,
     )
 
-    assert result.path.name == "装卸车明细-山西贵恩博-2026-08-01.xlsx"
+    assert result.path.name == "20260801-山西贵恩博-金鸡滩煤矿装卸车明细.xlsx"
     assert result.path.is_file()
     assert result.row_count == 1
     assert result.loading_net_total == Decimal("32.80")
@@ -290,6 +295,8 @@ def test_workbook_keeps_manually_confirmed_missing_values_truly_blank(
         platform_loading_times={
             "blank": datetime(2026, 8, 1, 15, 0, tzinfo=SHANGHAI),
         },
+        primary_loading_time_ids=frozenset({"blank"}),
+        manual_loading_time_ids=frozenset({"blank"}),
     )
 
     assert len(built.rows) == 1
@@ -317,7 +324,7 @@ def test_workbook_atomically_replaces_an_existing_formal_file(
     tmp_path: Path,
 ) -> None:
     settings = _settings(tmp_path)
-    path = tmp_path / "装卸车明细-山西贵恩博-2026-08-01.xlsx"
+    path = tmp_path / "20260801-山西贵恩博-金鸡滩煤矿装卸车明细.xlsx"
     path.write_bytes(b"manual edit")
 
     result = DailyReportWorkbook().write_pending(
@@ -329,3 +336,134 @@ def test_workbook_atomically_replaces_an_existing_formal_file(
     assert result.path == path
     assert path.read_bytes() != b"manual edit"
     DailyReportWorkbook().validate_existing(path, row_count=0)
+
+
+def test_platform_time_never_decides_report_inclusion_or_business_time(
+    tmp_path: Path,
+) -> None:
+    platform_only = _revision(
+        identity="platform-only",
+        loading_time=None,
+        unloading_time=None,
+        vehicle="B",
+        loading=Decimal("32.00"),
+        unloading=Decimal("31.90"),
+    )
+
+    result = build_daily_report_result(
+        business_date=date(2026, 8, 1),
+        settings=_settings(tmp_path),
+        revisions=(platform_only,),
+        platform_loading_times={
+            "platform-only": datetime(2026, 8, 1, 15, 0, tzinfo=SHANGHAI)
+        },
+    )
+
+    assert result.rows == ()
+    assert result.window_excluded_count == 0
+    assert result.missing_effective_time_count == 1
+
+
+def test_report_sort_uses_platform_time_only_when_both_business_times_are_blank(
+    tmp_path: Path,
+) -> None:
+    loading = _revision(
+        identity="loading",
+        loading_time=datetime(2026, 8, 1, 15, 0, tzinfo=SHANGHAI),
+        unloading_time=datetime(2026, 8, 1, 16, 0, tzinfo=SHANGHAI),
+        vehicle="A",
+        loading=Decimal("32.00"),
+        unloading=Decimal("31.90"),
+    )
+    unloading_only = _revision(
+        identity="unloading-only",
+        loading_time=None,
+        unloading_time=datetime(2026, 8, 2, 7, 21, tzinfo=SHANGHAI),
+        vehicle="B",
+        loading=Decimal("33.00"),
+        unloading=Decimal("32.90"),
+    )
+    blank_late = _revision(
+        identity="blank-late",
+        loading_time=None,
+        unloading_time=None,
+        vehicle="C",
+        loading=Decimal("34.00"),
+        unloading=Decimal("33.90"),
+    )
+    blank_early = _revision(
+        identity="blank-early",
+        loading_time=None,
+        unloading_time=None,
+        vehicle="D",
+        loading=Decimal("35.00"),
+        unloading=Decimal("34.90"),
+    )
+
+    kwargs = {
+        "business_date": date(2026, 8, 1),
+        "settings": _settings(tmp_path),
+        "revisions": (blank_late, unloading_only, blank_early, loading),
+        "primary_loading_time_ids": frozenset(
+            {"loading", "unloading-only", "blank-late", "blank-early"}
+        ),
+        "manual_loading_time_ids": frozenset(
+            {"unloading-only", "blank-late", "blank-early"}
+        ),
+    }
+    first = build_daily_report_result(
+        **kwargs,
+        platform_loading_times={
+            "blank-late": datetime(2026, 8, 2, 13, 0, tzinfo=SHANGHAI),
+            "blank-early": datetime(2026, 8, 2, 12, 0, tzinfo=SHANGHAI),
+        },
+    )
+    second = build_daily_report_result(
+        **kwargs,
+        platform_loading_times={
+            "blank-late": datetime(2026, 8, 2, 11, 0, tzinfo=SHANGHAI),
+            "blank-early": datetime(2026, 8, 2, 13, 0, tzinfo=SHANGHAI),
+        },
+    )
+
+    assert [row.platform_waybill_id for row in first.rows] == [
+        "loading",
+        "unloading-only",
+        "blank-early",
+        "blank-late",
+    ]
+    assert [row.platform_waybill_id for row in second.rows] == [
+        "loading",
+        "unloading-only",
+        "blank-late",
+        "blank-early",
+    ]
+    assert {
+        row.platform_waybill_id: row.values()[1:] for row in first.rows
+    } == {
+        row.platform_waybill_id: row.values()[1:] for row in second.rows
+    }
+
+
+def test_pending_unloading_is_exported_as_zero_weight_and_blank_time(
+    tmp_path: Path,
+) -> None:
+    pending = _revision(
+        identity="pending",
+        loading_time=datetime(2026, 8, 1, 15, 0, tzinfo=SHANGHAI),
+        unloading_time=datetime(2026, 8, 1, 16, 0, tzinfo=SHANGHAI),
+        vehicle="A",
+        loading=Decimal("32.00"),
+        unloading=None,
+        unloading_ticket=False,
+    )
+
+    rows = build_daily_report_rows(
+        business_date=date(2026, 8, 1),
+        settings=_settings(tmp_path),
+        revisions=(pending,),
+        primary_loading_time_ids=frozenset({"pending"}),
+    )
+
+    assert rows[0].unloading_net_tonnes == Decimal("0.00")
+    assert rows[0].unloading_time is None

@@ -24,6 +24,7 @@ from dahe.adapters.sqlite.schema import (
     PLATFORM_JOB_SUBJECTS,
     WORK_ITEMS,
 )
+from dahe.application.daily.ocr_fields import extract_ordinary_net_tonnes
 from dahe.application.daily.unloading_time import (
     extract_loading_time,
     extract_unloading_time,
@@ -117,21 +118,13 @@ class SqliteDailyItemRepository:
             contract_subject_code=contract_subject_code,
         )
         outputs = self._load_latest_ocr_outputs(
-            tuple(
-                waybill_number
-                for revision in revisions
-                if (waybill_number := revision.waybill_number) is not None
-            ),
+            revisions,
             contract_subject_code=contract_subject_code,
         )
         return tuple(
             self._view_for_machine(
                 revision,
-                ocr_outputs=(
-                    outputs.get(revision.waybill_number)
-                    if revision.waybill_number is not None
-                    else None
-                ),
+                ocr_outputs=outputs.get(revision.platform_waybill_id),
                 materialized_at=materialized[revision.observation_id],
                 contract_subject_code=contract_subject_code,
             )
@@ -308,14 +301,10 @@ class SqliteDailyItemRepository:
         if machine.observation_id not in materialized:
             raise DailyItemConflictError("daily item processing is not complete")
         outputs = self._load_latest_ocr_outputs(
-            (machine.waybill_number,) if machine.waybill_number is not None else (),
+            (machine,),
             contract_subject_code=contract_subject_code,
         )
-        output = (
-            outputs.get(machine.waybill_number)
-            if machine.waybill_number is not None
-            else None
-        )
+        output = outputs.get(machine.platform_waybill_id)
         return self._view_for_machine(
             machine,
             ocr_outputs=output,
@@ -347,16 +336,12 @@ class SqliteDailyItemRepository:
         if machine is None:
             raise DailyItemConflictError("daily item processing is not complete")
         outputs = self._load_latest_ocr_outputs(
-            (machine.waybill_number,) if machine.waybill_number is not None else (),
+            (machine,),
             contract_subject_code=contract_subject_code,
         )
         return self._view_for_machine(
             machine,
-            ocr_outputs=(
-                outputs.get(machine.waybill_number)
-                if machine.waybill_number is not None
-                else None
-            ),
+            ocr_outputs=outputs.get(machine.platform_waybill_id),
             materialized_at=materialized[machine.observation_id],
             contract_subject_code=contract_subject_code,
         )
@@ -375,21 +360,13 @@ class SqliteDailyItemRepository:
         )
         result: list[DailyRecordRevision] = []
         outputs = self._load_latest_ocr_outputs(
-            tuple(
-                waybill_number
-                for revision in machine
-                if (waybill_number := revision.waybill_number) is not None
-            ),
+            machine,
             contract_subject_code=contract_subject_code,
         )
         for revision in machine:
             view = self._view_for_machine(
                 revision,
-                ocr_outputs=(
-                    outputs.get(revision.waybill_number)
-                    if revision.waybill_number is not None
-                    else None
-                ),
+                ocr_outputs=outputs.get(revision.platform_waybill_id),
                 materialized_at=materialized[revision.observation_id],
                 contract_subject_code=contract_subject_code,
             )
@@ -425,6 +402,7 @@ class SqliteDailyItemRepository:
                 connection.execute(
                     select(
                         DAILY_MANUAL_REVISIONS.c.platform_waybill_id,
+                        DAILY_MANUAL_REVISIONS.c.base_loading_ticket_sha256,
                         DAILY_MANUAL_REVISIONS.c.changes_json,
                     )
                     .where(
@@ -439,10 +417,20 @@ class SqliteDailyItemRepository:
                 ).mappings()
             )
         result: set[str] = set()
+        current_loading_hashes = {
+            revision.platform_waybill_id: revision.loading_ticket_sha256
+            for revision in revisions
+        }
         for row in rows:
+            platform_waybill_id = str(row["platform_waybill_id"])
+            if (
+                row["base_loading_ticket_sha256"]
+                != current_loading_hashes.get(platform_waybill_id)
+            ):
+                continue
             payload = json.loads(str(row["changes_json"]))
             if isinstance(payload, dict) and "loading_time" in payload:
-                result.add(str(row["platform_waybill_id"]))
+                result.add(platform_waybill_id)
         return frozenset(result)
 
     def primary_loading_time_ids(
@@ -460,23 +448,15 @@ class SqliteDailyItemRepository:
             )
         )
         outputs = self._load_latest_ocr_outputs(
-            tuple(
-                waybill_number
-                for revision in revisions
-                if (waybill_number := revision.waybill_number) is not None
-            ),
+            revisions,
             contract_subject_code=contract_subject_code,
         )
         for revision in revisions:
-            if revision.waybill_number is None:
-                continue
-            output = outputs.get(revision.waybill_number)
+            output = outputs.get(revision.platform_waybill_id)
             if output is None:
                 continue
             if extract_loading_time(
                 output[0],
-                platform_loading_time=revision.fields.loading_time,
-                planned_date=revision.fields.planned_date,
             ) is not None:
                 result.add(revision.platform_waybill_id)
         return frozenset(result)
@@ -637,31 +617,55 @@ class SqliteDailyItemRepository:
                     .order_by(DAILY_MANUAL_REVISIONS.c.manual_revision_number)
                 ).mappings()
             )
-        payload = _field_payload(machine.fields)
+        machine_payload = _field_payload(machine.fields)
+        machine_payload["loading_time"] = None
+        machine_payload["unloading_time"] = None
+        machine_payload["loading_net_tonnes"] = None
+        machine_payload["unloading_net_tonnes"] = None
+        machine = replace(
+            machine,
+            fields=DailyObservationFields.from_payload(machine_payload),
+        )
+        payload = dict(machine_payload)
         sources = {field: "machine" for field in EDITABLE_FIELDS}
         updated_at = machine.created_at.isoformat()
         loading_output = None if ocr_outputs is None else ocr_outputs[0]
         unloading_output = None if ocr_outputs is None else ocr_outputs[1]
         outputs_updated_at = None if ocr_outputs is None else ocr_outputs[2]
         if loading_output is not None:
+            extracted_loading_net = extract_ordinary_net_tonnes(
+                loading_output,
+                expected_image_sha256=machine.loading_ticket_sha256,
+            )
+            if extracted_loading_net is not None:
+                payload["loading_net_tonnes"] = str(extracted_loading_net)
+                sources["loading_net_tonnes"] = "ocr"
+                assert outputs_updated_at is not None
+                updated_at = outputs_updated_at
             extracted_loading = extract_loading_time(
                 loading_output,
-                platform_loading_time=machine.fields.loading_time,
-                planned_date=machine.fields.planned_date,
             )
             if extracted_loading is not None:
                 payload["loading_time"] = extracted_loading.isoformat()
                 sources["loading_time"] = "ocr"
                 assert outputs_updated_at is not None
                 updated_at = outputs_updated_at
-        if payload.get("unloading_time") is None and unloading_output is not None:
+        if unloading_output is not None:
+            extracted_unloading_net = extract_ordinary_net_tonnes(
+                unloading_output,
+                expected_image_sha256=machine.unloading_ticket_sha256,
+            )
+            if extracted_unloading_net is not None:
+                payload["unloading_net_tonnes"] = str(extracted_unloading_net)
+                sources["unloading_net_tonnes"] = "ocr"
+                assert outputs_updated_at is not None
+                updated_at = outputs_updated_at
             effective_loading_time = DailyObservationFields.from_payload(
                 payload
             ).loading_time
             extracted = extract_unloading_time(
                 unloading_output,
                 loading_time=effective_loading_time,
-                planned_date=machine.fields.planned_date,
             )
             if extracted is not None:
                 payload["unloading_time"] = extracted.isoformat()
@@ -930,12 +934,20 @@ class SqliteDailyItemRepository:
 
     def _load_latest_ocr_outputs(
         self,
-        waybill_numbers: tuple[str, ...],
+        revisions: tuple[DailyRecordRevision, ...],
         *,
         contract_subject_code: str = "shanxi_guienbo",
     ) -> dict[str, tuple[str | None, str | None, str]]:
-        if not waybill_numbers:
+        if not revisions:
             return {}
+        identities: dict[str, list[DailyRecordRevision]] = {}
+        for revision in revisions:
+            if revision.waybill_number is None:
+                continue
+            identities.setdefault(revision.waybill_number, []).append(revision)
+        if not identities:
+            return {}
+        waybill_numbers = tuple(sorted(identities))
         linked_jobs = select(DAILY_OPERATIONAL_OCR_BATCHES.c.ocr_job_id).where(
             DAILY_OPERATIONAL_OCR_BATCHES.c.ocr_job_id.is_not(None)
         ).union(
@@ -949,6 +961,8 @@ class SqliteDailyItemRepository:
                 connection.execute(
                     select(
                         WORK_ITEMS.c.waybill_number,
+                        WORK_ITEMS.c.loading_image_sha256,
+                        WORK_ITEMS.c.unloading_image_sha256,
                         OCR_RUN_GENERATIONS.c.loading_output_json,
                         OCR_RUN_GENERATIONS.c.unloading_output_json,
                         OCR_RUN_GENERATIONS.c.updated_at,
@@ -976,13 +990,44 @@ class SqliteDailyItemRepository:
                     .order_by(OCR_RUN_GENERATIONS.c.updated_at.desc())
                 )
             )
-        result: dict[str, tuple[str | None, str | None, str]] = {}
-        for waybill_number, loading_json, unloading_json, updated_at in rows:
-            key = str(waybill_number)
-            if key not in result:
-                result[key] = (
-                    None if loading_json is None else str(loading_json),
-                    None if unloading_json is None else str(unloading_json),
-                    str(updated_at),
+        partial: dict[str, list[str | None]] = {}
+        for (
+            waybill_number,
+            loading_image_sha256,
+            unloading_image_sha256,
+            loading_json,
+            unloading_json,
+            updated_at,
+        ) in rows:
+            loading_hash = (
+                None if loading_image_sha256 is None else str(loading_image_sha256)
+            )
+            unloading_hash = (
+                None
+                if unloading_image_sha256 is None
+                else str(unloading_image_sha256)
+            )
+            for revision in identities.get(str(waybill_number), ()):
+                output = partial.setdefault(
+                    revision.platform_waybill_id,
+                    [None, None, None],
                 )
-        return result
+                if (
+                    output[0] is None
+                    and loading_json is not None
+                    and loading_hash == revision.loading_ticket_sha256
+                ):
+                    output[0] = str(loading_json)
+                    output[2] = str(updated_at)
+                if (
+                    output[1] is None
+                    and unloading_json is not None
+                    and unloading_hash == revision.unloading_ticket_sha256
+                ):
+                    output[1] = str(unloading_json)
+                    output[2] = max(str(output[2] or ""), str(updated_at))
+        return {
+            platform_waybill_id: (output[0], output[1], str(output[2]))
+            for platform_waybill_id, output in partial.items()
+            if output[0] is not None or output[1] is not None
+        }

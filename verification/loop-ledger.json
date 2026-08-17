@@ -3,48 +3,47 @@
   "current_loop": "loop-18",
   "gate_results": [
     {
-      "evidence": "verification/loops/loop-18/20260816T140627+0800/gate-a-baseline-and-report.json",
-      "id": "loop-18-rebuild-gate-a-baseline-and-report",
+      "evidence": "verification/loops/loop-18/20260817T020425+0800/gate-a-source-isolation.json",
+      "id": "loop-18-platform-time-correction-gate-a",
       "status": "passed"
     },
     {
-      "evidence": "verification/loops/loop-18/20260816T140627+0800/gate-b-vehicle-ocr-and-ui.json",
-      "id": "loop-18-rebuild-gate-b-vehicle-ocr-and-ui",
+      "evidence": "verification/loops/loop-18/20260817T020425+0800/gate-b-standard-report-parity.json",
+      "id": "loop-18-platform-time-correction-gate-b",
       "status": "passed"
     },
     {
-      "evidence": "verification/loops/loop-18/20260816T140627+0800/gate-c-development-candidate.json",
-      "id": "loop-18-rebuild-gate-c-development-candidate",
+      "evidence": "verification/loops/loop-18/20260817T020425+0800/gate-c-capability-regression.json",
+      "id": "loop-18-platform-time-correction-gate-c",
       "status": "passed"
     },
     {
-      "evidence": "verification/loops/loop-18/20260816T140627+0800/correction-daily-range-and-progress-projection.json",
-      "id": "loop-18-rebuild-daily-range-and-progress-projection",
-      "status": "passed"
+      "evidence": "verification/loops/loop-18/20260817T020425+0800/final-corrected-release.json",
+      "id": "loop-18-platform-time-correction-release",
+      "status": "pending"
     }
   ],
   "input_manifest": {
-    "path": "verification/loops/loop-18/20260816T140627+0800/input-manifest.json",
-    "sha256": "47713dd552a5ea43e360206032d3173a22961e53aaa3ec8d8a3e0abe29993a28"
+    "path": "verification/loops/loop-18/20260817T020425+0800/input-manifest.json",
+    "sha256": "b00eeb62b61a5cbf9f685736bd035b0e99a4b7a9efce95c4a745dfa79541b0a3"
   },
-  "last_accepted_git_commit": "5bb18c35bfc26cc1f3a7c26655d307cb7ed9bca9",
+  "last_accepted_git_commit": "15a492e9764eadaa48c264746424d3f8567ed751",
   "next_inputs": [
-    "Obtain user acceptance of the development candidate before any installer, public source, GitHub Release, or company-computer deployment work.",
-    "Use the unique desktop development shortcut for acceptance and keep the installed application removed.",
-    "Treat Hillstone as a likely external Chengfeng connectivity risk and do not change VPN, proxy, DNS, or routing settings from this project.",
-    "Keep every Chengfeng business write disabled."
+    "Freeze a clean internal correction commit and export one sanitized public source tree.",
+    "Build and verify the five corrected v1.1.4 assets from that public commit.",
+    "Replace the Draft release assets, redownload them, verify every SHA-256, and only then publish Latest.",
+    "Keep this computer development-only and do not deploy the company computer."
   ],
   "operational_acceptance": null,
   "project_id": "DaHeLogistics",
-  "revision": 63,
-  "run_id": "20260816T140627+0800",
+  "revision": 65,
+  "run_id": "20260817T020425+0800",
   "schema_version": 4,
   "status": "in_progress",
   "unresolved_risks": [
-    "Nine symlink-only checks remain skipped because the current Windows account cannot create symbolic links.",
-    "Hillstone interference is strongly indicated by the controlled daily retry but exclusive causality is not proven.",
-    "The settlement opening phase label and early remaining-time estimate are not yet representative of actual sub-stage timing; the false 1/1 shadow-review projection is fixed.",
-    "The user has not yet accepted this development candidate; publication remains prohibited."
+    "Nine symlink-only tests remain skipped because the current Windows account cannot create symbolic links.",
+    "Formal asset construction, isolated installation validation, Defender scans, and GitHub redownload parity are pending.",
+    "Unsigned Windows binaries can still display SmartScreen unknown-publisher warnings even though Defender found no threats."
   ],
   "waiver": null
 }

@@ -38,9 +38,9 @@ root that happened to receive those contracts during development or repair.
 Loop 18 separates the complete daily candidate snapshot from the formal report
 window. New daily reads freeze a configurable candidate range that defaults to
 business-day 14:00 through server-now; the workbook independently includes only
-effective loading times in `[14:00, next-day 14:00)`. Loading-ticket OCR or a
-manual revision is primary, while platform loading time is a blank-cell fallback
-for inclusion and ordering. Offline OCR keeps one persistent GPU Worker and
+qualified OCR or manually confirmed loading times in `[14:00, next-day 14:00)`.
+Platform time is never a business-field source and may only be an in-memory sort
+key when both report times are blank. Offline OCR keeps one persistent GPU Worker and
 processes one vehicle at a time. OCR protocol v2 sends the vehicle's one or two
 available tickets through one ordered fast batch, refines only the unresolved
 side, persists the vehicle atomically, and then advances progress by one vehicle.

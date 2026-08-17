@@ -625,10 +625,21 @@ def _missing_ticket_business_spec(fixture_id: str) -> ScheduledJobSpec:
     )
 
 
-def test_platform_missing_ticket_routes_to_business_review_without_ocr(
+def test_platform_missing_unloading_ticket_ocr_reads_existing_loading_ticket(
+    project_root: Path,
     tmp_path: Path,
 ) -> None:
-    repository = TemporarySqliteJobRepository(tmp_path / "data")
+    backend = _backend(
+        project_root,
+        tmp_path / "workers",
+        gpu_profile="gpu-qualified",
+    )
+    evaluator = _ReviewLocalAuditEvaluator()
+    repository = TemporarySqliteJobRepository(
+        tmp_path / "data",
+        ocr_execution_backend=backend,
+        local_audit_evaluator=evaluator,
+    )
     scheduler = CooperativeScheduler(repository)
     try:
         job_id = _create(
@@ -640,13 +651,28 @@ def test_platform_missing_ticket_routes_to_business_review_without_ocr(
             lambda: repository.get_job(job_id).status is JobStatus.WAITING_USER,
         )
         item = repository.list_items(job_id)[0]
+        with repository._runtime.engine.connect() as connection:
+            generation = connection.execute(
+                text(
+                    "SELECT loading_output_json, unloading_output_json, status "
+                    "FROM ocr_run_generations WHERE work_item_id = :work_item_id"
+                ),
+                {"work_item_id": item.work_item_id},
+            ).mappings().one()
     finally:
+        backend.close()
         repository.close()
 
     assert item.status is WorkItemStatus.WAITING_USER
     assert item.business_outcome == "awaiting_review"
     assert item.review_reason == "missing_ticket"
     assert item.diagnostic_code is None
+    assert item.loading_ocr_complete is True
+    assert item.unloading_ocr_complete is True
+    assert generation["loading_output_json"] is not None
+    assert generation["unloading_output_json"] is None
+    assert generation["status"] == "succeeded"
+    assert evaluator.calls == []
 
 
 def test_local_business_job_finishes_with_domain_evaluator_result(

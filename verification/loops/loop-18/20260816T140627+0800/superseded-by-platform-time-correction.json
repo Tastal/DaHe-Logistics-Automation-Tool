@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "kind": "loop_18_supersession_evidence",
+  "recorded_at": "2026-08-17T02:10:00+08:00",
+  "result": "accepted_evidence_invalidated_by_business_source_contamination",
+  "reason": "The user proved that platform timestamps had contaminated loading-time business fields and the generated report. The prior release gates did not validate business-field provenance against the designated standard workbook.",
+  "replacement_run_id": "20260817T020425+0800",
+  "preserved_evidence": true,
+  "public_release_action": "v1.1.4 converted back to Draft before corrected assets are built",
+  "platform_accessed_during_correction": false,
+  "production_database_modified": false
+}

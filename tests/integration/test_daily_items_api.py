@@ -44,6 +44,33 @@ PROJECT_ROOT = Path(__file__).parents[2]
 HASH_A = hashlib.sha256(b"daily-item-a").hexdigest()
 HASH_B = hashlib.sha256(b"daily-item-b").hexdigest()
 HASH_C = hashlib.sha256(b"daily-item-c").hexdigest()
+OCR_RUNTIME_HASH = hashlib.sha256(b"daily-item-ocr-runtime").hexdigest()
+
+
+def _ocr_weight_output(*, image_sha256: str, amount: str) -> str:
+    return json.dumps(
+        {
+            "protocol_version": 1,
+            "command_id": f"daily-item-{image_sha256[:8]}",
+            "status": "ok",
+            "worker_identity": "daily-item-test-worker",
+            "runtime_fingerprint": OCR_RUNTIME_HASH,
+            "verified_image_sha256": image_sha256,
+            "elapsed_ms": 1.0,
+            "text_lines": [],
+            "fields": {
+                "ordinary_net": {
+                    "raw_text": f"净重 {amount} t",
+                    "amount": amount,
+                    "unit": "t",
+                    "confidence": "0.99",
+                }
+            },
+            "role_observation": None,
+            "error": None,
+        },
+        ensure_ascii=False,
+    )
 
 
 def _fixture(
@@ -52,6 +79,7 @@ def _fixture(
     item_count: int = 1,
     missing_unloading_net_tonnes: bool = False,
     missing_unloading_time: bool = False,
+    seed_manual_loading_time: bool = True,
 ) -> tuple[TestClient, SqliteRuntime, SqliteDailyStore]:
     runtime = SqliteRuntime(
         data_root=tmp_path / "data",
@@ -106,6 +134,35 @@ def _fixture(
                 observed_at=captured_at,
             )
         )
+        if seed_manual_loading_time:
+            resolved_changes: dict[str, object] = {
+                "loading_net_tonnes": "33.08",
+                "loading_time": "2026-08-05T18:57:54+08:00",
+            }
+            if not missing_unloading_net_tonnes:
+                resolved_changes["unloading_net_tonnes"] = "33.04"
+            if not missing_unloading_time:
+                resolved_changes["unloading_time"] = (
+                    "2026-08-05T19:42:27+08:00"
+                )
+            with runtime.commit_gate.transaction(runtime.engine) as connection:
+                connection.execute(
+                    DAILY_MANUAL_REVISIONS.insert().values(
+                        action_id=f"fixture-loading-{index}",
+                        platform_waybill_id=f"platform-{index}",
+                        contract_subject_code="shanxi_guienbo",
+                        manual_revision_number=1,
+                        base_observation_id=f"daily-items-observation-{index}",
+                        base_loading_ticket_sha256=HASH_B,
+                        base_unloading_ticket_sha256=HASH_C,
+                        changes_json=json.dumps(
+                            resolved_changes,
+                            separators=(",", ":"),
+                        ),
+                        request_hash=HASH_A,
+                        created_at=captured_at.isoformat(),
+                    )
+                )
     repository = SqliteDailyItemRepository(runtime, store)
 
     def require_session() -> None:
@@ -162,7 +219,10 @@ def test_saved_business_day_lists_all_70_items_without_a_new_capture(
 def test_loading_ticket_ocr_time_overrides_platform_time_with_explicit_source(
     tmp_path: Path,
 ) -> None:
-    _client, runtime, store = _fixture(tmp_path)
+    _client, runtime, store = _fixture(
+        tmp_path,
+        seed_manual_loading_time=False,
+    )
     repository = SqliteDailyItemRepository(runtime, store)
     machine = store.list_revisions("platform-1")[-1]
     output = json.dumps(
@@ -187,6 +247,81 @@ def test_loading_ticket_ocr_time_overrides_platform_time_with_explicit_source(
             2026, 8, 5, 18, 55, 3, tzinfo=SHANGHAI
         )
         assert projected.field_sources["loading_time"] == "ocr"
+    finally:
+        runtime.close()
+
+
+@pytest.mark.integration
+def test_platform_loading_time_is_never_exposed_as_a_business_time(
+    tmp_path: Path,
+) -> None:
+    client, runtime, _store = _fixture(
+        tmp_path,
+        seed_manual_loading_time=False,
+    )
+    try:
+        body = client.get(
+            "/api/v1/daily/items?business_date=2026-08-05"
+        ).json()
+
+        assert body["counts"]["needs_review"] == 1
+        item = body["items"][0]
+        assert item["machine_fields"]["loading_time"] is None
+        assert item["effective_fields"]["loading_time"] is None
+        assert item["field_issues"]["loading_time"]["has_issue"] is True
+        assert item["time_prefill"]["loading_date"] == "2026-08-05"
+    finally:
+        runtime.close()
+
+
+@pytest.mark.integration
+def test_current_ticket_ocr_weights_replace_platform_detail_weights(
+    tmp_path: Path,
+) -> None:
+    _client, runtime, store = _fixture(
+        tmp_path,
+        seed_manual_loading_time=False,
+    )
+    repository = SqliteDailyItemRepository(runtime, store)
+    machine = store.list_revisions("platform-1")[-1]
+    try:
+        projected = repository._view_for_machine(
+            machine,
+            ocr_outputs=(
+                _ocr_weight_output(image_sha256=HASH_B, amount="33.12"),
+                _ocr_weight_output(image_sha256=HASH_C, amount="32.98"),
+                "2026-08-05T20:01:00+08:00",
+            ),
+        )
+
+        assert projected.machine.fields.loading_net_tonnes is None
+        assert projected.machine.fields.unloading_net_tonnes is None
+        assert projected.effective_fields.loading_net_tonnes == Decimal("33.12")
+        assert projected.effective_fields.unloading_net_tonnes == Decimal("32.98")
+        assert projected.field_sources["loading_net_tonnes"] == "ocr"
+        assert projected.field_sources["unloading_net_tonnes"] == "ocr"
+    finally:
+        runtime.close()
+
+
+@pytest.mark.integration
+def test_platform_detail_weights_are_not_exposed_without_current_ocr(
+    tmp_path: Path,
+) -> None:
+    client, runtime, _store = _fixture(
+        tmp_path,
+        seed_manual_loading_time=False,
+    )
+    try:
+        item = client.get(
+            "/api/v1/daily/items?business_date=2026-08-05"
+        ).json()["items"][0]
+
+        assert item["machine_fields"]["loading_net_tonnes"] is None
+        assert item["machine_fields"]["unloading_net_tonnes"] is None
+        assert item["effective_fields"]["loading_net_tonnes"] is None
+        assert item["effective_fields"]["unloading_net_tonnes"] is None
+        assert item["review_state"] == "needs_review"
     finally:
         runtime.close()
 
@@ -387,10 +522,15 @@ def test_whole_run_projects_unchanged_current_observation_without_duplicate_revi
             manual_rows = tuple(
                 connection.execute(select(DAILY_MANUAL_REVISIONS)).mappings()
             )
-        assert len(manual_rows) == 1
-        assert manual_rows[0]["base_observation_id"] == (
-            "daily-items-current-observation"
-        )
+            assert len(manual_rows) == 2
+            saved_manual = next(
+                row
+                for row in manual_rows
+                if row["action_id"] != "fixture-loading-1"
+            )
+            assert saved_manual["base_observation_id"] == (
+                "daily-items-current-observation"
+            )
 
         report_revisions = SqliteDailyItemRepository(
             runtime,
@@ -553,7 +693,7 @@ def test_explicit_blank_survives_until_the_corresponding_ticket_changes(
             )
         )
         current = client.get("/api/v1/daily/items?business_date=2026-08-05").json()["items"][0]
-        assert current["effective_fields"]["loading_net_tonnes"] == "33.08"
+        assert current["effective_fields"]["loading_net_tonnes"] is None
         assert current["field_sources"]["loading_net_tonnes"] == "machine"
         assert current["effective_fields"]["unloading_net_tonnes"] == "32.90"
         assert current["field_sources"]["unloading_net_tonnes"] == "manual"

@@ -102,13 +102,11 @@ def _item_payload(item: DailyItemView, *, business_date: date) -> dict[str, obje
     review_state = "reviewed" if all(resolved.values()) else "needs_review"
     loading_date = (
         _date_value(effective["loading_time"])
-        or _date_value(machine["loading_time"])
         or business_date.isoformat()
     )
     unloading_date = (
         _date_value(effective["unloading_time"])
         or _date_value(effective["loading_time"])
-        or _date_value(machine["loading_time"])
         or business_date.isoformat()
     )
     return {

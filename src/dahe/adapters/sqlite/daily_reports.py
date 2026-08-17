@@ -426,13 +426,26 @@ class SqliteDailyReportRepository:
                 contract_subject_code=subject_code,
             )
         )
+        manual_loading_time_ids = (
+            frozenset()
+            if self._daily_items is None
+            else self._daily_items.manual_loading_time_ids(
+                revisions,
+                contract_subject_code=subject_code,
+            )
+        )
         built = build_daily_report_result(
             business_date=business_date,
             settings=settings,
             revisions=revisions,
             platform_loading_times=platform_loading_times,
             primary_loading_time_ids=primary_loading_time_ids,
+            manual_loading_time_ids=manual_loading_time_ids,
         )
+        if built.missing_effective_time_count:
+            raise DailyReportConflictError(
+                "仍有出矿时间未完成核对，不能生成报表"
+            )
         rows = built.rows
         try:
             generated = self._workbook.write_report(

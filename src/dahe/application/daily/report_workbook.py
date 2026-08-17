@@ -89,6 +89,20 @@ def validate_report_output_directory(value: Path) -> None:
             raise ValueError("output_directory contains an invalid Windows path")
 
 
+def _validate_report_filename_component(value: str, *, field: str) -> str:
+    component = value.strip()
+    validate_report_text(component, field=field)
+    reserved_name = component.rstrip(" .").split(".", maxsplit=1)[0].upper()
+    if (
+        not component
+        or any(character in _WINDOWS_INVALID_PATH_CHARACTERS for character in component)
+        or component.endswith((" ", "."))
+        or reserved_name in _WINDOWS_RESERVED_PATH_NAMES
+    ):
+        raise ValueError(f"{field} contains an invalid Windows file name")
+    return component
+
+
 class DailyReportWorkbookError(RuntimeError):
     """Raised when a formal report cannot be created without data loss."""
 
@@ -219,6 +233,7 @@ def build_daily_report_rows(
     revisions: tuple[DailyRecordRevision, ...],
     platform_loading_times: dict[str, datetime | None] | None = None,
     primary_loading_time_ids: frozenset[str] = frozenset(),
+    manual_loading_time_ids: frozenset[str] = frozenset(),
 ) -> tuple[DailyReportRow, ...]:
     return build_daily_report_result(
         business_date=business_date,
@@ -226,6 +241,7 @@ def build_daily_report_rows(
         revisions=revisions,
         platform_loading_times=platform_loading_times,
         primary_loading_time_ids=primary_loading_time_ids,
+        manual_loading_time_ids=manual_loading_time_ids,
     ).rows
 
 
@@ -236,39 +252,60 @@ def build_daily_report_result(
     revisions: tuple[DailyRecordRevision, ...],
     platform_loading_times: dict[str, datetime | None] | None = None,
     primary_loading_time_ids: frozenset[str] = frozenset(),
+    manual_loading_time_ids: frozenset[str] = frozenset(),
 ) -> DailyReportBuildResult:
     platform_times = platform_loading_times or {}
     window_start = datetime.combine(business_date, time(14, 0), tzinfo=SHANGHAI)
     window_end = window_start + timedelta(days=1)
-    included: list[tuple[DailyRecordRevision, datetime, datetime | None]] = []
+    included: list[tuple[DailyRecordRevision, datetime | None]] = []
     outside = 0
     missing = 0
     for revision in revisions:
-        image_or_manual_time = (
-            revision.fields.loading_time
-            if revision.platform_waybill_id in primary_loading_time_ids
-            else None
-        )
-        effective_time = image_or_manual_time or platform_times.get(
-            revision.platform_waybill_id
-        )
-        if effective_time is None:
+        identity = revision.platform_waybill_id
+        if identity not in primary_loading_time_ids:
             missing += 1
             continue
-        local_effective = effective_time.astimezone(SHANGHAI)
-        if not window_start <= local_effective < window_end:
-            outside += 1
-            continue
-        included.append((revision, local_effective, image_or_manual_time))
+        primary_time = revision.fields.loading_time
+        if primary_time is None:
+            if identity not in manual_loading_time_ids:
+                missing += 1
+                continue
+        else:
+            local_primary = primary_time.astimezone(SHANGHAI)
+            if not window_start <= local_primary < window_end:
+                outside += 1
+                continue
+            primary_time = local_primary
+        included.append((revision, primary_time))
 
-    ordered = sorted(
-        included,
-        key=lambda value: (
-            value[1],
-            value[0].fields.vehicle_number or "",
-            value[0].platform_waybill_id,
-        ),
-    )
+    maximum_time = datetime.max.replace(tzinfo=SHANGHAI)
+
+    def sort_key(
+        value: tuple[DailyRecordRevision, datetime | None],
+    ) -> tuple[int, datetime, str, str]:
+        revision, primary_time = value
+        if primary_time is not None:
+            bucket = 0
+            ordering_time = primary_time
+        elif revision.fields.unloading_time is not None:
+            bucket = 1
+            ordering_time = revision.fields.unloading_time.astimezone(SHANGHAI)
+        elif (
+            platform_time := platform_times.get(revision.platform_waybill_id)
+        ) is not None:
+            bucket = 2
+            ordering_time = platform_time.astimezone(SHANGHAI)
+        else:
+            bucket = 3
+            ordering_time = maximum_time
+        return (
+            bucket,
+            ordering_time,
+            revision.waybill_number or revision.platform_waybill_id,
+            revision.fields.vehicle_number or "",
+        )
+
+    ordered = sorted(included, key=sort_key)
     rows = tuple(
         DailyReportRow(
             sequence=index,
@@ -277,19 +314,25 @@ def build_daily_report_result(
             loading_time=_format_datetime(primary_time, minutes_only=False),
             vehicle_number=revision.fields.vehicle_number,
             loading_net_tonnes=revision.fields.loading_net_tonnes,
-            unloading_net_tonnes=revision.fields.unloading_net_tonnes,
+            unloading_net_tonnes=(
+                Decimal("0.00")
+                if revision.unloading_ticket_sha256 is None
+                else revision.fields.unloading_net_tonnes
+            ),
             coal_type=settings.coal_type,
             unloading_place=settings.unloading_place,
-            unloading_time=_format_datetime(
-                revision.fields.unloading_time,
-                minutes_only=True,
+            unloading_time=(
+                None
+                if revision.unloading_ticket_sha256 is None
+                else _format_datetime(
+                    revision.fields.unloading_time,
+                    minutes_only=True,
+                )
             ),
             platform_waybill_id=revision.platform_waybill_id,
             source_revision_id=revision.revision_id,
         )
-        for index, (revision, _effective_time, primary_time) in enumerate(
-            ordered, start=1
-        )
+        for index, (revision, primary_time) in enumerate(ordered, start=1)
     )
     return DailyReportBuildResult(
         rows=rows,
@@ -364,8 +407,16 @@ class DailyReportWorkbook:
     ) -> DailyReportWorkbookResult:
         output_directory = settings.output_directory.resolve()
         output_directory.mkdir(parents=True, exist_ok=True)
+        subject_label = _validate_report_filename_component(
+            contract_subject_label,
+            field="contract_subject_label",
+        )
+        shipping_mine = _validate_report_filename_component(
+            settings.shipping_mine,
+            field="shipping_mine",
+        )
         final = output_directory / (
-            f"装卸车明细-{contract_subject_label}-{business_date:%Y-%m-%d}.xlsx"
+            f"{business_date:%Y%m%d}-{subject_label}-{shipping_mine}装卸车明细.xlsx"
         )
         temporary = output_directory / f".{final.name}.{uuid4().hex}.tmp.xlsx"
         loading_total = sum(
